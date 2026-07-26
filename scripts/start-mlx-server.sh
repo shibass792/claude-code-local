@@ -5,7 +5,7 @@
 # Usage:
 #   bash scripts/start-mlx-server.sh                              # default Gemma 4 31B
 #   MLX_MODEL=mlx-community/Qwen3.5-122B-A10B-4bit bash scripts/start-mlx-server.sh
-#   bash scripts/start-mlx-server.sh mlx-community/Llama-3.3-70B-Instruct-abliterated-8bit
+#   bash scripts/start-mlx-server.sh divinetribe/Llama-3.3-70B-Instruct-abliterated-8bit-mlx
 
 MODEL="${1:-${MLX_MODEL:-divinetribe/gemma-4-31b-it-abliterated-4bit-mlx}}"
 PORT="${MLX_PORT:-4000}"

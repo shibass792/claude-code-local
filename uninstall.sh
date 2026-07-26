@@ -106,18 +106,22 @@ if [ "$KEEP_MODELS" -eq 1 ]; then
   echo ""
   echo "· Keeping downloaded models in $HF_CACHE (--keep-models)"
 elif [ -d "$HF_CACHE" ]; then
-  # Only list the models setup.sh might have downloaded
+  # Every model setup.sh can download, one per memory tier. Keep this list in
+  # sync with the tier ladder in setup.sh or uninstall silently strands tens of
+  # gigabytes in the HuggingFace cache.
   MODEL_DIRS=(
-    "models--mlx-community--Qwen3.5-122B-A10B-4bit"
-    "models--divinetribe--gemma-4-31b-it-abliterated-4bit-mlx"
-    "models--mlx-community--Qwen3.5-4B-4bit"
+    "models--mlx-community--Qwen3.5-122B-A10B-4bit"           # >= 96 GB tier
+    "models--divinetribe--gemma-4-31b-it-abliterated-4bit-mlx" # >= 64 GB tier
+    "models--divinetribe--gemma-4-12B-it-abliterated-4bit-mlx-text" # >= 32 GB tier
+    "models--divinetribe--Qwen3.6-27B-abliterated-4bit-mlx"    # >= 32 GB tier, opt-in upgrade
+    "models--mlx-community--Qwen3.5-4B-4bit"                   # < 32 GB tier
   )
 
   models_removed=0
   for d in "${MODEL_DIRS[@]}"; do
-    if [ -d "$HF_CACHE/$d" ]; then
-      SIZE=$(du -sh "$HF_CACHE/$d" 2>/dev/null | cut -f1)
-      rm -rf "$HF_CACHE/$d"
+    if [ -d "$HF_CACHE/${d:?}" ]; then
+      SIZE=$(du -sh "$HF_CACHE/${d:?}" 2>/dev/null | cut -f1)
+      rm -rf "$HF_CACHE/${d:?}"
       echo "✓ Removed model $d ($SIZE)"
       models_removed=$((models_removed + 1))
     fi
