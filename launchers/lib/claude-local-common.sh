@@ -41,11 +41,14 @@ _mlx_model_matches() {
   [ "$dl" = "$rl" ]
 }
 
+MLX_HEALTH_ATTEMPTS=180
+MLX_HEALTH_TIMEOUT_S=$((MLX_HEALTH_ATTEMPTS * 2))
+
 _wait_for_mlx_health() {
   # 180 attempts × 2s = 6 minutes. Enough for a cold load of Llama 70B 8-bit
   # on a warm file cache; not enough for a first-time download from HF — use
   # resolve_mlx_model to point at a local path and avoid downloads entirely.
-  local attempts="${1:-180}"
+  local attempts="${1:-$MLX_HEALTH_ATTEMPTS}"
   local i
   for i in $(seq 1 "$attempts"); do
     if curl -s http://localhost:4000/health 2>/dev/null | grep -q '"status": "ok"'; then
@@ -79,7 +82,15 @@ resolve_mlx_model() {
 }
 
 _stop_mlx_server() {
-  pkill -f "mlx-native-server/server.py" 2>/dev/null || true
+  # Only stop the server holding :4000. A blanket
+  # `pkill -f mlx-native-server/server.py` also kills the smart-router warm
+  # pool (:4001) and GLM (:4003), which run the same server file.
+  local pids
+  pids="$(lsof -ti :4000 -sTCP:LISTEN 2>/dev/null || true)"
+  if [ -n "$pids" ]; then
+    # shellcheck disable=SC2086  # word splitting is intended: lsof prints one PID per line
+    kill $pids 2>/dev/null || true
+  fi
   local i
   for i in $(seq 1 15); do
     if ! lsof -i :4000 >/dev/null 2>&1; then
@@ -88,6 +99,22 @@ _stop_mlx_server() {
     sleep 1
   done
   return 1
+}
+
+# Launch the MLX server in the background with the desired model.
+#
+# MLX_KV_BITS / MLX_KV_QUANT_START are forwarded only when the caller actually
+# set them. Passing them through unconditionally as `VAR="${VAR:-}"` exports
+# them as empty strings, and server.py does `int(os.environ.get("MLX_KV_BITS",
+# "0"))` — an empty string is still "set", so the default never applies and the
+# server dies with `ValueError: invalid literal for int()` before it binds the
+# port. Launchers that don't opt into KV quantization must leave them unset.
+_spawn_mlx_server() {
+  local desired="$1"
+  local -a env_args=("MLX_MODEL=$desired")
+  [ -n "${MLX_KV_BITS:-}" ] && env_args+=("MLX_KV_BITS=$MLX_KV_BITS")
+  [ -n "${MLX_KV_QUANT_START:-}" ] && env_args+=("MLX_KV_QUANT_START=$MLX_KV_QUANT_START")
+  env "${env_args[@]}" "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
 }
 
 # Start the MLX server with the given model, or confirm an already-running
@@ -114,12 +141,9 @@ ensure_mlx_server() {
   fi
 
   echo "$msg"
-  MLX_MODEL="$desired" \
-  MLX_KV_BITS="${MLX_KV_BITS:-}" \
-  MLX_KV_QUANT_START="${MLX_KV_QUANT_START:-}" \
-  "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
+  _spawn_mlx_server "$desired"
   if ! _wait_for_mlx_health; then
-    echo "  ERROR: MLX server failed to respond on port 4000 within 120s"
+    echo "  ERROR: MLX server failed to respond on port 4000 within ${MLX_HEALTH_TIMEOUT_S}s"
     echo "  Check /tmp/mlx-server.log for details"
     exit 1
   fi
@@ -138,12 +162,9 @@ force_restart_mlx_server() {
   fi
 
   echo "$msg"
-  MLX_MODEL="$desired" \
-  MLX_KV_BITS="${MLX_KV_BITS:-}" \
-  MLX_KV_QUANT_START="${MLX_KV_QUANT_START:-}" \
-  "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
+  _spawn_mlx_server "$desired"
   if ! _wait_for_mlx_health; then
-    echo "  ERROR: MLX server failed to respond on port 4000 within 120s"
+    echo "  ERROR: MLX server failed to respond on port 4000 within ${MLX_HEALTH_TIMEOUT_S}s"
     echo "  Check /tmp/mlx-server.log for details"
     exit 1
   fi

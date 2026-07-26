@@ -29,7 +29,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
 import mlx.core as mx
-import mlx.nn as nn
 from mlx_lm.utils import load
 from mlx_lm.generate import stream_generate
 from mlx_lm.sample_utils import make_sampler
@@ -37,16 +36,33 @@ from mlx_lm.models.cache import make_prompt_cache
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
+def env_int(name, default):
+    """Read an int from the environment, tolerating an empty/garbage value.
+
+    A launcher that forwards `VAR="${VAR:-}"` sets the variable to an empty
+    string, which os.environ.get() happily returns instead of the default —
+    int("") then kills the server before it binds the port.
+    """
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        print(f"[warn] {name}={raw!r} is not an integer; using {default}", file=sys.stderr)
+        return default
+
+
 MODEL_PATH = os.environ.get("MLX_MODEL", "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx")
-PORT = int(os.environ.get("MLX_PORT", "4000"))
-KV_BITS = int(os.environ.get("MLX_KV_BITS", "0"))  # Gemma 4 RotatingKVCache doesn't support quantization
-PREFILL_SIZE = int(os.environ.get("MLX_PREFILL_SIZE", "8192"))
+PORT = env_int("MLX_PORT", 4000)
+KV_BITS = env_int("MLX_KV_BITS", 0)  # Gemma 4 RotatingKVCache doesn't support quantization
+PREFILL_SIZE = env_int("MLX_PREFILL_SIZE", 8192)
 # Pre-fill an empty thinking block to skip Gemma 4 reasoning chains entirely.
 # Set MLX_SUPPRESS_THINKING=0 to disable (e.g. when you want reasoning output).
 SUPPRESS_THINKING = os.environ.get("MLX_SUPPRESS_THINKING", "1") == "1"
-DEFAULT_MAX_TOKENS = int(os.environ.get("MLX_MAX_TOKENS", "8192"))
-KV_QUANT_START = int(os.environ.get("MLX_KV_QUANT_START", "256"))
-MAX_TOOL_RETRIES = int(os.environ.get("MLX_TOOL_RETRIES", "2"))
+DEFAULT_MAX_TOKENS = env_int("MLX_MAX_TOKENS", 8192)
+KV_QUANT_START = env_int("MLX_KV_QUANT_START", 256)
+MAX_TOOL_RETRIES = env_int("MLX_TOOL_RETRIES", 2)
 # Browser mode: strip Claude Code bloat, keep only MCP tools
 BROWSER_MODE = os.environ.get("MLX_BROWSER_MODE", "0") == "1"
 # Code mode: auto-detect Claude Code coding sessions and replace the huge harness
@@ -246,7 +262,7 @@ def format_tools_as_text(tools):
     return "\n".join(lines)
 
 
-def recover_garbled_tool_json(content, original_text=""):
+def recover_garbled_tool_json(content):
     """Attempt to recover tool name and arguments from garbled JSON inside <tool_call> tags.
 
     Models sometimes produce hybrid XML/JSON like:
@@ -408,7 +424,7 @@ def parse_tool_calls(text):
                     log(f"  Warning: function-in-tag but no params: {content[:100]}")
             else:
                 # Try general garbled recovery
-                recovered = recover_garbled_tool_json(content, text)
+                recovered = recover_garbled_tool_json(content)
                 if recovered:
                     tool_calls.append(recovered)
                 else:
@@ -466,7 +482,7 @@ def parse_tool_calls(text):
                         "arguments": call_data.get("arguments", call_data.get("parameters", {})),
                     })
             except json.JSONDecodeError:
-                recovered = recover_garbled_tool_json(content, text)
+                recovered = recover_garbled_tool_json(content)
                 if recovered:
                     tool_calls.append(recovered)
                 else:
@@ -542,13 +558,13 @@ def parse_tool_calls(text):
                 arguments[pm.group(1)] = pm.group(2)
             if "command" in arguments:
                 tool_calls.append({"name": "Bash", "arguments": arguments})
-                log(f"  Inferred Bash tool call from 'command' parameter")
+                log("  Inferred Bash tool call from 'command' parameter")
             elif "file_path" in arguments:
                 tool_calls.append({"name": "Read", "arguments": arguments})
-                log(f"  Inferred Read tool call from 'file_path' parameter")
+                log("  Inferred Read tool call from 'file_path' parameter")
             elif "pattern" in arguments:
                 tool_calls.append({"name": "Glob", "arguments": arguments})
-                log(f"  Inferred Glob tool call from 'pattern' parameter")
+                log("  Inferred Glob tool call from 'pattern' parameter")
             if tool_calls:
                 remaining = text[:param_matches[0].start()].strip()
 
@@ -959,7 +975,7 @@ def generate_response(body):
         prompt_for_gen = delta_tokens
     else:
         if _prompt_cache is not None and isinstance(_prompt_cache[0], RotatingKVCache):
-            log(f"  RotatingKVCache: fresh cache each request (no trim support)")
+            log("  RotatingKVCache: fresh cache each request (no trim support)")
         else:
             log(f"  Cache miss: full prefill of {prompt_tokens} tokens")
         _prompt_cache = None
@@ -1350,12 +1366,12 @@ if __name__ == "__main__":
     print(f"Serving Anthropic Messages API on http://localhost:{PORT}")
     print(f"Model: {MODEL_PATH}")
     print(f"KV cache: {KV_BITS}-bit quantization (start at token {KV_QUANT_START})" if KV_BITS else "KV cache: full precision")
-    print(f"Prompt cache: enabled (KV reuse across requests)")
+    print("Prompt cache: enabled (KV reuse across requests)")
     print(f"Tool retry: up to {MAX_TOOL_RETRIES} retries on garbled tool calls")
     print()
     print("Claude Code config:")
     print(f"  ANTHROPIC_BASE_URL=http://localhost:{PORT}")
-    print(f"  ANTHROPIC_API_KEY=sk-local")
+    print("  ANTHROPIC_API_KEY=sk-local")
     print()
 
     server = HTTPServer(("127.0.0.1", PORT), AnthropicHandler)
