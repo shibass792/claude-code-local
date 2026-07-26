@@ -3,9 +3,9 @@
 # the router switches between them with ZERO load/unload.
 #   Qwen 3 Coder  :4000   (default / code / agentic)
 #   Gemma 4 31B   :4001   (quick / trivial)
-#   Qwen3-VL 32B  :4002   (vision)
-# Total ~64 GB — fits in 128 GB with headroom. The 80 GB giants (GLM, DeepSeek)
-# can't coexist with this pool, so they stay on-demand (router unloads the pool).
+# Total ~46 GB — fits in 128 GB with headroom. The giants can't coexist with
+# this pool, so they stay on-demand and the router unloads the pool to reach
+# them: Qwen3-Coder-Next 80B :4002, GLM-4.5-Air :4003, DeepSeek V4 :8000.
 set -uo pipefail
 L="$HOME/Desktop/PROJECTS/Local AI Setup/launchers/lib/claude-local-common.sh"
 source "$L"
@@ -30,7 +30,8 @@ case "${1:-start}" in
     # mlx_lm text server (verified: "missing arg tie_word_embeddings"). Vision is
     # a separate setup. Warm pair = the two text models used daily.
     # DEFAULT coder = Qwen3-Coder-30B-A3B 8-bit (benchmarked best daily driver 2026-06-16).
-    # New 80B reasoning model is MLX_MODELS["qwen-new"], loaded on-demand for hard tasks.
+    # The 80B reasoning model is MLX_MODELS["qwen-new"]; router.py loads it
+    # on-demand on :4002 via the /next override, unloading this pool first.
     start_one 4000 "$HOME/.lmstudio/models/lmstudio-community/Qwen3-Coder-30B-A3B-Instruct-MLX-8bit" "lmstudio-community/Qwen3-Coder-30B-A3B-Instruct-MLX-8bit"
     start_one 4001 "$HOME/.cache/huggingface/hub/gemma-4-31b-it-abliterated-4bit-mlx" "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx"
     echo "  warm pool starting (Qwen :4000 · Gemma :4001)"
