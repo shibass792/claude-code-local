@@ -8,20 +8,24 @@ call), makes sure that backend is up, and transparently forwards/streams the
 Anthropic response straight back. No translation needed — every backend already
 speaks Anthropic.
 
+Listens on :4010 (override with ONE_AI_PORT).
+
 Backends (all Anthropic-compatible):
   qwen     -> MLX server  :4000  (Qwen3-Coder 30B-A3B 8-bit)  DEFAULT / code / agentic
-  gemma    -> MLX server  :4000  (Gemma 4)                    quick / trivial
-  deepseek -> ds4 server  :8000  (DeepSeek V4 Flash 284B)     huge context / hard reasoning
+  gemma    -> MLX server  :4001  (Gemma 4 31B)                quick / trivial
+  qwen-new -> MLX server  :4002  (Qwen3-Coder-Next 80B)       on-demand, /next
+  glm      -> MLX server  :4003  (GLM-4.5-Air 6-bit)          hard reasoning
+  deepseek -> ds4 server  :8000  (DeepSeek V4 Flash 284B)     huge context / 1M ctx
 
-Note: the MLX server holds ONE model at a time, so qwen<->gemma is a swap
-(restart). The decision is instant; switching the actually-loaded model costs a
-load. Default stays Qwen warm so the common path never pauses.
+qwen and gemma live in a warm pool on their own ports, so switching between
+them is instant. The three giants each need the pool unloaded first, so
+reaching one costs a load — the default stays on warm qwen so the common path
+never pauses.
 """
 import json, os, re, subprocess, sys, time, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 LISTEN_PORT = int(os.environ.get("ONE_AI_PORT", "4010"))
-MLX_URL   = "http://127.0.0.1:4000"
 DS4_URL   = "http://127.0.0.1:8000"
 SETUP     = os.path.expanduser("~/Desktop/PROJECTS/Local AI Setup")
 LAUNCH_LIB = f"{SETUP}/launchers/lib/claude-local-common.sh"
@@ -45,7 +49,10 @@ MLX_MODELS = {
     # swaps fast on :4000 -> the hard-reasoning lane.
     "glm":    ('$HOME/.lmstudio/models/lmstudio-community/GLM-4.5-Air-MLX-6bit',
                'lmstudio-community/GLM-4.5-Air-MLX-6bit'),
-    # Qwen3-VL 32B: the only model that can SEE images -> vision lane.
+    # Qwen3-VL 32B: the only model that can SEE images. NOT routable — it needs
+    # an mlx-vlm server, not this mlx_lm text server, so there is deliberately
+    # no "qwenvl" lane in route()/ensure_backend(). Kept here as the model id a
+    # future vision server would use.
     "qwenvl": ('$HOME/.cache/huggingface/hub/Huihui-Qwen3-VL-32B-Instruct-abliterated-4bit-mlx',
                'divinetribe/Huihui-Qwen3-VL-32B-Instruct-abliterated-4bit-mlx'),
 }
@@ -80,15 +87,6 @@ def last_user_text(messages) -> str:
                 return " ".join(b.get("text", "") for b in c if isinstance(b, dict))
     return ""
 
-def has_image(messages) -> bool:
-    for m in messages:
-        c = m.get("content")
-        if isinstance(c, list):
-            for blk in c:
-                if isinstance(blk, dict) and blk.get("type") == "image":
-                    return True
-    return False
-
 def route(body) -> tuple[str, str]:
     """Return (backend_key, reason). Microsecond heuristics."""
     messages = body.get("messages", [])
@@ -98,6 +96,7 @@ def route(body) -> tuple[str, str]:
     # explicit overrides win
     if "/deep" in low:  return "deepseek", "override /deep"
     if "/glm"  in low:  return "glm",      "override /glm"
+    if "/next" in low:  return "qwen-new", "override /next"
     if "/fast" in low:  return "gemma",    "override /fast"
     if "/code" in low:  return "qwen",     "override /code"
 
@@ -115,18 +114,12 @@ def route(body) -> tuple[str, str]:
 
 
 # ----- backend management ----------------------------------------------------
-def _mlx_running_model() -> str:
-    try:
-        with urllib.request.urlopen(f"{MLX_URL}/health", timeout=2) as r:
-            return (json.load(r) or {}).get("model", "") or ""
-    except Exception:
-        return ""
-
 # Warm pool: these two text models stay loaded together on their own ports, so
 # switching between them is INSTANT (no load/unload). ~46 GB total.
 WARM_PORTS = {"qwen": 4000, "gemma": 4001}
 WARM_SH = f"{SETUP}/smart-router/warm_pool.sh"
-GLM_PORT = 4003   # GLM gets its own port; loading it displaces the warm pool
+# The giants each get their own port. Loading one displaces the warm pool.
+EXCLUSIVE_PORTS = {"qwen-new": 4002, "glm": 4003}
 
 def _port_listening(port: int) -> bool:
     return subprocess.run(["bash", "-lc", f"lsof -i :{port} -sTCP:LISTEN >/dev/null 2>&1"]).returncode == 0
@@ -147,8 +140,14 @@ def _wait_health(port: int, timeout=180):
 def _stop_ds4():
     subprocess.run(["bash", "-lc", "pkill -f ds4-server 2>/dev/null; true"], check=False)
 
-def _stop_glm():
-    subprocess.run(["bash", "-lc", f"lsof -ti :{GLM_PORT} 2>/dev/null | xargs -r kill -9 2>/dev/null; true"], check=False)
+def _stop_port(port: int):
+    subprocess.run(["bash", "-lc", f"lsof -ti :{port} 2>/dev/null | xargs -r kill -9 2>/dev/null; true"], check=False)
+
+def _stop_exclusives(keep: str = ""):
+    for name, port in EXCLUSIVE_PORTS.items():
+        if name != keep and _port_listening(port):
+            sys.stderr.write(f"[one-ai] unloading {name} (:{port})\n")
+            _stop_port(port)
 
 def _start_warm_pool():
     subprocess.run(["bash", WARM_SH, "start"], check=False)
@@ -156,9 +155,15 @@ def _start_warm_pool():
 def _stop_warm_pool():
     subprocess.run(["bash", WARM_SH, "stop"], check=False)
 
+def _unload_warm_pool_for(backend: str):
+    if any(_port_listening(p) for p in WARM_PORTS.values()):
+        sys.stderr.write(f"[one-ai] unloading warm pool for {backend}\n")
+        _stop_warm_pool()
+
 def ensure_backend(backend: str):
-    """Warm pair (qwen/gemma) = instant, own ports. The 80GB giants (glm/deepseek)
-    can't coexist with the pool, so reaching one unloads the pool (and vice versa)."""
+    """Warm pair (qwen/gemma) = instant, own ports. The giants (qwen-new, glm,
+    deepseek) can't coexist with the pool, so reaching one unloads the pool
+    (and vice versa)."""
     # --- warm pair: forward to its dedicated port, no swap ---
     if backend in WARM_PORTS:
         port = WARM_PORTS[backend]
@@ -166,32 +171,31 @@ def ensure_backend(backend: str):
             # pool not up (a giant displaced it, or cold start) -> bring it back
             if _port_listening(8000):
                 sys.stderr.write("[one-ai] unloading DeepSeek to restore warm pool\n"); _stop_ds4()
-            if _port_listening(GLM_PORT):
-                sys.stderr.write("[one-ai] unloading GLM to restore warm pool\n"); _stop_glm()
+            _stop_exclusives()
             _start_warm_pool(); _wait_health(port)
         return f"http://127.0.0.1:{port}"
-    # --- DeepSeek 284B: exclusive ---
+    # --- DeepSeek 284B: exclusive, runs its own server ---
     if backend == "deepseek":
-        if _port_listening(4000) or _port_listening(4001):
-            sys.stderr.write("[one-ai] unloading warm pool for DeepSeek 284B\n"); _stop_warm_pool()
-        if _port_listening(GLM_PORT): _stop_glm()
+        _unload_warm_pool_for(backend)
+        _stop_exclusives()
         subprocess.run(["bash", "-lc", os.path.expanduser("~/.local/bin/ds4-server-up")],
                        check=False, capture_output=True)
         return DS4_URL
-    # --- GLM-4.5-Air: exclusive, own port ---
-    if backend == "glm":
-        if _port_listening(4000) or _port_listening(4001):
-            sys.stderr.write("[one-ai] unloading warm pool for GLM-4.5-Air\n"); _stop_warm_pool()
+    # --- MLX giants (qwen-new, glm): exclusive, each on its own port ---
+    if backend in EXCLUSIVE_PORTS:
+        port = EXCLUSIVE_PORTS[backend]
+        _unload_warm_pool_for(backend)
         if _port_listening(8000): _stop_ds4()
-        if not _health_ok(GLM_PORT):
-            local, repo = MLX_MODELS["glm"]
+        _stop_exclusives(keep=backend)
+        if not _health_ok(port):
+            local, repo = MLX_MODELS[backend]
             subprocess.run(["bash", "-lc",
                 f'source "{LAUNCH_LIB}"; M="$(resolve_mlx_model "{local}" "{repo}")"; '
-                f'MLX_PORT={GLM_PORT} MLX_MODEL="$M" nohup "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-{GLM_PORT}.log 2>&1 & disown'],
+                f'MLX_PORT={port} MLX_MODEL="$M" nohup "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-{port}.log 2>&1 & disown'],
                 check=False)
-            _wait_health(GLM_PORT)
-        return f"http://127.0.0.1:{GLM_PORT}"
-    # fallback (e.g. images) -> default warm qwen
+            _wait_health(port)
+        return f"http://127.0.0.1:{port}"
+    # fallback (unknown backend) -> default warm qwen
     return ensure_backend("qwen")
 
 
@@ -270,6 +274,7 @@ if __name__ == "__main__":
             ("hi", "messages with a short greeting"),
             ("refactor this async function and fix the stack trace", "code"),
             ("/deep walk me through the proof", "deep override"),
+            ("/next port this module to async", "next override"),
             ("/fast what's 2+2", "fast override"),
         ]
         for txt, label in tests:
