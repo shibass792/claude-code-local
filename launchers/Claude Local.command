@@ -30,8 +30,18 @@ echo ""
 
 # --bare forces API-key auth (blocks OAuth/Claude Max).
 # CLAUDE.md and MCP config are added back explicitly so personal config still loads.
+#
+# The CLAUDE_CODE_DISABLE_* / DISABLE_AUTOUPDATER block is what actually makes
+# this offline. ANTHROPIC_BASE_URL only redirects inference; Claude Code still
+# opens a connection to api.anthropic.com on startup for telemetry, feature
+# flags, marketplace auto-install and the auto-updater. See
+# docs/MAC-BASE-SETUP.md for the packet-level write-up.
 ANTHROPIC_BASE_URL=http://localhost:4000 \
 ANTHROPIC_API_KEY=sk-local \
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+DISABLE_AUTOUPDATER=1 \
+CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1 \
+CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 \
 exec "$CLAUDE_BIN" --model claude-sonnet-4-6 \
   --permission-mode auto \
   --bare \
