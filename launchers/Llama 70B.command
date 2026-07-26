@@ -28,7 +28,15 @@ echo "  → MLX Native: ~7 tok/s, 8-bit full precision, abliterated"
 echo "  → Running on Apple Silicon — no cloud, no API fees"
 echo ""
 
+# ANTHROPIC_BASE_URL only redirects inference — Claude Code still calls
+# api.anthropic.com on startup for telemetry, feature flags, marketplace
+# auto-install and the auto-updater. These four vars are what make the
+# "no cloud" claim true. See docs/MAC-BASE-SETUP.md.
 ANTHROPIC_BASE_URL=http://localhost:4000 \
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+DISABLE_AUTOUPDATER=1 \
+CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1 \
+CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 \
 CLAUDE_SESSION_LABEL="Llama 70B · Local" \
 exec "$CLAUDE_BIN" --model claude-sonnet-4-6 \
   --permission-mode auto \

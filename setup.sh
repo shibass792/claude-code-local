@@ -129,8 +129,16 @@ echo "  → $MODEL_LABEL"
 echo "  → 100% on-device, no cloud, no API fees"
 echo ""
 
+# ANTHROPIC_BASE_URL only redirects inference. Without the CLAUDE_CODE_DISABLE_*
+# vars below, Claude Code still calls api.anthropic.com on startup for
+# telemetry, feature flags, marketplace auto-install and the auto-updater —
+# see docs/MAC-BASE-SETUP.md.
 ANTHROPIC_BASE_URL=http://localhost:4000 \\
 ANTHROPIC_API_KEY=sk-local \\
+CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \\
+DISABLE_AUTOUPDATER=1 \\
+CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1 \\
+CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1 \\
 exec "\$CLAUDE_BIN" --model claude-sonnet-4-6
 LAUNCH
 
