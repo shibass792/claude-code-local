@@ -871,12 +871,21 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   ├── Claude Local.command    ← Default fighter — Claude Code + local model
  │   ├── Gemma 4 Code.command    ← 🟢 THE QUICK ONE
  │   ├── Llama 70B.command       ← 🟠 THE WISE ONE
+ │   ├── Claude Chat.command     ← 💬 Chat-only, no tools (16-32 GB Macs)
+ │   ├── Claude Agentico.command ← 🔧 Tool-driven sessions on 16-32 GB Macs
  │   ├── Browser Agent.command   ← 🌐 Autonomous Brave browser control
  │   ├── Narrative Gemma.command ← 🎭 Auto-narration mode
- │   └── lib/claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
+ │   └── lib/
+ │       ├── claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
+ │       └── local-settings.json    ← Claude Code settings that supply the local API key
  ├── 🎭 NarrativeGemma/
  │   └── CLAUDE.md              ← Narration persona (sanitized, generic, opt-in)
+ ├── 🧭 smart-router/
+ │   ├── router.py              ← ONE AI — picks a backend per request, listens on :4010
+ │   ├── warm_pool.sh           ← Keeps Qwen :4000 + Gemma :4001 loaded simultaneously
+ │   └── oneai_icon.png         ← Icon for a ONE AI .command shortcut
  ├── 🛠️  scripts/
+ │   ├── doctor.sh              ← What can my Mac run? (`--bench` to measure tok/s)
  │   ├── download-and-import.sh ← Download a fighter (`gemma` / `llama` / `qwen`)
  │   ├── persistent-download.sh ← Auto-retry downloader for big models
  │   ├── start-mlx-server.sh    ← Server start helper
@@ -884,9 +893,11 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   └── upload-mlx-quant.sh    ← Publish your own MLX-quantized uploads to HF
  ├── 📊 docs/
  │   ├── BENCHMARKS.md          ← Detailed speed comparisons
+ │   ├── MAC-BASE-SETUP.md      ← Setup notes for base-model Macs (16-32 GB)
  │   └── TWITTER-THREAD.md      ← Social media content
  ├── 📱 IMESSAGE_MEDIA_PIPELINE.md ← Phone control + media sending docs
- └── setup.sh                    ← One-command installer
+ ├── setup.sh                    ← One-command installer
+ └── uninstall.sh                ← Removes everything setup.sh created
 ```
 
 ---
