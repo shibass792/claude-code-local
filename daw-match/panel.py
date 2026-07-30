@@ -34,6 +34,7 @@ class MatchService:
         self.config = cfg or config.Config()
         self.lock = threading.Lock()
         self.registry = {}      # entry id -> library entry
+        self.scored = {}        # entry id -> entry from the latest search, with its score
         self.entries = []
         self.track = None
         self.load_index()
@@ -63,7 +64,12 @@ class MatchService:
             self.registry[entry_id] = entry
 
     def get(self, entry_id):
-        return self.registry.get(entry_id)
+        """Prefer the scored copy from the latest search.
+
+        The registry holds plain library entries; only the ranked copies carry
+        `score` and `reasons`, and those are what the pairing record should keep.
+        """
+        return self.scored.get(entry_id) or self.registry.get(entry_id)
 
     # ---- search -----------------------------------------------------------
     def analyze(self, user_input, prefer=None, limit=25):
@@ -98,12 +104,14 @@ class MatchService:
             )
 
         matches = matcher.rank(track, candidates, prefer=prefer or None, limit=limit)
+        scored = {}
         for match in matches:
             match["id"] = library.entry_id(match["path"])
-            self.registry.setdefault(match["id"], match)
+            scored[match["id"]] = match
 
         with self.lock:
             self.track = track
+            self.scored = scored
         return {
             "track": track,
             "matches": [_public_match(m) for m in matches],
@@ -245,11 +253,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(400, "analyze a track first")
 
         cfg = self.service.config
-        record, to_open = daw.link(track, entry, daw_id, cfg, opened=False)
+        # Stage first so the folder and the copied arp survive a failed launch,
+        # but record the pairing only once we know whether the DAW opened.
+        folder, staged, to_open = daw.prepare(track, entry, cfg)
         ok, command, message = daw.open_file(to_open, daw_id, cfg)
-        record["opened"] = ok
+        record = daw.record_link(track, entry, daw_id, folder, staged, to_open, ok, message)
         record["command"] = command
-        record["message"] = message
         return self._send(200, {
             "opened": ok,
             "opened_path": to_open,

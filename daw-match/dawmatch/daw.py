@@ -139,17 +139,29 @@ def open_file(path, daw, cfg):
     return True, printable, "opened"
 
 
-def link(track, entry, daw, cfg, opened=True):
-    """Record the track <-> match pairing and stage the files."""
+def prepare(track, entry, cfg):
+    """Stage the files and work out what the DAW should actually open.
+
+    Runs before the launch so a failed launch still leaves a usable folder.
+    """
     folder, staged = stage(track, entry, cfg)
     # A project opens in place; an arp opens from the session folder.
     to_open = entry["path"] if entry.get("kind") == "project" else staged
+    return folder, staged, to_open
 
+
+def record_link(track, entry, daw, folder, staged, to_open, opened, message=""):
+    """Persist the track <-> match pairing.
+
+    Called *after* the launch attempt so `opened` reflects what really happened
+    rather than an optimistic guess.
+    """
     record = {
         "id": f"{int(time.time() * 1000)}",
         "created_at": time.time(),
         "daw": daw,
         "opened": bool(opened),
+        "message": message,
         "session_dir": folder,
         "opened_path": to_open,
         "track": {
@@ -170,6 +182,13 @@ def link(track, entry, daw, cfg, opened=True):
         },
     }
     _append_link(record)
+    return record
+
+
+def link(track, entry, daw, cfg, opened=True, message=""):
+    """Stage, then record, in one call. Convenience for the CLI and tests."""
+    folder, staged, to_open = prepare(track, entry, cfg)
+    record = record_link(track, entry, daw, folder, staged, to_open, opened, message)
     return record, to_open
 
 

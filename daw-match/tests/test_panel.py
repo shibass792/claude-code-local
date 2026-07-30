@@ -248,6 +248,54 @@ class OpenTests(PanelTestCase):
         self.assertTrue(os.path.exists(os.path.join(session, "README.txt")))
         self.assertTrue(os.path.exists(os.path.join(session, "Perfect 128bpm Amin.mid")))
 
+    def test_pairing_record_keeps_the_score_and_reasons(self):
+        # The library index holds unscored entries; only the ranked copy carries
+        # a score. The record must keep the ranked values, not the plain ones.
+        match = self.analyze()["matches"][0]
+        _status, body = self.post_json("/api/open", {"id": match["id"], "daw": "cubase"})
+        recorded = body["record"]["match"]
+        self.assertEqual(recorded["score"], match["score"])
+        self.assertGreater(recorded["score"], 0.9)
+        self.assertEqual(recorded["reasons"], match["reasons"])
+        self.assertIn("same key", recorded["reasons"])
+
+        # ...and it survives into the persisted history and the README.
+        _s, links = self.get_json("/api/links")
+        self.assertEqual(links["links"][0]["match"]["score"], match["score"])
+        with open(os.path.join(body["record"]["session_dir"], "README.txt"),
+                  "r", encoding="utf-8") as fh:
+            readme = fh.read()
+        self.assertNotIn("match n/a", readme)
+        self.assertIn("%", readme)
+        self.assertIn("same key", readme)
+
+    def test_persisted_opened_flag_reflects_a_successful_launch(self):
+        match = self.analyze()["matches"][0]
+        body = self.post_json("/api/open", {"id": match["id"], "daw": "cubase"})[1]
+        self.assertTrue(body["opened"])
+        _s, links = self.get_json("/api/links")
+        self.assertTrue(links["links"][0]["opened"])
+
+    def test_failed_launch_is_recorded_as_not_opened_but_still_staged(self):
+        match = self.analyze()["matches"][0]
+        broken = os.path.join(self.work.name, "broken-opener.sh")
+        with open(broken, "w", encoding="utf-8") as fh:
+            fh.write('#!/bin/sh\necho "Cubase 14 not installed" >&2\nexit 1\n')
+        os.chmod(broken, os.stat(broken).st_mode | stat.S_IXUSR)
+
+        previous = self.service.config.open_cmd
+        self.service.config.open_cmd = broken
+        self.addCleanup(setattr, self.service.config, "open_cmd", previous)
+
+        status, body = self.post_json("/api/open", {"id": match["id"], "daw": "cubase"})
+        self.assertEqual(status, 200)
+        self.assertFalse(body["opened"])
+        self.assertIn("not installed", body["message"])
+        # The staged folder and the pairing survive the failed launch.
+        self.assertTrue(os.path.exists(os.path.join(body["record"]["session_dir"], "session.json")))
+        _s, links = self.get_json("/api/links")
+        self.assertFalse(links["links"][0]["opened"])
+
     def test_opens_a_project_in_place(self):
         project = next(m for m in self.analyze()["matches"] if m["kind"] == "project")
         _status, body = self.post_json("/api/open", {"id": project["id"], "daw": "cubase"})

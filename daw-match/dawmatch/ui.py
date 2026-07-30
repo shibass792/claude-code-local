@@ -80,6 +80,10 @@ PAGE = r"""<!doctype html>
   .bar { height: 5px; border-radius: 4px; background: #22303f; overflow: hidden; margin-top: 5px; }
   .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
   .mname { font-weight: 650; word-break: break-word; }
+  /* Technical strings ("86 BPM · A major · 32 notes") are Latin and numeric, so
+     the RTL paragraph direction would reorder them. Render them LTR but keep
+     them flush with the right-aligned layout. */
+  .meta, .why, .link .p { direction: ltr; text-align: right; }
   .meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
   .why { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
   .acts { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
@@ -96,7 +100,9 @@ PAGE = r"""<!doctype html>
           background: var(--panel-2); margin-top: 8px; font-size: 13.5px; }
   .link .t { font-weight: 650; }
   .link .p { color: var(--muted); font-size: 12.5px; word-break: break-all; margin-top: 2px; }
-  code { background: #0f151d; border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; font-size: 12.5px; }
+  /* isolate keeps a leading "/" from being flipped to the end of the path. */
+  code { background: #0f151d; border: 1px solid var(--line); border-radius: 5px;
+         padding: 1px 5px; font-size: 12.5px; direction: ltr; unicode-bidi: isolate; }
   .empty { color: var(--muted); font-size: 14px; padding: 8px 2px; }
   .foot { color: var(--muted); font-size: 12.5px; margin-top: 22px; }
   audio { width: 100%; margin-top: 10px; }

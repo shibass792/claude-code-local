@@ -55,6 +55,29 @@ def decode(path, sample_rate=SAMPLE_RATE, max_seconds=180.0):
     return samples
 
 
+_PATH_TAG = "DAWMATCH_PATH:"
+_TITLE_TAG = "DAWMATCH_TITLE:"
+
+
+def _parse_ytdlp_output(stdout):
+    """Pull (path, title) out of yt-dlp's tagged --print output.
+
+    yt-dlp emits each --print at the stage it belongs to, not in the order the
+    flags were given, so the lines cannot be read positionally. Tagging each
+    field makes the parse order-independent.
+    """
+    path = title = ""
+    for line in (stdout or "").splitlines():
+        line = line.strip()
+        if line.startswith(_PATH_TAG):
+            path = line[len(_PATH_TAG):].strip()
+        elif line.startswith(_TITLE_TAG):
+            title = line[len(_TITLE_TAG):].strip()
+    if not title and path:
+        title = os.path.splitext(os.path.basename(path))[0]
+    return path, title
+
+
 def fetch_url(url, dest_dir=None):
     """Download the audio track of a URL. Returns (path, title)."""
     if not config.have("yt-dlp"):
@@ -69,8 +92,8 @@ def fetch_url(url, dest_dir=None):
     cmd = [
         "yt-dlp", "--no-playlist", "--quiet", "--no-warnings",
         "-f", "bestaudio/best",
-        "--print", "after_move:filepath",
-        "--print", "title",
+        "--print", f"after_move:{_PATH_TAG}%(filepath)s",
+        "--print", f"before_dl:{_TITLE_TAG}%(title)s",
         "-o", template,
         url,
     ]
@@ -80,11 +103,9 @@ def fetch_url(url, dest_dir=None):
         hint = detail[-1] if detail else "download failed"
         raise IngestError(f"yt-dlp failed: {hint}")
 
-    lines = [ln.strip() for ln in (proc.stdout or "").splitlines() if ln.strip()]
-    if not lines:
-        raise IngestError("yt-dlp produced no file")
-    path = lines[0]
-    title = lines[1] if len(lines) > 1 else os.path.splitext(os.path.basename(path))[0]
+    path, title = _parse_ytdlp_output(proc.stdout)
+    if not path:
+        raise IngestError("yt-dlp did not report a downloaded file")
     if not os.path.exists(path):
         raise IngestError(f"yt-dlp reported {path} but it is not on disk")
     return path, title

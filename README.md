@@ -861,6 +861,34 @@ bash ~/NarrateClaude/narrative-claude.sh
 
 ---
 
+## 🎹 DAW Match — the same idea, pointed at music
+
+Not an LLM mode — a separate local tool that came out of the same "why is this in
+the cloud?" itch.
+
+Paste a YouTube link or an audio file. It reads the track's **tempo and key**, ranks
+the **arps, loops and DAW projects already on your drive** against it, auditions the
+winner in your browser (MIDI arps get synthesised on the fly, optionally re-timed to
+the track's tempo), then hands it to **Cubase** or **Ableton** with one click — and
+records the track-to-arp pairing so you can find it again next week.
+
+```bash
+python3 daw-match/panel.py          # panel on http://127.0.0.1:4020
+```
+
+The matching is musical, not numeric: a 64 BPM arp under a 128 BPM track is
+*half-time*, not a miss, and the relative major/minor ranks above a distant key.
+Every result tells you why it matched — `same tempo · relative major`.
+
+Needs `ffmpeg` + `numpy`, plus `yt-dlp` only for links. Already have your own matcher
+script? `DAW_MATCH_SCRIPT=~/bin/my-matcher.sh` merges its suggestions into the same
+ranking.
+
+👉 **Full docs: [`daw-match/README.md`](daw-match/README.md)** · double-click
+`launchers/DAW Match Panel.command`
+
+---
+
 ## 📁 What's In This Repo
 
 ```
@@ -873,9 +901,14 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   ├── Llama 70B.command       ← 🟠 THE WISE ONE
  │   ├── Browser Agent.command   ← 🌐 Autonomous Brave browser control
  │   ├── Narrative Gemma.command ← 🎭 Auto-narration mode
+ │   ├── DAW Match Panel.command ← 🎹 Match a track to your arps, open it in Cubase
  │   └── lib/claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
  ├── 🎭 NarrativeGemma/
  │   └── CLAUDE.md              ← Narration persona (sanitized, generic, opt-in)
+ ├── 🎹 daw-match/
+ │   ├── panel.py               ← Auto-match panel: tempo/key → your arps → Cubase/Ableton
+ │   ├── dawmatch/              ← Analysis, MIDI, matching, DAW handoff
+ │   └── README.md              ← Setup, library layout, config
  ├── 🛠️  scripts/
  │   ├── download-and-import.sh ← Download a fighter (`gemma` / `llama` / `qwen`)
  │   ├── persistent-download.sh ← Auto-retry downloader for big models
