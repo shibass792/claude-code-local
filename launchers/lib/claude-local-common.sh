@@ -79,9 +79,8 @@ resolve_mlx_model() {
   fi
 }
 
-# Bail out instead of spawning a second server onto an occupied port: the new
-# process would die on "Address already in use" while /health kept answering
-# from the old one, so the session would silently run on the wrong model.
+# The launcher can't say why the server didn't come up — only the server's own
+# log can — so point at it rather than leaving people staring at a timeout.
 _die_no_health() {
   echo "  ERROR: the MLX server never answered on port 4000 (waited $(( ${MLX_HEALTH_ATTEMPTS:-180} * 2 ))s)."
   echo "  The reason is at the end of /tmp/mlx-server.log — usually the model"
@@ -89,6 +88,9 @@ _die_no_health() {
   exit 1
 }
 
+# Bail out instead of spawning a second server onto an occupied port: the new
+# process would die on "Address already in use" while /health kept answering
+# from the old one, so the session would silently run on the wrong model.
 _die_port_busy() {
   echo "  ERROR: port 4000 is still in use and the old MLX server wouldn't stop."
   echo "  Find the process with:  lsof -i :4000"
