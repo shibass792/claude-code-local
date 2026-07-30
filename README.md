@@ -626,7 +626,7 @@ Run `bash scripts/doctor.sh` first — it prints your chip, RAM, free disk, whet
 
 Common failures, in the order people hit them:
 
-- **`ERROR: MLX server failed to respond on port 4000`** — read `/tmp/mlx-server.log`; it holds the server's traceback. Usually the model doesn't fit in RAM, or the model id/path is wrong.
+- **`ERROR: the MLX server never answered on port 4000`** — read `/tmp/mlx-server.log`; it holds the server's traceback. Usually the model doesn't fit in RAM, or the model id/path is wrong. On a slow disk, raise the wait with `MLX_HEALTH_ATTEMPTS=360` (attempts × 2s).
 - **`Different model is loaded … restarting`, then the wrong model answers** — something else is holding port 4000. `lsof -i :4000`, kill that PID, relaunch.
 - **The launcher asks you to sign in to a Claude account** — the `claude` CLI is too old for `--bare`. `npm install -g @anthropic-ai/claude-code`.
 - **`claude: command not found`** — the launchers now resolve `claude` from your `PATH`; if it's somewhere unusual, run the launcher with `CLAUDE_BIN=/path/to/claude`.
