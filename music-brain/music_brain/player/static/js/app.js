@@ -577,6 +577,26 @@
     }
   });
 
+  $("btnScan").addEventListener("click", async () => {
+    setAi("Scanning media on disk (this can take a while)...");
+    $("btnScan").disabled = true;
+    try {
+      const idx = await api("/api/media/index");
+      setAi(
+        "Scan done · seen " +
+          (idx.seen || 0) +
+          " · new " +
+          (idx.inserted || 0) +
+          " · reload library"
+      );
+      await loadLibrary();
+      await loadBrowser();
+    } catch (e) {
+      setAi("Scan failed - run launchers\\MusicBrain-Scan.cmd");
+    }
+    $("btnScan").disabled = false;
+  });
+
   $("btnAdd").addEventListener("click", async () => {
     // add first selected browser / or open file picker fallback
     const first = browserList.querySelector("li");

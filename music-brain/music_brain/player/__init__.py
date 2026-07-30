@@ -141,8 +141,8 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
             if path.rstrip("/") == "/api/media/index":
                 # Trigger a light re-index (may take time on huge drives)
                 roots = qs.get("root") or None
-                stats = ensure_media_indexed(db, roots)
-                return self._json(200, {"ok": True, **stats})
+                stats = ensure_media_indexed(db, roots if roots else None)
+                return self._json(200, {"ok": True, **stats, "message": "reload browser after scan"})
 
             if path.startswith("/api/stream"):
                 return self._stream(qs)
