@@ -13,7 +13,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path, PurePath
-from typing import Callable, Iterable, Iterator, Sequence
+from typing import Callable, Iterator, Sequence
 
 from .config import (
     ARCHIVE_EXTENSIONS,
@@ -157,10 +157,6 @@ def classify(path: Path, root: Path, stat: os.stat_result) -> FileRecord | None:
     tool, _tool_kind = detect_tool(path)
     if kind == "project" and daw:
         tool = tool or daw
-    if kind == "audio":
-        library = library_of(path, root)
-    else:
-        library = library_of(path, root)
 
     return FileRecord(
         path=str(path),
@@ -173,7 +169,7 @@ def classify(path: Path, root: Path, stat: os.stat_result) -> FileRecord | None:
         mtime_ns=int(stat.st_mtime_ns),
         tool=tool,
         daw=daw if kind == "project" else None,
-        library=library,
+        library=library_of(path, root),
     )
 
 

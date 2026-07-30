@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from soundbrain import analyzer, taxonomy
+from soundbrain.audio.io import AudioLoadError
 from soundbrain.config import Config
 from soundbrain.db import Database
 
@@ -202,7 +203,7 @@ def test_analysis_is_incremental(db: Database, cfg: Config, library: Path):
 def test_analyze_file_on_a_broken_file_raises_cleanly(tmp_path: Path, cfg: Config):
     broken = tmp_path / "broken.wav"
     broken.write_bytes(b"not really a wav file")
-    with pytest.raises(Exception):
+    with pytest.raises(AudioLoadError):
         analyzer.analyze_file(broken, cfg)
 
 

@@ -319,6 +319,6 @@ def note_to_pitch_class(name: str) -> int | None:
             text = sharp + text[len(flat) :]
             break
     for pc, note in enumerate(NOTE_NAMES):
-        if text.startswith(note) and (len(text) == len(note) or not text[len(note)] == "#"):
+        if text.startswith(note) and (len(text) == len(note) or text[len(note)] != "#"):
             return pc
     return None

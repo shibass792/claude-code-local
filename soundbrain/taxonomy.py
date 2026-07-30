@@ -263,7 +263,6 @@ def feature_role_scores(f: dict[str, Any]) -> dict[str, tuple[float, str]]:
     """Role -> (score, reason) from the acoustic features alone."""
     duration = _get(f, "duration")
     fundamental = _get(f, "fundamental_hz")
-    centroid = _get(f, "centroid_hz")
     rolloff = _get(f, "rolloff85_hz")
     attack = _get(f, "attack_ms")
     release = _get(f, "release_ms")

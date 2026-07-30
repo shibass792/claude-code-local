@@ -74,21 +74,20 @@ def _block_mean_square(block: np.ndarray, weight: np.ndarray) -> float:
 
 def integrated_lufs(samples: np.ndarray, sample_rate: int) -> float:
     """Gated integrated loudness in LUFS (``-inf`` becomes ``-70.0``)."""
-    data = np.atleast_2d(np.asarray(samples, dtype=np.float64))
-    if data.shape[0] < data.shape[1]:
-        pass  # already (channels, frames)? normalise below
-    if samples.ndim == 1:
-        channels = data
-    else:
-        channels = np.asarray(samples, dtype=np.float64).T  # (channels, frames)
+    data = np.asarray(samples, dtype=np.float64)
+    # work in (channels, frames)
+    channels = data.reshape(1, -1) if data.ndim == 1 else data.T
 
     n_frames = channels.shape[1]
     block_len = int(0.4 * sample_rate)
     hop = int(0.1 * sample_rate)
     if n_frames < block_len:
-        pad = block_len - n_frames
-        channels = np.pad(channels, ((0, 0), (0, pad)))
-        n_frames = channels.shape[1]
+        # R128 does not define integrated loudness below 400 ms. Padding to a
+        # full block would report a short one-shot as quieter than it sounds, so
+        # a shorter file is measured as one block of its own length instead.
+        block_len = max(n_frames, 16)
+        channels = channels[:, :block_len]
+        n_frames = block_len
 
     freqs = np.fft.rfftfreq(block_len, 1.0 / sample_rate)
     weight = k_weighting_magnitude(freqs, sample_rate)

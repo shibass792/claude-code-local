@@ -11,7 +11,7 @@ from pathlib import Path
 
 from conftest import write_als, write_cpr
 
-from soundbrain import bridge, cli, learner, scanner, server
+from soundbrain import bridge, cli, server
 from soundbrain.config import Config
 from soundbrain.db import Database
 

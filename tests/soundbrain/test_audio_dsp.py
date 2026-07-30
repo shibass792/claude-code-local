@@ -101,6 +101,14 @@ def test_lufs_tracks_gain_changes():
     assert 19.0 < delta < 21.0
 
 
+def test_short_one_shots_are_not_measured_as_quieter_than_they_sound():
+    """A 150 ms hit must read like the sound, not like the sound plus silence."""
+    amplitude = 10 ** (-20.0 / 20.0) * np.sqrt(2)
+    short = np.stack([sine(1000.0, 0.15, amplitude)] * 2, axis=1)
+    long = np.stack([sine(1000.0, 5.0, amplitude)] * 2, axis=1)
+    assert abs(loudness.integrated_lufs(short, SR) - loudness.integrated_lufs(long, SR)) < 1.0
+
+
 def test_k_weighting_boosts_highs_and_cuts_lows():
     freqs = np.array([30.0, 1000.0, 8000.0])
     response = loudness.k_weighting_magnitude(freqs, SR)
