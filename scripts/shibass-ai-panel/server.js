@@ -12,6 +12,11 @@ const INDEX_FILE = process.env.INDEX_FILE || "H:\\ai-knowledge\\drive-index.json
 const KNOWLEDGE_SCRIPT =
   process.env.KNOWLEDGE_SCRIPT || "H:\\models\\knowledge-from-drives.ps1";
 const WAIT_SCRIPT = process.env.WAIT_SCRIPT || "H:\\models\\wait-then-ask.ps1";
+const BRAIN_CONTEXT =
+  process.env.BRAIN_CONTEXT ||
+  "H:\\shibass-ai\\SHIBASS_BRAIN\\system\\context_for_model.txt";
+const BRAIN_SCRIPT =
+  process.env.BRAIN_SCRIPT || "H:\\models\\shibass-brain\\brain.ps1";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -128,6 +133,9 @@ app.get("/api/status", async (_req, res) => {
     waitScript: fs.existsSync(WAIT_SCRIPT),
     knowledgeScriptPath: KNOWLEDGE_SCRIPT,
     waitScriptPath: WAIT_SCRIPT,
+    brainContext: fs.existsSync(BRAIN_CONTEXT),
+    brainScript: fs.existsSync(BRAIN_SCRIPT),
+    brainRoot: "H:\\shibass-ai\\SHIBASS_BRAIN",
   });
 });
 
@@ -138,13 +146,31 @@ app.post("/api/chat", async (req, res) => {
     return;
   }
 
+  let brain = "";
+  try {
+    if (fs.existsSync(BRAIN_SCRIPT)) {
+      await runPowerShell(["-File", BRAIN_SCRIPT, "-ExportContext"], {
+        timeoutMs: 60000,
+      });
+    }
+    if (fs.existsSync(BRAIN_CONTEXT)) {
+      brain = fs.readFileSync(BRAIN_CONTEXT, "utf8").slice(0, 12000);
+    }
+  } catch {
+    brain = "";
+  }
+
+  const fullPrompt = brain
+    ? `You are ShiBass local assistant. Follow SHIBASS BRAIN rules.\n\nSHIBASS BRAIN:\n${brain}\n\nUSER:\n${prompt}`
+    : prompt;
+
   try {
     const result = await ollamaFetch("/api/generate", {
       method: "POST",
       timeoutMs: 5 * 60 * 1000,
       body: JSON.stringify({
         model: MODEL,
-        prompt,
+        prompt: fullPrompt,
         stream: false,
       }),
     });
@@ -160,6 +186,7 @@ app.post("/api/chat", async (req, res) => {
     res.json({
       response: result.json?.response || "",
       model: result.json?.model || MODEL,
+      brainInjected: Boolean(brain),
     });
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

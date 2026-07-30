@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "workflow": [
+    {
+      "id": "dry_first",
+      "text": "Work dry at the start; add effects only near the end",
+      "confidence": "confirmed",
+      "source": "user"
+    },
+    {
+      "id": "eq_before_close",
+      "text": "EQ every channel before closing a project",
+      "confidence": "confirmed",
+      "source": "user"
+    },
+    {
+      "id": "no_unresolved_4_or_11",
+      "text": "Do not leave scale degrees 4 or 11 unresolved without intention",
+      "confidence": "confirmed",
+      "source": "user"
+    }
+  ],
+  "communication": {
+    "answer_language_default": "he",
+    "be_direct": true
+  },
+  "updated_at": null
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "rules": [
+    {
+      "id": "rule_bpm_band",
+      "text": "Prefer 140-143 BPM unless the user explicitly asks otherwise",
+      "confidence": "confirmed",
+      "source": "user",
+      "approved": true,
+      "active": true
+    },
+    {
+      "id": "rule_no_dark_psy",
+      "text": "Do not push Dark Psy direction",
+      "confidence": "confirmed",
+      "source": "user",
+      "approved": true,
+      "active": true
+    },
+    {
+      "id": "rule_clear_melodies",
+      "text": "Keep melodies clear; avoid random runs",
+      "confidence": "confirmed",
+      "source": "user",
+      "approved": true,
+      "active": true
+    },
+    {
+      "id": "rule_ownership",
+      "text": "Never treat reference tracks, courses, or other artists as ShiBass originals",
+      "confidence": "confirmed",
+      "source": "system",
+      "approved": true,
+      "active": true
+    },
+    {
+      "id": "rule_no_guess",
+      "text": "If uncertain between versions/projects, list options with confidence instead of guessing",
+      "confidence": "confirmed",
+      "source": "system",
+      "approved": true,
+      "active": true
+    }
+  ],
+  "updated_at": null
+}

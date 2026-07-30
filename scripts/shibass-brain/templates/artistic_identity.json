@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "stage_name": "ShiBass",
+  "genres": ["psytrance"],
+  "subgenres_avoid": ["dark psy"],
+  "signature_notes": {
+    "preferred_keys": ["F#", "D#", "A#"],
+    "bpm_range": { "min": 140, "max": 143, "confidence": "confirmed" },
+    "melody_style": "clear motifs, emotional groove, avoid random runs",
+    "mix_philosophy": "work dry first; effects late; EQ each channel before close"
+  },
+  "tools": {
+    "daw_primary": "Cubase",
+    "daw_secondary": "Ableton Live",
+    "instruments": ["Serum", "Kick 3"],
+    "confidence": "inferred"
+  },
+  "updated_at": null
+}

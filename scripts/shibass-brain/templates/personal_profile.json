@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "artist_name": "ShiBass",
+  "legal_name": null,
+  "aliases": ["ShiBass"],
+  "primary_roles": ["producer", "DJ", "performer"],
+  "home_base": null,
+  "languages": ["he", "en"],
+  "timezone": "Asia/Jerusalem",
+  "updated_at": null,
+  "notes": "Edit this file. Mark uncertain fields null until confirmed."
+}

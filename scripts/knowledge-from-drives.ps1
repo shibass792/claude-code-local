@@ -41,7 +41,11 @@ param(
   [int]$MaxTotalChars = 24000,
 
   # Max file size to consider (bytes)
-  [long]$MaxFileBytes = 5MB
+  [long]$MaxFileBytes = 5MB,
+
+  # ShiBass Brain Phase 1 context (permanent rules + facts)
+  [string]$BrainContextFile = "H:\shibass-ai\SHIBASS_BRAIN\system\context_for_model.txt",
+  [string]$BrainScript = "H:\models\shibass-brain\brain.ps1"
 )
 
 $ErrorActionPreference = "Continue"
@@ -198,15 +202,34 @@ function Ask-Ollama {
   }
 
   $context = ($chunks -join "`n`n")
-  $prompt = @"
-אתה עוזר מקומי. ענה בעברית אלא אם מבקשים אחרת.
-הסתמך רק על הקבצים שנמשכו מהכוננים למטה. אם אין מספיק מידע - אמור זאת.
-אל תמציא נתיבים או קוד שלא מופיעים.
 
-שאלה:
+  $brain = ""
+  try {
+    if (Test-Path $BrainScript) {
+      & $BrainScript -ExportContext | Out-Null
+    }
+    if (Test-Path $BrainContextFile) {
+      $brain = Get-Content -LiteralPath $BrainContextFile -Raw -ErrorAction SilentlyContinue
+      if ($brain -and $brain.Length -gt 12000) {
+        $brain = $brain.Substring(0, 12000) + "`n...[brain truncated]..."
+      }
+    }
+  } catch { }
+
+  $prompt = @"
+You are ShiBass local assistant.
+Answer in Hebrew unless asked otherwise.
+Use ShiBass Brain rules/facts when present.
+Use only pulled drive files for project-specific claims.
+If unsure between versions, list options with confidence. Do not invent paths.
+
+SHIBASS BRAIN:
+$brain
+
+QUESTION:
 $Question
 
-קבצים שנמשכו מהכוננים (ללא העתקה):
+DRIVE FILES (live pull, no copy):
 $context
 "@
 
