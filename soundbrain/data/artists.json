@@ -1,0 +1,208 @@
+{
+  "_comment": "Reference profiles for 'I want a bass like X' queries. Values are target ranges, not claims about any specific release: they describe the sonic territory a producer works in (tempo, brightness, energy, typical bass/lead/kick style) so the matcher can rank your own library against it. Edit freely - this file is data, not code.",
+  "artists": [
+    {
+      "name": "Astrix",
+      "aliases": ["astrix", "אסטריקס"],
+      "genre": "full-on psytrance",
+      "bpm": [140, 146],
+      "energy": 0.82,
+      "centroid_hz": 1400,
+      "bass": "rolling",
+      "lead": "screamer",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["fullon", "psytrance", "rolling", "twisted"]
+    },
+    {
+      "name": "Ranji",
+      "aliases": ["ranji", "רנג'י", "רנגי"],
+      "genre": "progressive psytrance",
+      "bpm": [136, 140],
+      "energy": 0.68,
+      "centroid_hz": 1100,
+      "bass": "offbeat",
+      "lead": "pluck",
+      "kick": "progressive",
+      "mode": "minor",
+      "tags": ["progressive", "psytrance", "groovy", "offbeat"]
+    },
+    {
+      "name": "Vini Vici",
+      "aliases": ["vini vici", "vinivici", "ויני ויצ'י"],
+      "genre": "psytrance",
+      "bpm": [138, 142],
+      "energy": 0.8,
+      "centroid_hz": 1250,
+      "bass": "rolling",
+      "lead": "supersaw",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["psytrance", "festival", "big room"]
+    },
+    {
+      "name": "Infected Mushroom",
+      "aliases": ["infected mushroom", "infected", "אינפקטד"],
+      "genre": "psytrance",
+      "bpm": [140, 148],
+      "energy": 0.85,
+      "centroid_hz": 1600,
+      "bass": "fullon",
+      "lead": "screamer",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["psytrance", "complex", "designed"]
+    },
+    {
+      "name": "Captain Hook",
+      "aliases": ["captain hook", "קפטן הוק"],
+      "genre": "progressive psytrance",
+      "bpm": [132, 138],
+      "energy": 0.6,
+      "centroid_hz": 950,
+      "bass": "progressive",
+      "lead": "pluck",
+      "kick": "progressive",
+      "mode": "minor",
+      "tags": ["progressive", "melodic", "deep"]
+    },
+    {
+      "name": "Ace Ventura",
+      "aliases": ["ace ventura", "אייס ונטורה"],
+      "genre": "progressive psytrance",
+      "bpm": [128, 136],
+      "energy": 0.55,
+      "centroid_hz": 900,
+      "bass": "offbeat",
+      "lead": "arp",
+      "kick": "progressive",
+      "mode": "minor",
+      "tags": ["progressive", "groove", "warm"]
+    },
+    {
+      "name": "Blastoyz",
+      "aliases": ["blastoyz", "בלאסטויז"],
+      "genre": "psytrance",
+      "bpm": [138, 142],
+      "energy": 0.83,
+      "centroid_hz": 1300,
+      "bass": "rolling",
+      "lead": "supersaw",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["psytrance", "festival", "peak time"]
+    },
+    {
+      "name": "Berg",
+      "aliases": ["berg"],
+      "genre": "full-on psytrance",
+      "bpm": [142, 148],
+      "energy": 0.86,
+      "centroid_hz": 1500,
+      "bass": "fullon",
+      "lead": "screamer",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["fullon", "night", "twisted"]
+    },
+    {
+      "name": "Astral Projection",
+      "aliases": ["astral projection", "astral"],
+      "genre": "goa trance",
+      "bpm": [138, 145],
+      "energy": 0.7,
+      "centroid_hz": 1200,
+      "bass": "goa",
+      "lead": "goa",
+      "kick": "goa",
+      "mode": "minor",
+      "tags": ["goa", "classic", "acid"]
+    },
+    {
+      "name": "Hi Profile",
+      "aliases": ["hi profile", "hiprofile"],
+      "genre": "full-on psytrance",
+      "bpm": [142, 146],
+      "energy": 0.84,
+      "centroid_hz": 1450,
+      "bass": "rolling",
+      "lead": "screamer",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["fullon", "morning", "twisted"]
+    },
+    {
+      "name": "Liquid Soul",
+      "aliases": ["liquid soul"],
+      "genre": "progressive psytrance",
+      "bpm": [134, 140],
+      "energy": 0.65,
+      "centroid_hz": 1050,
+      "bass": "progressive",
+      "lead": "morning",
+      "kick": "progressive",
+      "mode": "minor",
+      "tags": ["progressive", "uplifting", "melodic"]
+    },
+    {
+      "name": "Sonic Species",
+      "aliases": ["sonic species"],
+      "genre": "psytrance",
+      "bpm": [138, 143],
+      "energy": 0.78,
+      "centroid_hz": 1250,
+      "bass": "rolling",
+      "lead": "acid",
+      "kick": "fullon",
+      "mode": "minor",
+      "tags": ["psytrance", "driving", "acid"]
+    }
+  ],
+  "genres": [
+    {
+      "name": "full on",
+      "aliases": ["fullon", "full-on", "full on", "פולאון"],
+      "bpm": [140, 148],
+      "energy": 0.82,
+      "bass": "fullon",
+      "kick": "fullon",
+      "centroid_hz": 1400
+    },
+    {
+      "name": "progressive psytrance",
+      "aliases": ["progressive", "prog", "פרוגרסיב"],
+      "bpm": [130, 138],
+      "energy": 0.62,
+      "bass": "offbeat",
+      "kick": "progressive",
+      "centroid_hz": 1000
+    },
+    {
+      "name": "dark psytrance",
+      "aliases": ["darkpsy", "dark psy", "dark", "forest", "אפל"],
+      "bpm": [148, 160],
+      "energy": 0.8,
+      "bass": "dark",
+      "kick": "hitech",
+      "centroid_hz": 900
+    },
+    {
+      "name": "goa trance",
+      "aliases": ["goa", "nitzhonot", "גואה"],
+      "bpm": [140, 148],
+      "energy": 0.72,
+      "bass": "goa",
+      "kick": "goa",
+      "centroid_hz": 1200
+    },
+    {
+      "name": "techno",
+      "aliases": ["techno", "טכנו"],
+      "bpm": [128, 138],
+      "energy": 0.7,
+      "bass": "sub",
+      "kick": "techno",
+      "centroid_hz": 800
+    }
+  ]
+}
