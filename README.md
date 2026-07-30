@@ -670,6 +670,35 @@ claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem ~/pr
 
 Now you can launch Claude Code (any of the launchers in `launchers/`) and ask it to *"summarize every README in `~/projects`"* — it'll call the filesystem MCP server, which streams files back to your local Gemma/Qwen, which writes the summary. Zero cloud round-trips.
 
+**1b. Windows `H:\` remote control**
+
+Point Claude Code at your `H:\` drive (home / project share) with one setup command:
+
+```bat
+REM From the repo on Windows
+launchers\H-Drive Remote.cmd setup
+```
+
+That registers an MCP filesystem server scoped to `H:\` and installs `~\.claude\h-drive.cmd` so Claude can list/read/write via:
+
+```bat
+h-drive list
+h-drive read Projects\README.md
+h-drive write inbox\note.txt "ship it"
+```
+
+Optional localhost API (bound to `127.0.0.1` only):
+
+```bat
+launchers\H-Drive Remote.cmd serve
+```
+
+On Linux/macOS with an SMB mount of the Windows share:
+
+```bash
+H_DRIVE_ROOT=/mnt/h bash scripts/h-drive/setup-mcp.sh
+```
+
 **2. GitHub — issues, PRs, code search, all local**
 
 ```bash
@@ -857,6 +886,7 @@ bash ~/NarrateClaude/narrative-claude.sh
 | Want fastest possible | ☁️ | Cloud Sonnet is still slightly faster |
 | Need Claude-level reasoning | ☁️ | Local models are good, not Claude-level |
 | Controlling from phone | ✅ | iMessage pipeline works offline |
+| Controlling Windows `H:\` | ✅ | MCP + `h-drive` CLI / localhost API |
 | Healthcare / legal / finance review | ✅ | 100% on-device, audit-friendly |
 
 ---
@@ -872,11 +902,13 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   ├── Gemma 4 Code.command    ← 🟢 THE QUICK ONE
  │   ├── Llama 70B.command       ← 🟠 THE WISE ONE
  │   ├── Browser Agent.command   ← 🌐 Autonomous Brave browser control
+ │   ├── H-Drive Remote.cmd      ← 💾 Windows H:\ remote control (MCP + CLI + API)
  │   ├── Narrative Gemma.command ← 🎭 Auto-narration mode
  │   └── lib/claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
  ├── 🎭 NarrativeGemma/
  │   └── CLAUDE.md              ← Narration persona (sanitized, generic, opt-in)
  ├── 🛠️  scripts/
+ │   ├── h-drive/               ← H:\ remote-control CLI, MCP setup, tests
  │   ├── download-and-import.sh ← Download a fighter (`gemma` / `llama` / `qwen`)
  │   ├── persistent-download.sh ← Auto-retry downloader for big models
  │   ├── start-mlx-server.sh    ← Server start helper
