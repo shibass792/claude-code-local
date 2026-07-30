@@ -20,7 +20,6 @@ MB.Libraries = {
       ...opts,
     };
     this.currentLibrary = this.options.defaultLibrary;
-    MB.Player.init();
     await this.loadTabs();
     await this.browse(true);
   },
@@ -113,10 +112,20 @@ MB.Libraries = {
     await this.browse(true);
   },
 
+  _playBrowseItem(item) {
+    if (!item?.file_id) return;
+    const idx = MB.Player.queue.findIndex((r) => r.file_id === item.file_id);
+    if (idx >= 0) {
+      MB.Player.playAt(idx);
+      return;
+    }
+    MB.Player.setQueue([{ ...item, library: item.library || this.currentLibrary }], false);
+    MB.Player.playAt(MB.Player.queue.length - 1);
+  },
+
   renderTable() {
     const el = document.getElementById(this.options.containerId);
     if (!el) return;
-    MB.Player.setQueue(this.browseItems);
     if (!this.browseItems.length) {
       el.innerHTML =
         '<p class="sub">אין קבצים — הרץ <code>music-brain pipeline</code></p>';
@@ -124,17 +133,22 @@ MB.Libraries = {
     }
     let html =
       "<table><tr><th></th><th>קובץ</th><th>תיקייה</th><th>BPM</th><th>Key</th></tr>";
-    this.browseItems.forEach((r, i) => {
+    this.browseItems.forEach((r) => {
       const name = MB.basename(r.path);
       const folder = r.library_sub || "-";
-      html += `<tr data-id="${r.file_id}"><td><button type="button" class="play-btn" data-play="${i}">▶</button></td>
+      html += `<tr data-id="${r.file_id}"><td><button type="button" class="play-btn" data-play-id="${r.file_id}">▶</button></td>
         <td title="${MB.esc(r.path)}">${MB.esc(name)}</td><td>${MB.esc(folder)}</td>
         <td>${r.bpm || "-"}</td><td>${r.key || "-"}</td></tr>`;
     });
     html += "</table>";
     el.innerHTML = html;
-    el.querySelectorAll("[data-play]").forEach((btn) => {
-      btn.onclick = () => MB.Player.playAt(Number(btn.dataset.play));
+    el.querySelectorAll("[data-play-id]").forEach((btn) => {
+      btn.onclick = () => {
+        const item = this.browseItems.find(
+          (r) => String(r.file_id) === btn.dataset.playId
+        );
+        this._playBrowseItem(item);
+      };
     });
   },
 
