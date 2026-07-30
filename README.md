@@ -699,6 +699,19 @@ On Linux/macOS with an SMB mount of the Windows share:
 H_DRIVE_ROOT=/mnt/h bash scripts/h-drive/setup-mcp.sh
 ```
 
+Register both `H:\` and `F:\` on Windows:
+
+```bat
+launchers\H-Drive Remote.cmd setup-drives
+```
+
+**Control panel (scan code · memory · start services · button checks):**
+
+```bash
+python3 scripts/system_ready.py all
+# open http://127.0.0.1:8787/
+```
+
 **2. GitHub — issues, PRs, code search, all local**
 
 ```bash

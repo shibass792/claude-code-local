@@ -13,8 +13,9 @@ if not exist "%CTL%" (
   exit /b 1
 )
 
-if "%~1"=="setup" goto :setup
-if "%~1"=="serve" goto :serve
+if /I "%~1"=="setup" goto :setup
+if /I "%~1"=="setup-drives" goto :setupdrives
+if /I "%~1"=="serve" goto :serve
 if "%~1"=="" goto :help
 
 if "%H_DRIVE_ROOT%"=="" set "H_DRIVE_ROOT=H:\"
@@ -23,6 +24,10 @@ exit /b %ERRORLEVEL%
 
 :setup
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SETUP%" %2 %3 %4 %5
+exit /b %ERRORLEVEL%
+
+:setupdrives
+powershell -NoProfile -ExecutionPolicy Bypass -File "%REPO_ROOT%\scripts\h-drive\setup-drives.ps1" %2 %3 %4 %5
 exit /b %ERRORLEVEL%
 
 :serve
@@ -38,6 +43,7 @@ echo H-Drive Remote — Claude Code control for H:\
 echo.
 echo Usage:
 echo   "H-Drive Remote.cmd" setup          Register MCP + install h-drive.cmd
+echo   "H-Drive Remote.cmd" setup-drives   Register H:\ and F:\ together
 echo   "H-Drive Remote.cmd" serve          Localhost API on port 18765
 echo   "H-Drive Remote.cmd" list [path]    List files under H:\
 echo   "H-Drive Remote.cmd" read path      Read a file
