@@ -36,8 +36,12 @@ TRACK_MARKERS = (
 
 PLUGIN_MARKERS = (b"PLuginUID", b"Plugin UID", b"PluginUID", b"VstPlugin", b"MInsertPluginNode", b"Vst3Plugin")
 
-ASCII_STRING = re.compile(rb"[\x20-\x7e]{4,64}")
-SAMPLE_PATH = re.compile(r"[A-Za-z]:[\\/][^\x00\"<>|*?]{3,200}\.(?:wav|aiff|aif|flac|mp3|ogg)", re.IGNORECASE)
+ASCII_STRING = re.compile(rb"[\x20-\x7e]{4,400}")
+AUDIO_EXT = r"(?:wav|wave|aiff|aif|flac|mp3|ogg|w64)"
+#: absolute or relative paths ("H:\Samples\x.wav", "/Volumes/H/x.wav", "../x.wav")
+SAMPLE_PATH = re.compile(rf"(?:[A-Za-z]:[\\/]|/|\.{{1,2}}[\\/])[^\x00\"<>|*?]{{2,240}}\.{AUDIO_EXT}", re.IGNORECASE)
+#: bare file names, for pool entries stored relative to the project folder
+SAMPLE_NAME = re.compile(rf"[A-Za-z0-9][\w \-#&'\.\(\)]{{2,80}}\.{AUDIO_EXT}", re.IGNORECASE)
 TEMPO_TOKEN = re.compile(rb"MTempoTrackEvent|MTempoEvent")
 
 MAX_BYTES = 96 * 1024 * 1024
@@ -131,11 +135,18 @@ def parse(path: str | Path) -> ParsedProject:
     segments: dict[int, list[str]] = {}
     segment_names: dict[int, str] = {}
     all_tools: list[str] = []
+
+    # Media references are pulled from the whole blob rather than from the
+    # tokenised strings: a long path can straddle two runs of printable bytes,
+    # and a half-path resolves to the wrong sample (or to none at all).
     samples: list[str] = []
+    for blob in (data.decode("latin-1"), data.decode("utf-16-le", "ignore")):
+        samples.extend(SAMPLE_PATH.findall(blob))
+    if not samples:
+        for _offset, text in strings:
+            samples.extend(SAMPLE_NAME.findall(text))
 
     for offset, text in strings:
-        for candidate in SAMPLE_PATH.findall(text):
-            samples.append(candidate)
         known = canonical_tool(text)
         if known:
             index = segment_of(offset)

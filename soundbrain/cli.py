@@ -36,6 +36,26 @@ def _out(payload: Any, as_json: bool, lines: Sequence[str] | None = None) -> Non
         print(line)
 
 
+def _candidate_line(payload: dict[str, Any], show_role: bool = True) -> str:
+    """One result row: score, name, what it is, and which pack it came from."""
+    bits = [f"  {payload['score']:.3f}  {payload['name']}"]
+    if show_role:
+        bits.append(f"[{payload.get('role') or '?'}/{payload.get('subtype') or '-'}]")
+    elif payload.get("subtype"):
+        bits.append(f"[{payload['subtype']}]")
+    if payload.get("key"):
+        bits.append(str(payload["key"]))
+    if payload.get("bpm"):
+        bits.append(f"{float(payload['bpm']):.0f} BPM")
+    if payload.get("library"):
+        bits.append(f"· {payload['library']}")
+    return " ".join(bits)
+
+
+def _plural(count: int, singular: str, plural: str | None = None) -> str:
+    return f"{count} {singular if count == 1 else (plural or singular + 's')}"
+
+
 def _open(args: argparse.Namespace) -> tuple[Database, Config]:
     cfg = load_config(getattr(args, "config", None), roots=getattr(args, "roots", None))
     if getattr(args, "db", None):
@@ -195,11 +215,11 @@ def cmd_stats(args: argparse.Namespace) -> int:
         usage = data["usage"]
         if usage["instruments"]:
             lines.append("")
-            lines.append("instruments by project share:")
+            lines.append("instruments, as a share of your projects:")
             for entry in usage["instruments"][:10]:
-                lines.append(f"  {entry['share']*100:5.1f}%  {entry['name']}  ({entry['projects']} projects)")
+                lines.append(f"  {entry['share']*100:5.1f}%  {entry['name']}  ({_plural(entry['projects'], 'project')})")
         if usage["effects"]:
-            lines.append("effects by project share:")
+            lines.append("effects, as a share of your projects:")
             for entry in usage["effects"][:10]:
                 lines.append(f"  {entry['share']*100:5.1f}%  {entry['name']}")
         if data["chains"]["chains"]:
@@ -265,9 +285,9 @@ def cmd_search(args: argparse.Namespace) -> int:
         ]
         for note in plan["notes"]:
             lines.append(f"  note: {note}")
-        lines.append(f"  {result['count']} results")
+        lines.append(f"  {_plural(result['count'], 'result')}")
         for entry in result["results"][:args.limit]:
-            lines.append(f"  {entry['score']:.3f}  {entry['name']}  [{entry['role']}/{entry['subtype'] or '-'}] {entry['key'] or ''}")
+            lines.append(_candidate_line(entry))
             if args.verbose:
                 for reason in entry["reasons"][:3]:
                     lines.append(f"           - {reason}")
@@ -285,7 +305,7 @@ def cmd_match(args: argparse.Namespace) -> int:
         lines = [f"{len(candidates)} {args.role} matches for {Path(str(seed.get('path'))).name}"]
         for entry in candidates:
             payload = entry.as_dict()
-            lines.append(f"  {payload['score']:.3f}  {payload['name']}  [{payload['subtype'] or '-'}] {payload['key'] or ''}")
+            lines.append(_candidate_line(payload, show_role=False))
             if args.verbose:
                 for reason in payload["reasons"][:4]:
                     lines.append(f"           - {reason}")
@@ -302,8 +322,7 @@ def cmd_similar(args: argparse.Namespace) -> int:
         candidates = matcher.find_similar(db, seed, role=args.role, limit=args.limit)
         lines = [f"{len(candidates)} sounds similar to {Path(str(seed.get('path'))).name}"]
         for entry in candidates:
-            payload = entry.as_dict()
-            lines.append(f"  {payload['score']:.3f}  {payload['name']}  [{payload['role']}/{payload['subtype'] or '-'}]")
+            lines.append(_candidate_line(entry.as_dict()))
         _out({"seed": seed.get("path"), "results": [c.as_dict() for c in candidates]}, args.json, lines)
     finally:
         db.close()
@@ -316,8 +335,7 @@ def cmd_inkey(args: argparse.Namespace) -> int:
         candidates = matcher.find_in_key(db, args.key, role=args.role, bpm=args.bpm, limit=args.limit)
         lines = [f"{len(candidates)} sounds in or around {args.key}"]
         for entry in candidates:
-            payload = entry.as_dict()
-            lines.append(f"  {payload['score']:.3f}  {payload['name']}  [{payload['key'] or '?'}] {payload['bpm'] or ''}")
+            lines.append(_candidate_line(entry.as_dict()))
         _out({"key": args.key, "results": [c.as_dict() for c in candidates]}, args.json, lines)
     finally:
         db.close()

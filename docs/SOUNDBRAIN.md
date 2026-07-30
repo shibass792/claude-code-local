@@ -1,0 +1,498 @@
+# SoundBrain — a local studio knowledge engine
+
+SoundBrain indexes every drive in your studio, listens to what is on them, learns
+how you actually work from your own projects, and then answers the questions a
+producer asks out loud: *which bass fits this kick*, *what do I already own that
+sounds like this*, *what chain do I always end up building*.
+
+It runs entirely on your machine, against your own files. No uploads, no
+accounts, one SQLite file you can delete.
+
+```
+soundbrain init                       # detect drives, write a config
+soundbrain pipeline                   # scan -> analyse -> parse projects -> learn
+soundbrain search "bass like Astrix"
+soundbrain project "H:\Projects\Night Track.cpr"
+soundbrain serve                      # local HTTP bridge on 127.0.0.1:8770
+```
+
+---
+
+## Contents
+
+- [Install](#install)
+- [The ten stages](#the-ten-stages)
+- [Command reference](#command-reference)
+- [The bridge (HTTP API)](#the-bridge-http-api)
+- [How the analysis works](#how-the-analysis-works)
+- [How matching works](#how-matching-works)
+- [Data model](#data-model)
+- [Configuration](#configuration)
+- [Performance notes](#performance-notes)
+- [What this does *not* do](#what-this-does-not-do)
+- [Tests](#tests)
+
+---
+
+## Install
+
+```bash
+pip install -r requirements-soundbrain.txt
+python -m soundbrain init
+```
+
+Only **numpy** is mandatory. `soundfile` (libsndfile) adds fast flac/aiff/ogg
+decoding, and `ffmpeg` on `PATH` covers mp3/m4a/opus. Plain PCM `.wav` — most of
+a sample collection — is decoded by the standard library, so the engine works on
+a bare Python install. `soundbrain init` prints which decoders it found.
+
+Windows, macOS and Linux are all supported; the defaults are Windows-shaped
+because that is where Cubase and the drive letters live.
+
+---
+
+## The ten stages
+
+### Stage 1 — scan the whole machine, not one folder
+
+`soundbrain scan` walks every configured root. On Windows the defaults are the
+drives that exist plus your user profile:
+
+```
+H:\   D:\   F:\   E:\   G:\   C:\Users\<you>\
+```
+
+Each file is classified and attributed to the tool it belongs to. The registry in
+`soundbrain/config.py` covers the DAWs (Cubase, Nuendo, Ableton Live, Studio One,
+FL Studio, Reaper, Logic), the instruments (Serum, Sylenth1, Vital, Spire, Nexus,
+Omnisphere, Trilian, Keyscape, Kontakt, Massive, Massive X, Diva, Hive, Zebra,
+Pigments, Avenger, Phase Plant, HALion, Retrologue, Padshop), the drum tools
+(Kick 3, Kick 2, Battery, Groove Agent, Addictive Drums) and the effects
+(FabFilter Pro-Q/C/L/MB, Saturn, Soothe, Spiff, Ozone, Neutron, OTT, Valhalla,
+ShaperBox, Trackspacer, Gullfoss, Kickstart, Serial Clipper, StandardCLIP,
+Decapitator, EchoBoy and more) — by preset extension (`.fxp`, `.vital`,
+`.prt_omn`, `.nki`, `.nmsv`, `.nbkt`, `.kick3`, `.sbf`, `.h2p`, `.pgtx`,
+`.nxp`, `.gak`, `.vstpreset` …) and by folder name.
+
+Sample libraries are grouped by their collection folder, so
+`H:\Samples\Zenhiser Psytrance\Bass\roll_01.wav` is filed under
+*Zenhiser Psytrance*.
+
+The scan is incremental: a file is only queued for analysis when its size or
+mtime changed. Files that disappeared are flagged `missing` rather than deleted,
+so your history survives unplugging a drive. System folders
+(`$RECYCLE.BIN`, `Windows`, `node_modules`, temp caches …) are skipped, and a
+stray `.dll` is only indexed when it sits in a plugin folder.
+
+```bash
+soundbrain scan
+soundbrain inventory       # per-drive counts, tools found, coverage check
+```
+
+`inventory` includes a coverage report for the tools this engine was asked to
+cover, so you can see at a glance whether, say, Groove Agent was found anywhere.
+
+### Stage 2 — not just the key: *what kind* of sound is this
+
+Every analysed file gets a **role** (kick, bass, lead, pad, fx, vocal, snare,
+clap, hat, perc, cymbal, pluck, chord, atmo, loop) and a **subtype**:
+
+| role  | subtypes |
+| ----- | -------- |
+| bass  | rolling, offbeat, fullon, progressive, dark, goa, reese, sub, acid |
+| lead  | acid, morning, screamer, pluck, arp, supersaw, vocalchop, goa |
+| kick  | fullon, progressive, goa, hitech, dark, techno, house, trance |
+| pad   | warm, dark, cinematic, choir, evolving, drone |
+| fx    | riser, downlifter, impact, whoosh, zap, glitch, reverse, atmo |
+| vocal | spoken, phrase, chop, chant, scream |
+
+Two independent sources of evidence are combined. **Naming evidence** reads the
+file name and folder chain in English and Hebrew (`באס`, `ליד`, `קיק`, `פאד`,
+`אפקט`, `ווקאל`) — someone who named a file `Rolling Bass 145 F#m` meant it.
+**Acoustic evidence** reads the stage 3 features: a rolling bass is a bass with
+≥ 2.4 onsets per beat that goes silent between them; an offbeat bass puts one
+longer note on the "and" of every beat; a full-on kick has a tight body and a
+bright click; a riser is FX whose spectral centre climbs over time.
+
+Every decision carries its reasons, which the CLI will print:
+
+```
+Rolling Bass 145 F#m.wav   bass / rolling
+  - name contains 'rolling'
+  - fundamental 56 Hz with sustain 0.29
+  - 3.0 onsets per beat with gaps between them
+```
+
+### Stage 3 — the full acoustic analysis
+
+One pass per file produces, per the plan: transient, attack, release, envelope
+(decay, sustain ratio, gate ratio, tail), stereo width, dynamics, RMS, LUFS,
+MFCC, spectral roll-off, tonnetz, chroma, spectral contrast, tempo confidence and
+key confidence — plus peak, crest, loudness range, spectral centroid/bandwidth/
+flatness/flux, zero-crossing rate, per-band energy shares, fundamental frequency
+with a MIDI note name, onset times, and a 30-dimensional similarity vector.
+
+```bash
+soundbrain analyze              # everything new or changed
+soundbrain analyze-file "H:\Samples\Bass\roll.wav"
+```
+
+### Stage 4 — does this bass fit *this* kick, key or no key
+
+`soundbrain match kick.wav --role bass` scores every bass in your library against
+one kick. The weights are the point of the whole stage:
+
+| component | weight | what it measures |
+| --- | --- | --- |
+| envelope interlock | 0.26 | does the bass leave a gap for the kick's tail (attack time, gating) |
+| spectral separation | 0.22 | how much the two fight over 20–250 Hz |
+| transient clarity | 0.18 | will the kick's 2–8 kHz click survive on top of this bass |
+| pitch relation | 0.15 | octave-folded consonance of the two fundamentals |
+| tempo fit | 0.09 | same tempo, or a half/double-time relation |
+| **key fit** | **0.06** | Camelot-wheel distance, scaled down further when key confidence is low |
+| level fit | 0.04 | how far apart the two sit in LUFS |
+
+A pair can therefore be a *strong fit* in unrelated keys, and the verdict says so
+explicitly: `usable fit — different key, but the pocket and the low-end split
+work`. Every component comes back with a sentence you can argue with:
+
+```
+envelope interlock 0.86 (x0.26): bass is gated 36% of the time, so the 205 ms kick tail has a gap to live in
+spectral separation 0.26 (x0.22): both fight over 20-60 Hz — 74% low-end overlap
+pitch relation 0.72 (x0.15): kick at 48 Hz and bass at 56 Hz are a minor third apart
+key fit 0.60 (x0.06): F# minor vs A minor are unrelated keys (weighted lightly on purpose)
+```
+
+### Stage 5 — what you actually use
+
+`soundbrain stats` reads your parsed projects and reports usage as a share of
+projects — the "70 % Serum, 25 % Sylenth1, 5 % Vital" view — plus your key and
+tempo distribution:
+
+```
+2,600 projects indexed
+instrument usage: 70% Serum, 25% Sylenth1, 5% Vital
+most of your projects are in F# minor at 142 BPM
+your go-to chain: Serum > Pro-Q 3 > Saturn > Soothe > Serial Clipper
+```
+
+`soundbrain stats --lang he` prints the same summary in Hebrew.
+
+### Stage 6 — your chains
+
+Chains are extracted per track from each project and counted with a recency
+weight (a one-year half-life), so the chain you built last month outranks the one
+you abandoned three years ago. `soundbrain stats` lists your most-built chains
+and the transition table behind them; `soundbrain chain Serum` answers "what
+would I put after Serum" — returning an observed chain when you have one, or
+growing a new one from your transition probabilities when you don't.
+
+### Stage 7 — the Cubase bridge
+
+```bash
+soundbrain project "H:\Projects\Night Track 145 F#m.cpr"
+```
+
+```
+Night Track 145 F#m — full-on psytrance | 145 BPM | F# minor | rolling bass | fullon kick | energy 0.58
+kick reference: Kick FullOn 145.wav
+found 26 basses that fit
+  best: Rolling Bass 145 F#m.wav (0.79) — strong fit
+found 9 melodies in the same key (F# minor)
+suggested chain: Serum > Pro-Q 3 > Saturn > Soothe > Serial Clipper
+```
+
+Two delivery paths, same numbers:
+
+- `soundbrain watch "H:\Projects"` polls your project folders and, every time a
+  project is created or saved, writes `<project>.soundbrain.txt` and
+  `.soundbrain.json` next to it (and a copy in `~/.soundbrain/reports/`).
+  `--lang he` writes the Hebrew version (`מצאתי 26 באסים שמתאימים`).
+- `soundbrain serve` exposes the same answers over HTTP on 127.0.0.1 for
+  anything you can trigger from your workflow — a Stream Deck button, a
+  TouchOSC/Lemur panel, a script, or a browser tab on a second monitor.
+
+### Stage 8 — Project DNA
+
+```bash
+soundbrain dna "H:\Projects\Night Track.cpr"
+```
+
+Each project gets: BPM, key, mode, genre, mood, energy, bass style, lead style,
+pad style, FX style, vocal style, kick type, bass type, mix (LUFS, peak, crest,
+dynamic range, stereo width, correlation), compression character, stereo
+character, plugin list, instrument list, preset list, sample list, the chains it
+contains, a role breakdown of its samples, and a one-line fingerprint:
+
+```
+full-on psytrance | 145 BPM | F# minor | rolling bass | fullon kick | energy 0.58
+```
+
+If a rendered mixdown sits next to the project (same stem, or in a `Mixdown` /
+`Bounces` / `Renders` folder) it is analysed too, which is where the mix,
+compression and stereo verdicts come from.
+
+### Stage 9 — AI search
+
+```bash
+soundbrain search "I want a bass like Astrix"
+soundbrain search "Lead like Ranji"
+soundbrain search "kick that fits 145 Full On"
+soundbrain search "באס rolling ב-145"
+```
+
+The query is parsed deterministically first: role, subtype, BPM, key, energy
+words, and any artist or genre reference from
+[`soundbrain/data/artists.json`](../soundbrain/data/artists.json) (Astrix, Ranji,
+Vini Vici, Infected Mushroom, Captain Hook, Ace Ventura, Blastoyz, Berg, Astral
+Projection, Hi Profile, Liquid Soul, Sonic Species, plus genre profiles for
+full-on, progressive, dark psy, goa and techno). That file is data, not code —
+edit it, add your own references.
+
+When the referenced name also appears somewhere in your own library, the mean
+feature vector of *your* files is used as the acoustic target, so "like Astrix"
+is grounded in sounds you own rather than in a hard-coded description.
+
+With `--llm`, the query is additionally sent to a local model (by default the
+router in this repo at `127.0.0.1:4010`, configurable) which may only *fill in
+fields the parser left empty* — it can never overwrite a number you typed. If no
+model is reachable the flag is a no-op.
+
+### Stage 10 — Brain Mode
+
+```bash
+soundbrain brain observe               # learn from every indexed project
+soundbrain brain observe "H:\Projects\New Track.cpr"
+soundbrain brain profile
+soundbrain brain suggest
+```
+
+Every project is an observation. Brain Mode keeps decaying preference weights for
+instruments, effects, chains, keys, tempos, genres and moods, per-role style
+preferences, and a running mean feature vector per role — the learned *sound* of
+your kicks, your basses, your leads. Each new observation multiplies existing
+weights by 0.98, so the model tracks how you work now.
+
+```
+learned from 2600 projects
+instruments: Serum 70%, Sylenth1 25%, Vital 5%
+effects: Pro-Q 3, Saturn, Soothe, Serial Clipper, OTT
+keys: F# minor, A minor, G minor
+tempos: 145 BPM, 142 BPM, 138 BPM
+favourite chain: Serum > Pro-Q 3 > Saturn > Soothe > Serial Clipper
+bass style: rolling, offbeat
+```
+
+`soundbrain brain suggest` turns that into a starting point: tempo, key,
+instrument, chain, a kick that matches your taste, basses that fit that kick, and
+leads in your usual key — each with the reason it was chosen. `POST /like` (or
+`soundbrain brain like --file-id N`) nudges the taste model toward a sound you
+approved.
+
+The model is a small JSON document in the database. You can read it, edit it, or
+delete it; nothing about your taste is inferred anywhere else.
+
+---
+
+## Command reference
+
+| command | stage | what it does |
+| --- | --- | --- |
+| `init` | — | detect drives, write `~/.soundbrain/config.json`, report decoders |
+| `scan` | 1 | index every configured root, incrementally |
+| `inventory` | 1 | per-drive counts, tools found, coverage check, top libraries |
+| `analyze` | 2+3 | analyse new or changed audio |
+| `analyze-file PATH` | 3 | analyse one file and print its features |
+| `projects` | 5 | parse Cubase / Live / Studio One / Reaper projects |
+| `stats [--lang he]` | 5+6 | usage shares, keys, tempos, chains |
+| `chain INSTRUMENT` | 6 | the chain you would probably build next |
+| `dna PATH` | 8 | Project DNA |
+| `project PATH [--write]` | 7 | basses that fit, melodies in key, suggested chain |
+| `search "QUERY" [--llm]` | 9 | AI search over your library |
+| `match PATH --role bass` | 4 | partners for one sound |
+| `similar PATH` | 4 | nearest neighbours by timbre |
+| `inkey KEY --role lead` | 4 | everything in or near a key |
+| `brain observe\|profile\|suggest\|like\|timeline` | 10 | Brain Mode |
+| `serve` | 7 | local HTTP bridge |
+| `watch [FOLDER…]` | 7 | report on every project save |
+| `pipeline` | 1→10 | scan, analyse, parse, learn, in order |
+
+Global flags: `--db PATH`, `--config PATH`, `--json`, `--quiet`. `--json` on any
+command emits the full machine-readable payload, which is what you want when
+scripting against it.
+
+---
+
+## The bridge (HTTP API)
+
+`soundbrain serve` binds `127.0.0.1:8770` by default.
+
+| route | returns |
+| --- | --- |
+| `GET /health` | database path, file counts, configured roots |
+| `GET /inventory` | stage 1 inventory |
+| `GET /stats` | stages 5+6 |
+| `GET /brain` · `GET /timeline` | stage 10 profile and history |
+| `GET /suggest?bpm=145&key=F# minor` | a starting point in your style |
+| `GET /dna?path=…&refresh=1` | stage 8 DNA |
+| `GET /project?path=…&lang=he` | stage 7 report, including ready-made lines |
+| `GET /search?q=bass like Astrix&llm=1` | stage 9 |
+| `GET /match?path=…&role=bass` · `?file_id=…` | stage 4 partners |
+| `GET /similar?path=…` · `GET /inkey?key=…` | neighbours, key search |
+| `POST /like {"file_id": 123}` | teach Brain Mode |
+
+Read-only with respect to your audio: the engine never writes into your sample
+libraries, and the only files it creates are the database, reports, and the
+`.soundbrain.*` files next to a project when you ask for them.
+
+---
+
+## How the analysis works
+
+Everything is numpy — no librosa, no scipy — so there is no build toolchain to
+fight on a studio machine.
+
+- **STFT** 2048 samples / 512 hop, Hann window, for the general features.
+- **MFCC** 40 mel bands, 13 orthonormal DCT-II coefficients (mean and std).
+- **Chroma / tonnetz / key** on a *separate* 8192-sample STFT. At 2048 the bin
+  spacing is wider than a semitone in the bass register and the leakage is
+  enough to move the detected key by a fifth; bins are weighted by a Gaussian
+  around each semitone centre.
+- **Key** Krumhansl-Schmuckler profiles correlated over all 24 keys. Confidence
+  is the normalised margin between winner and runner-up, so one sustained note
+  reports low confidence and a full progression reports high confidence. A key in
+  the file name is used only when the audio is unsure (< 0.45), and the record
+  says which source won (`key_source`).
+- **Tempo** autocorrelation of the spectral-flux onset curve with a log-normal
+  prior around 130 BPM; confidence from peak prominence. Onsets are then folded
+  onto the beat grid to measure onsets per beat, offbeat/downbeat/sixteenth/
+  triplet share and inter-onset regularity — the numbers stage 2 needs.
+- **LUFS** ITU-R BS.1770-4 / EBU R128: K-weighting, 400 ms blocks at 75 %
+  overlap, absolute gate at −70 LUFS and a relative gate 10 dB below the ungated
+  mean. The K-weighting biquads are derived for the file's sample rate and
+  applied in the frequency domain (analytic response on the FFT grid, energy via
+  Parseval), which matches the specified magnitude response without an IIR loop
+  in Python. A calibrated −20 dBFS sine reads within ~1 LU of the expected value.
+- **Envelope** 5 ms RMS envelope: attack (10 %→90 % of peak), decay (peak→50 %),
+  release (peak→10 %), tail (peak→1 %), sustain ratio, gate ratio (share of the
+  sound below −30 dB), transient sharpness, punch.
+- **Stereo** mid/side width, L/R correlation, balance, mono-compatibility.
+
+Decoding tries `soundfile`, then the standard-library `wave` reader, then
+`ffmpeg`. Files are resampled to 44.1 kHz (with a decimation pre-filter) and
+truncated to the first 30 seconds by default — long enough for tempo and key,
+short enough to keep a terabyte scan finite.
+
+---
+
+## How matching works
+
+- **Kick ↔ bass** — the weighted verdict described in stage 4.
+- **Timbre similarity** — cosine distance over the 30-dimensional vector (MFCC,
+  spectral contrast, centroid, roll-off, fundamental, attack, release, sustain,
+  transient, width, flatness, energy), optionally nudged by key and tempo
+  agreement.
+- **Key search** — Camelot-wheel distance, so relative minors/majors and
+  ±1 neighbours count as compatible; `allow_neighbours=False` for a strict match.
+- **Profile search** — a loose target (`role`, `subtype`, `bpm`, `key`, `energy`,
+  `centroid_hz`, `tags`, `vector`) scored over only the constraints you gave.
+  This is what AI search and Brain Mode suggestions run on.
+
+---
+
+## Data model
+
+One SQLite file, `~/.soundbrain/soundbrain.db`:
+
+| table | contents |
+| --- | --- |
+| `files` | every indexed path with drive, kind, tool, library, size, mtime, missing flag, analysis signature |
+| `analyses` | the full feature JSON plus the ~28 columns worth indexing |
+| `projects` | one row per project with tempo, key, DNA |
+| `project_items` | instruments, plugins, presets, samples and tracks per project |
+| `chains` | one row per track chain, e.g. `Serum > Pro-Q 3 > Saturn` |
+| `tools_seen` | which tools were found anywhere, with an example path |
+| `scan_runs` | history of scans |
+| `brain` / `brain_events` | the taste model and its audit log |
+
+Re-analysis is keyed on `size:mtime`, so a rescan of an unchanged 4-drive studio
+does no DSP work at all.
+
+---
+
+## Configuration
+
+`~/.soundbrain/config.json` (write it with `soundbrain init`):
+
+```json
+{
+  "roots": ["H:\\", "D:\\", "F:\\", "C:\\Users\\shibass\\"],
+  "max_audio_mb": 300.0,
+  "analysis_seconds": 30.0,
+  "analysis_sample_rate": 44100,
+  "llm_url": "http://127.0.0.1:4010/v1/chat/completions",
+  "server_host": "127.0.0.1",
+  "server_port": 8770
+}
+```
+
+Overrides: `--config PATH`, `--db PATH`, `SOUNDBRAIN_HOME`, and
+`SOUNDBRAIN_ROOTS` (path-separator delimited).
+
+---
+
+## Performance notes
+
+- The scan is I/O bound. Only `stat` is read per file; nothing is opened.
+- Analysis is the expensive stage: roughly 30–60 ms per one-shot and 200–400 ms
+  per 30-second loop on a modern laptop core, once. `soundbrain analyze --limit N`
+  lets you work through a huge library in sessions; progress is checkpointed to
+  the database every 50 files, so an interrupted run resumes where it stopped.
+- Everything after analysis (matching, search, stats, DNA, suggestions) reads the
+  database and vectors, not the audio, so it is interactive even at library scale.
+
+---
+
+## What this does *not* do
+
+Being explicit, because the honest limits are part of the design:
+
+- **No plugin inside Cubase.** There is no supported way to inject a Python panel
+  into Cubase. The bridge is a file watcher plus a local HTTP API; you trigger it
+  from whatever you already use (a button, a script, a browser tab).
+- **`.cpr` parsing is string mining.** The format is undocumented and binary, so
+  the parser extracts readable strings, cuts them at Cubase's track class
+  markers, and matches them against the tool registry. It reliably finds *which*
+  plugins are in a project and usually their order; a plugin outside the registry
+  will be missed, and `ParsedProject.notes` records which heuristics fired.
+  Ableton `.als` (gzipped XML) and Reaper `.rpp` (plain text) are parsed exactly.
+- **Studio One chains are archive-ordered.** `.song` is a zip of XML whose schema
+  moves between versions; device order there is archive order, not per-track
+  insert order, and the parser says so in `notes`.
+- **Roles and subtypes are heuristics, not a trained classifier.** They combine
+  naming with measured features and report their confidence and evidence. They
+  will be wrong on deliberately misnamed material; the evidence list tells you
+  why, and the rules live in one readable table in `soundbrain/taxonomy.py`.
+- **Artist profiles are territories, not fingerprints.** `artists.json` describes
+  tempo, brightness, energy and typical styles. It makes no claim about any
+  specific release, and grounding on your own library (stage 9) is what makes
+  those queries concrete.
+- **No preset audio.** A `.vital` or `.fxp` file is indexed and attributed, but
+  its sound is not rendered or analysed — that would need the plugin itself.
+
+---
+
+## Tests
+
+```bash
+python -m pytest tests/soundbrain -q      # 138 tests
+```
+
+The suite generates its own audio, so the expectations are meaningful rather than
+snapshots: the "rolling bass" fixture really does place three gated sixteenths
+per beat, so asserting that the taxonomy calls it `rolling` tests something. It
+covers DSP correctness against known signals (a −20 dBFS sine reads ~−20 LUFS, a
+145 BPM click grid is recovered within 4 BPM, an A-C-E triad detects as A minor),
+incremental scanning, the four project parsers, usage and chain statistics, DNA,
+AI search parsing in English and Hebrew, Brain Mode learning and decay, the
+watcher, every HTTP route, and the CLI end to end.

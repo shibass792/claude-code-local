@@ -882,12 +882,57 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   ├── start-mlx-server.sh    ← Server start helper
  │   ├── test_mlx_server.py     ← Tool-call reliability test suite
  │   └── upload-mlx-quant.sh    ← Publish your own MLX-quantized uploads to HF
+ ├── 🎛️  soundbrain/
+ │   ├── scanner.py             ← Indexes every drive: samples, presets, projects, plugins
+ │   ├── audio/                 ← numpy-only DSP: MFCC, chroma, tonnetz, LUFS, tempo, key
+ │   ├── taxonomy.py            ← Rolling / offbeat / full-on / goa … role + subtype rules
+ │   ├── matcher.py             ← "Does this bass fit this kick?" (key is only 6% of it)
+ │   ├── learner.py             ← Your plugin shares, keys, tempos and effect chains
+ │   ├── dna.py                 ← Project DNA per project
+ │   ├── search.py              ← "I want a bass like Astrix" over your own library
+ │   ├── brain.py               ← Brain Mode: learns your taste from every new track
+ │   └── server.py / bridge.py  ← Local HTTP API + project-folder watcher
  ├── 📊 docs/
  │   ├── BENCHMARKS.md          ← Detailed speed comparisons
+ │   ├── SOUNDBRAIN.md          ← 🎛️ The studio knowledge engine, all ten stages
  │   └── TWITTER-THREAD.md      ← Social media content
  ├── 📱 IMESSAGE_MEDIA_PIPELINE.md ← Phone control + media sending docs
  └── setup.sh                    ← One-command installer
 ```
+
+---
+
+## 🎛️ SoundBrain — Your Studio, Indexed and Understood
+
+**Point it at `H:\ D:\ F:\ C:\Users\you\` and it learns your whole studio. On-device, like everything else here.**
+
+```bash
+pip install -r requirements-soundbrain.txt
+python -m soundbrain init          # detects your drives and decoders
+python -m soundbrain pipeline      # scan → analyse → parse projects → learn
+python -m soundbrain search "I want a bass like Astrix"
+python -m soundbrain project "H:\Projects\Night Track.cpr"
+```
+
+```
+Night Track 145 F#m — full-on psytrance | 145 BPM | F# minor | rolling bass | fullon kick
+found 26 basses that fit
+  best: Rolling Bass 145 F#m.wav (0.79) — strong fit
+found 9 melodies in the same key (F# minor)
+suggested chain: Serum > Pro-Q 3 > Saturn > Soothe > Serial Clipper
+```
+
+| It does | How |
+|---|---|
+| 🔍 **Scans every drive** | Samples, presets and projects across Cubase, Ableton, Studio One, Kontakt, Omnisphere, Serum, Sylenth1, Vital, Nexus, Spire, Diva, Pigments, Massive, Kick 3, Battery, Groove Agent — incrementally, so a rescan is nearly free |
+| 🎚️ **Hears what they are** | Transient, attack, release, envelope, stereo width, dynamics, RMS, LUFS (BS.1770), MFCC, roll-off, tonnetz, chroma, spectral contrast, tempo + key **with confidence** |
+| 🏷️ **Knows the *kind*** | Not just the key: rolling vs offbeat vs full-on vs progressive vs dark vs goa bass; full-on vs prog vs hi-tech kick; riser vs impact vs whoosh |
+| 🧩 **Matches beyond key** | Kick↔bass scored on envelope interlock, low-end separation, transient clarity and pitch relation — key is worth 6%, so "different key but the pocket works" is a real answer |
+| 📈 **Learns your habits** | "70% Serum, 25% Sylenth1, 5% Vital · most projects in F# minor at 142 BPM · your go-to chain is Serum → Pro-Q 3 → Saturn → Soothe → Clipper" |
+| 🧬 **Gives every project DNA** | BPM, key, mood, genre, bass/lead/FX style, energy, mix, stereo, compression, kick type, preset/plugin/sample lists |
+| 🧠 **Keeps learning** | Brain Mode folds every finished track into a decaying taste model and suggests starting points in your own style |
+
+🎛️ **Full docs: [docs/SOUNDBRAIN.md](docs/SOUNDBRAIN.md)** — every command, the DSP details, the data model, and an honest list of what it does *not* do.
 
 ---
 

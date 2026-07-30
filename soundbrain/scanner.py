@@ -252,9 +252,15 @@ def scan(
             else:
                 stats.unchanged += 1
 
+            # Attribute both what the path says and what the record concluded, so
+            # a DAW recognised only by its project extension (an .als in a folder
+            # that never spells out "Ableton") still shows up in the inventory.
             tool, tool_kind = detect_tool(path)
             if tool:
                 tool_examples[tool] = (tool_kind or "instrument", str(path))
+            if rec.tool and rec.tool not in tool_examples:
+                spec = next((t for t in TOOLS if t.name == rec.tool), None)
+                tool_examples[rec.tool] = (spec.kind if spec else ("daw" if rec.daw else "instrument"), str(path))
 
             if progress and stats.seen % commit_every == 0:
                 progress(str(path), stats.seen)

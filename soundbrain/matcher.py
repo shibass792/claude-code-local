@@ -126,7 +126,12 @@ def transient_clarity(kick: dict[str, Any], bass: dict[str, Any]) -> tuple[float
     kick_click = sum(_f(kick, band) for band in CLICK_BANDS)
     headroom = kick_click - bass_click
     score = float(np.clip(0.5 + 0.5 * (kick_transient - 0.6 * bass_transient) + 2.0 * headroom, 0.0, 1.0))
-    if headroom >= 0:
+    if abs(headroom) < 0.002:
+        reason = (
+            "neither sound carries much 2-8 kHz energy, so the kick's click is unobstructed "
+            f"(kick transient {kick_transient:.2f} vs bass {bass_transient:.2f})"
+        )
+    elif headroom > 0:
         reason = f"kick keeps {headroom*100:.1f}% more 2-8 kHz energy than the bass, so its click stays audible"
     else:
         reason = f"bass has {abs(headroom)*100:.1f}% more 2-8 kHz energy than the kick and will blur its click"
@@ -156,10 +161,13 @@ def tempo_fit(a: dict[str, Any], b: dict[str, Any]) -> tuple[float, str]:
     ratio = abs(math.log2(bpm_b / bpm_a))
     octave_folded = min(ratio, abs(ratio - 1.0))
     score = float(np.clip(1.0 - octave_folded * 6.0, 0.0, 1.0))
-    if octave_folded < 0.02:
+    percent = abs(bpm_b - bpm_a) / bpm_a * 100.0
+    if percent < 0.5:
         reason = f"both run at {bpm_a:.0f} BPM"
-    elif ratio > 0.9:
+    elif abs(ratio - 1.0) < 0.03:
         reason = f"{bpm_a:.0f} vs {bpm_b:.0f} BPM — a half/double-time relation, usable"
+    elif octave_folded < 0.03:
+        reason = f"{bpm_a:.0f} vs {bpm_b:.0f} BPM — {percent:.1f}% apart, close enough to drop in"
     else:
         reason = f"{bpm_a:.0f} vs {bpm_b:.0f} BPM — needs time-stretching"
     return score, reason
@@ -253,6 +261,7 @@ class Candidate:
     subtype: str = ""
     musical_key: str = ""
     bpm: float = 0.0
+    library: str = ""
     reasons: list[str] = field(default_factory=list)
     components: dict[str, float] = field(default_factory=dict)
 
@@ -266,6 +275,7 @@ class Candidate:
             "subtype": self.subtype,
             "key": self.musical_key,
             "bpm": round(self.bpm, 2),
+            "library": self.library,
             "reasons": self.reasons[:6],
             "components": {k: round(v, 3) for k, v in self.components.items()},
         }
@@ -281,6 +291,7 @@ def _candidate(features: dict[str, Any], score: float, reasons: list[str], compo
         subtype=str(features.get("subtype") or ""),
         musical_key=str(features.get("musical_key") or ""),
         bpm=_f(features, "bpm"),
+        library=str(features.get("library") or ""),
         reasons=reasons,
         components=components,
     )

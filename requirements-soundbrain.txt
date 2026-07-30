@@ -1,0 +1,16 @@
+# SoundBrain — the studio knowledge engine (docs/SOUNDBRAIN.md)
+#
+# Only numpy is required. Everything else is optional and the engine degrades
+# gracefully without it:
+#
+#   soundfile  fast, exact decoding of flac / aiff / ogg (libsndfile)
+#   ffmpeg     not a Python package: install it on PATH for mp3 / m4a / opus
+#              (plain PCM .wav always works through the standard library)
+
+numpy>=1.24
+
+# optional, recommended
+soundfile>=0.12 ; platform_system != "Emscripten"
+
+# development
+pytest>=8.0

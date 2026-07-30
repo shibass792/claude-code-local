@@ -71,7 +71,9 @@ class _Handler(BaseHTTPRequestHandler):
             if handler is None:
                 self._send({"error": "unknown route", "routes": sorted(self._routes())}, 404)
                 return
-            self._send(handler(params))
+            with self.db.lock:
+                payload = handler(params)
+            self._send(payload)
         except FileNotFoundError as exc:
             self._send({"error": str(exc)}, 404)
         except ValueError as exc:
@@ -93,7 +95,13 @@ class _Handler(BaseHTTPRequestHandler):
             if not isinstance(file_id, int):
                 self._send({"error": "file_id (int) is required"}, 400)
                 return
-            self._send(brain.like(self.db, file_id))
+            try:
+                with self.db.lock:
+                    result = brain.like(self.db, file_id)
+            except Exception as exc:  # noqa: BLE001 - never take the server down
+                self._send({"error": f"{type(exc).__name__}: {exc}"}, 500)
+                return
+            self._send(result)
             return
         self._send({"error": "unknown route"}, 404)
 

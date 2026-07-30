@@ -45,6 +45,19 @@ def test_cubase_parser_mines_plugins_tempo_and_samples(tmp_path: Path):
     assert any("Pro-Q 3" in chain for chain in chains)
 
 
+def test_cubase_parser_recovers_long_sample_paths(tmp_path: Path):
+    """A path longer than one run of printable bytes must not be truncated.
+
+    Regression: the string tokeniser capped runs at 64 characters, which split
+    real library paths in half and left the parser resolving "#m.wav".
+    """
+    deep = "H:\\Samples\\" + "\\".join(f"Very Long Folder Name {i}" for i in range(6)) + "\\Rolling Bass 145 F#m.wav"
+    path = write_cpr(tmp_path / "Deep.cpr", samples=(deep,))
+    parsed = projects.parse(path)
+    assert parsed.samples == [deep.replace("\\", "/")]
+    assert Path(parsed.samples[0]).name == "Rolling Bass 145 F#m.wav"
+
+
 def test_cubase_chain_keeps_the_serialised_order(tmp_path: Path):
     tracks = (("Bass", "Serum", ("Pro-Q 3", "Saturn", "Soothe", "Serial Clipper")),)
     path = write_cpr(tmp_path / "Order.cpr", tracks=tracks)

@@ -359,7 +359,7 @@ def report_lines(data: dict[str, Any], lang: str = "en") -> list[str]:
         lines.append(f"נסרקו {projects} פרויקטים")
         if share:
             top = ", ".join(f"{entry['share']*100:.0f}% {entry['name']}" for entry in share[:4])
-            lines.append(f"שימוש בכלים: {top}")
+            lines.append(f"חלוקת השימוש בין הכלים: {top}")
         if usage.get("dominant_key") and usage.get("dominant_bpm"):
             lines.append(f"רוב הפרויקטים שלך ב־{usage['dominant_key']} ב־{usage['dominant_bpm']:.0f} BPM")
         if chains.get("recommended"):
@@ -369,7 +369,7 @@ def report_lines(data: dict[str, Any], lang: str = "en") -> list[str]:
     lines.append(f"{projects} projects indexed")
     if share:
         top = ", ".join(f"{entry['share']*100:.0f}% {entry['name']}" for entry in share[:4])
-        lines.append(f"instrument usage: {top}")
+        lines.append(f"instrument usage, split across all instrument uses: {top}")
     if usage.get("dominant_key"):
         bpm = usage.get("dominant_bpm") or usage.get("median_bpm") or 0
         lines.append(f"most of your projects are in {usage['dominant_key']} at {bpm:.0f} BPM")

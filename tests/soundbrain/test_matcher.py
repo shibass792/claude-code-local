@@ -91,6 +91,28 @@ def test_tempo_fit_accepts_half_and_double_time():
     assert double > unrelated
 
 
+def test_tempo_fit_wording_matches_the_size_of_the_difference():
+    assert "both run at 145 BPM" in matcher.tempo_fit({"bpm": 145.0}, {"bpm": 145.0})[1]
+    assert "close enough to drop in" in matcher.tempo_fit({"bpm": 145.0}, {"bpm": 143.0})[1]
+    assert "half/double-time" in matcher.tempo_fit({"bpm": 145.0}, {"bpm": 72.5})[1]
+    assert "time-stretching" in matcher.tempo_fit({"bpm": 145.0}, {"bpm": 122.0})[1]
+
+
+def test_transient_clarity_is_neutral_when_neither_sound_has_highs():
+    quiet_top = {"transient": 0.9, "band_2000_4000": 0.0, "band_4000_8000": 0.0}
+    bass = {"transient": 0.4, "band_2000_4000": 0.0, "band_4000_8000": 0.0}
+    _score, reason = matcher.transient_clarity(quiet_top, bass)
+    assert "neither sound carries much" in reason
+    assert "will blur" not in reason
+
+
+def test_candidates_report_which_library_they_came_from(indexed: Database):
+    kick = _get(indexed, "Kick FullOn")
+    candidates = matcher.find_partners_for_kick(indexed, kick, role="bass", min_score=0.0)
+    assert candidates
+    assert all(c.as_dict()["library"] == "Zenhiser Psytrance" for c in candidates)
+
+
 def test_pitch_relation_prefers_consonant_intervals():
     kick = {"fundamental_hz": 55.0}
     octave = matcher.pitch_relation(kick, {"fundamental_hz": 110.0})[0]

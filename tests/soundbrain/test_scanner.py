@@ -146,6 +146,17 @@ def test_inventory_reports_coverage_and_libraries(db: Database, cfg: Config, tmp
     assert isinstance(data["coverage_missing"], list)
 
 
+def test_a_daw_known_only_by_its_extension_still_counts_as_found(db: Database, cfg: Config, tmp_path: Path):
+    """A .als in a folder that never spells out "Ableton" must still register."""
+    folder = tmp_path / "D_drive" / "Projects" / "2026"
+    folder.mkdir(parents=True)
+    (folder / "Jam.als").write_bytes(b"\x1f\x8b" + b"x" * 32)
+    scanner.scan(db, cfg, roots=[str(tmp_path / "D_drive")])
+    data = scanner.inventory(db)
+    assert "Ableton Live" in {t["name"] for t in data["tools"].get("daw", [])}
+    assert data["coverage"]["Ableton Live"] is True
+
+
 def test_bak_files_only_count_when_a_cpr_exists(tmp_path: Path):
     lonely = tmp_path / "Backup.bak"
     lonely.write_bytes(b"x")

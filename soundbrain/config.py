@@ -132,7 +132,7 @@ TOOLS: tuple[ToolSpec, ...] = (
     # --- DAWs -------------------------------------------------------------
     ToolSpec("Cubase", "daw", ("cubase", "steinberg/cubase"), (".cpr",), "Steinberg"),
     ToolSpec("Nuendo", "daw", ("nuendo",), (".npr",), "Steinberg"),
-    ToolSpec("Ableton Live", "daw", ("ableton", "live 1", "live M"), (".als",), "Ableton"),
+    ToolSpec("Ableton Live", "daw", ("ableton",), (".als",), "Ableton"),
     ToolSpec("Studio One", "daw", ("studio one", "studioone", "presonus"), (".song",), "PreSonus"),
     ToolSpec("FL Studio", "daw", ("fl studio", "image-line"), (".flp",), "Image-Line"),
     ToolSpec("Reaper", "daw", ("reaper",), (".rpp",), "Cockos"),
