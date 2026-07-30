@@ -333,5 +333,87 @@ def serve(ctx: click.Context, host: str, port: int) -> None:
         db.close()
 
 
+@main.command("index-embeddings")
+@click.option("--limit", "-n", default=10000)
+@click.pass_context
+def index_embeddings(ctx: click.Context, limit: int) -> None:
+    """Build sonic fingerprints for similarity search."""
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.search.sonic_index import SonicIndex
+
+    idx = SonicIndex(db)
+    count = idx.index_all(limit=limit)
+    db.close()
+    console.print(f"[green]✓[/] Indexed {count} sonic embeddings")
+
+
+@main.command()
+@click.argument("target")
+@click.option("--style", "-s", default=None, help="Artist style: astrix, ranji...")
+@click.option("--limit", "-n", default=20)
+@click.pass_context
+def similar(ctx: click.Context, target: str, style: str | None, limit: int) -> None:
+    """Find similar sounds — by file path/id or artist style."""
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.search.sonic_index import SonicIndex
+
+    idx = SonicIndex(db)
+    if style:
+        results = idx.find_similar_to_style(style, limit=limit)
+    else:
+        row = db.get_file_by_path(target)
+        file_id = int(row["id"]) if row else None
+        if file_id is None and target.isdigit():
+            file_id = int(target)
+        if file_id is None:
+            console.print("[red]File not found in database. Run scan + analyze first.[/]")
+            db.close()
+            return
+        results = idx.find_similar_to_file(file_id, limit=limit)
+    db.close()
+
+    table = Table(title=f"Similar to: {style or target}")
+    table.add_column("File")
+    table.add_column("Style")
+    table.add_column("Score")
+    for r in results:
+        table.add_row(
+            Path(r["path"]).name[:45],
+            str(r.get("sub_style", "-")),
+            f"{r['score']:.2f}",
+        )
+    console.print(table)
+
+
+@main.command("cubase-companion")
+@click.option("--events", is_flag=True, help="Use watchdog for instant .cpr detection")
+@click.option("--interval", "-i", default=10)
+@click.pass_context
+def cubase_companion_cmd(ctx: click.Context, events: bool, interval: int) -> None:
+    """Watch Cubase project folders — auto recommendations on save."""
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.bridge.cubase_companion import CubaseCompanion, run_cubase_watchdog
+
+    def on_rec(result: dict) -> None:
+        console.print(Panel(result.get("message_he", ""), title="Cubase AI"))
+
+    if events:
+        try:
+            run_cubase_watchdog(db, cfg, on_recommendations=on_rec)
+        except KeyboardInterrupt:
+            pass
+    else:
+        companion = CubaseCompanion(db, cfg, on_recommendations=on_rec)
+        console.print("[cyan]Cubase Companion running (Ctrl+C to stop)...[/]")
+        try:
+            companion.run_forever(interval_sec=interval)
+        except KeyboardInterrupt:
+            pass
+    db.close()
+
+
 if __name__ == "__main__":
     main()

@@ -119,3 +119,11 @@ watch:
 web:
   host: "127.0.0.1"
   port: 8787
+
+# Cubase Companion — auto recommendations on .cpr save
+cubase_companion:
+  watch_folders:
+    - "C:\\Users\\shibass\\Documents\\Steinberg\\Cubase Projects"
+    - "H:\\Projects"
+    - "D:\\Projects"
+  recommendations_file: "data/cubase_recommendations.json"

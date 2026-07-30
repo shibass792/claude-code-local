@@ -75,6 +75,12 @@ CREATE TABLE IF NOT EXISTS brain_events (
     created_at REAL NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS sonic_embeddings (
+    file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+    vector_json TEXT NOT NULL,
+    indexed_at REAL NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_files_kind ON files(kind);
 CREATE INDEX IF NOT EXISTS idx_files_hash ON files(content_hash);
 CREATE INDEX IF NOT EXISTS idx_analysis_category ON audio_analysis(category);
@@ -376,3 +382,50 @@ class KnowledgeDB:
             "top_bpms": [(r["bpm"], r["c"]) for r in bpm_rows],
             "top_keys": [(r["key"], r["c"]) for r in key_rows],
         }
+
+    def save_sonic_embedding(self, file_id: int, vector_json: str) -> None:
+        import time
+
+        self._conn.execute(
+            """INSERT OR REPLACE INTO sonic_embeddings (file_id, vector_json, indexed_at)
+               VALUES (?, ?, ?)""",
+            (file_id, vector_json, time.time()),
+        )
+        self._conn.commit()
+
+    def get_sonic_embedding(self, file_id: int) -> sqlite3.Row | None:
+        return self._conn.execute(
+            "SELECT * FROM sonic_embeddings WHERE file_id=?", (file_id,)
+        ).fetchone()
+
+    def get_analyzed_without_embedding(self, limit: int = 1000) -> list[sqlite3.Row]:
+        return list(
+            self._conn.execute(
+                """SELECT a.file_id, a.features_json FROM audio_analysis a
+                   LEFT JOIN sonic_embeddings s ON s.file_id = a.file_id
+                   WHERE s.file_id IS NULL LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        )
+
+    def get_all_sonic_embeddings(
+        self, category: str | None = None
+    ) -> list[sqlite3.Row]:
+        query = """
+            SELECT s.file_id, s.vector_json, f.path,
+                   a.category, a.sub_style, a.bpm, a.key
+            FROM sonic_embeddings s
+            JOIN files f ON f.id = s.file_id
+            JOIN audio_analysis a ON a.file_id = s.file_id
+        """
+        params: list[Any] = []
+        if category:
+            query += " WHERE a.category = ?"
+            params.append(category)
+        return list(self._conn.execute(query, params).fetchall())
+
+    def count_embeddings(self) -> int:
+        row = self._conn.execute(
+            "SELECT COUNT(*) as c FROM sonic_embeddings"
+        ).fetchone()
+        return int(row["c"]) if row else 0
