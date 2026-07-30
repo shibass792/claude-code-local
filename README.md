@@ -612,6 +612,26 @@ claude --model claude-sonnet-4-6
 
 > 💡 **Or just double-click a launcher** in `launchers/`. They do all of this automatically.
 
+### 🩺 Nothing works? Start here
+
+Run `bash scripts/doctor.sh` first — it prints your chip, RAM, free disk, whether the MLX venv and `mlx-lm` are installed, and which models are already in your HuggingFace cache. Then check what the whole stack needs:
+
+| Requirement | Check | Fix |
+|---|---|---|
+| Apple Silicon + macOS | `uname -m` prints `arm64` | Intel Macs can't run MLX — nothing in this repo will work |
+| Python 3.12 + `mlx-lm` | `~/.local/mlx-server/bin/python3 -c "import mlx_lm"` | `bash setup.sh` |
+| A model on disk | `bash scripts/doctor.sh` lists it | `bash scripts/download-and-import.sh gemma` |
+| MLX server on port 4000 | `curl -s localhost:4000/health` returns `"status": "ok"` | `bash scripts/start-mlx-server.sh` |
+| Claude Code CLI | `claude --version` | `npm install -g @anthropic-ai/claude-code` |
+
+Common failures, in the order people hit them:
+
+- **`ERROR: MLX server failed to respond on port 4000`** — read `/tmp/mlx-server.log`; it holds the server's traceback. Usually the model doesn't fit in RAM, or the model id/path is wrong.
+- **`Different model is loaded … restarting`, then the wrong model answers** — something else is holding port 4000. `lsof -i :4000`, kill that PID, relaunch.
+- **The launcher asks you to sign in to a Claude account** — the `claude` CLI is too old for `--bare`. `npm install -g @anthropic-ai/claude-code`.
+- **`claude: command not found`** — the launchers now resolve `claude` from your `PATH`; if it's somewhere unusual, run the launcher with `CLAUDE_BIN=/path/to/claude`.
+- **Way slower than the benchmarks** — you're probably on a model that doesn't fit; `doctor.sh` tells you which tier your RAM is in.
+
 ---
 
 ## 🔧 How It Works
