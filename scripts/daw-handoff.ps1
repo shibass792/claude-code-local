@@ -232,12 +232,9 @@ $($roots -join "`n")
   $roots.Add($memDir) | Out-Null
 
   Write-Host "[remember] indexing (paths only, no copy)..." -ForegroundColor Magenta
-  # Pass multiple -Roots (NOT comma-separated - PowerShell -File quirk)
-  $argList = @("-ExecutionPolicy","Bypass","-File",$KnowledgeScript,"-Index")
-  foreach ($r in ($roots | Select-Object -Unique)) {
-    $argList += @("-Roots", $r)
-  }
-  & powershell @argList
+  # Call in-process with a real string[] (repeated -Roots via -File fails on PS 5.1)
+  $uniqueRoots = @($roots | Select-Object -Unique)
+  & $KnowledgeScript -Index -Roots $uniqueRoots
   Write-Host "[remember] done. Use -Ask or wait-then-ask.ps1" -ForegroundColor Magenta
 }
 

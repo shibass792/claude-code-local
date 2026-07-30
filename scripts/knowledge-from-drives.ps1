@@ -46,6 +46,14 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+# Normalize Roots: allow "a;b;c" or accidental "a,b" from -File quirks
+$Roots = @(
+  $Roots |
+    ForEach-Object { "$_" -split '[;]' } |
+    ForEach-Object { $_.Trim().Trim('"') } |
+    Where-Object { $_ }
+)
+
 $codeExt = ".py",".js",".ts",".tsx",".jsx",".mjs",".cjs",".java",".go",".rs",".cs",".cpp",".c",".h",".php",".rb",".swift",".sql",".sh",".ps1",".bat",".html",".css",".vue",".svelte",".json",".yml",".yaml",".toml",".prisma",".graphql"
 $docExt  = ".md",".mdx",".txt",".rst",".csv",".log"
 $chatExt = ".json",".jsonl",".html"
