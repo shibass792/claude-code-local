@@ -284,7 +284,8 @@ app.get("*", (_req, res) => {
 });
 
 app.listen(PORT, "127.0.0.1", () => {
-  console.log(`shibass-ai-panel  http://127.0.0.1:${PORT}`);
+  console.log(`ShiBass OS panel  http://127.0.0.1:${PORT}`);
   console.log(`Ollama            ${OLLAMA_URL}  model=${MODEL}`);
   console.log(`Index             ${INDEX_FILE}`);
+  console.log(`Brain             ${BRAIN_CONTEXT}`);
 });

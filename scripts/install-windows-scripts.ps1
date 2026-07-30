@@ -28,7 +28,8 @@ $files = @(
   "daw-handoff.ps1",
   "knowledge-from-drives.ps1",
   "wait-then-ask.ps1",
-  "cubase-ableton-handoff.md"
+  "cubase-ableton-handoff.md",
+  "start-shibass.ps1"
 )
 foreach ($name in $files) {
   Save-Utf8Bom "$base/$name" (Join-Path $Dest $name)
