@@ -42,14 +42,14 @@ exit /b 1
 echo.
 echo   ========================================
 echo      SHIBASS S1  -  Media Player
-echo      Scan MIDI / WAV / Music / Samples
+echo      Starting server FIRST (then you can scan)
 echo   ========================================
 echo.
-echo   Roots: H:\  D:\  F:\  %USERPROFILE%
 echo   Player: http://127.0.0.1:18766/
+echo   Keep this window OPEN
 echo.
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%AUTO%" %*
+powershell -NoProfile -ExecutionPolicy Bypass -File "%AUTO%" -ServeOnly %*
 set "EC=%ERRORLEVEL%"
 
 if not "%EC%"=="0" (

@@ -139,7 +139,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
     if getattr(args, "index", False):
         from music_brain.player.media import ensure_media_indexed
 
-        print("Indexing media…")
+        print("Indexing media...")
         print(ensure_media_indexed(db, args.root if getattr(args, "root", None) else None))
     serve(db, host=args.host, port=args.port)
     return 0
@@ -224,7 +224,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("serve", help="SHIBASS S1 player panel + Cubase Bridge HTTP API")
     add_roots(sp)
-    sp.add_argument("--host", default="127.0.0.1")
+    sp.add_argument("--host", default="0.0.0.0")
     sp.add_argument("--port", type=int, default=18766)
     sp.add_argument("--index", action="store_true", help="Re-index media before serving")
     sp.set_defaults(func=cmd_serve)

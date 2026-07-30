@@ -1,8 +1,7 @@
 @echo off
 setlocal EnableExtensions
 chcp 65001 >nul
-REM העתק את הקובץ הזה לשולחן העבודה — הוא מוצא את הריפו לבד.
-REM Desktop one-click for Music Brain (finds repo automatically).
+REM Copy this file to the Desktop - it finds the repo automatically.
 
 title Music Brain
 color 0B
@@ -26,15 +25,15 @@ for %%D in (
 )
 
 echo.
-echo  לא נמצא Music Brain.
-echo  ודא שהתיקייה claude-code-local קיימת ^(עם music-brain בפנים^).
+echo  Music Brain not found.
+echo  Make sure claude-code-local exists (with music-brain inside).
 echo.
 pause
 exit /b 1
 
 :found
 echo.
-echo   MUSIC BRAIN — מפעיל...
+echo   MUSIC BRAIN - starting...
 echo   %AUTO%
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%AUTO%" %*

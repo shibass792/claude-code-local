@@ -19,9 +19,37 @@ from music_brain.player.media import (
     list_media,
     resolve_media_path,
 )
+from music_brain.player import remote_bus
 from music_brain.search import search as nl_search
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+def _lan_urls(port: int) -> list[str]:
+    import socket
+
+    urls = [f"http://127.0.0.1:{port}/"]
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            ip = info[4][0]
+            if ip.startswith("127."):
+                continue
+            urls.append(f"http://{ip}:{port}/")
+    except Exception:
+        pass
+    # Also try connecting UDP trick for primary LAN IP
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        u = f"http://{ip}:{port}/"
+        if u not in urls:
+            urls.insert(1, u)
+    except Exception:
+        pass
+    return list(dict.fromkeys(urls))
 
 
 def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
@@ -67,11 +95,33 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
             # --- Player UI ---
             if path in ("/", "/player", "/player/"):
                 return self._static("index.html")
+            if path in ("/remote", "/remote/", "/rokid", "/rokid/"):
+                return self._static("remote.html")
             if path.startswith("/static/"):
                 rel = path[len("/static/") :]
                 return self._static(rel)
             if path.startswith("/assets/"):
                 return self._static(path.lstrip("/"))
+
+            # --- Rokid / remote control bus ---
+            if path.rstrip("/") == "/api/remote/state":
+                return self._json(200, remote_bus.get_state())
+
+            if path.rstrip("/") == "/api/remote/poll":
+                after = int((qs.get("after") or ["0"])[0])
+                cmds = remote_bus.poll_commands(after)
+                return self._json(200, {"commands": cmds, "state": remote_bus.get_state()})
+
+            if path.rstrip("/") == "/api/remote/info":
+                return self._json(
+                    200,
+                    {
+                        "service": "shibass-s1",
+                        "remote": "/remote",
+                        "panel": "/",
+                        "urls": _lan_urls(self.server.server_address[1]),
+                    },
+                )
 
             # --- Media library API ---
             if path.rstrip("/") == "/api/library":
@@ -123,7 +173,9 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
                         "ok": True,
                         "service": "shibass-s1",
                         "player": "/",
+                        "remote": "/remote",
                         "bridge": True,
+                        "urls": _lan_urls(self.server.server_address[1]),
                     },
                 )
             if api_path == "/stats":
@@ -195,6 +247,33 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
             if path == "/api/media/index":
                 stats = ensure_media_indexed(db, body.get("roots"))
                 return self._json(200, {"ok": True, **stats})
+
+            if path == "/api/remote/command":
+                action = str(body.get("action") or "").strip().lower()
+                if not action:
+                    return self._json(400, {"error": "action required"})
+                allowed = {
+                    "play",
+                    "pause",
+                    "toggle",
+                    "next",
+                    "prev",
+                    "stop",
+                    "seek",
+                    "volume",
+                    "play_path",
+                    "add_path",
+                    "search",
+                }
+                if action not in allowed:
+                    return self._json(400, {"error": f"unknown action: {action}", "allowed": sorted(allowed)})
+                cmd = remote_bus.push_command(action, body.get("payload") or body)
+                return self._json(200, {"ok": True, "command": cmd})
+
+            if path == "/api/remote/state":
+                st = remote_bus.set_state(body)
+                return self._json(200, st)
+
             return self._json(404, {"error": "not found"})
 
         def _project_open(self, proj: str) -> None:
@@ -293,12 +372,16 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
     return Handler
 
 
-def serve(db: KnowledgeDB, host: str = "127.0.0.1", port: int = 18766) -> None:
+def serve(db: KnowledgeDB, host: str = "0.0.0.0", port: int = 18766) -> None:
     handler = build_handler(db)
     httpd = ThreadingHTTPServer((host, port), handler)
-    print(f"SHIBASS S1 player → http://{host}:{port}/")
-    print(f"Cubase Bridge API → http://{host}:{port}/health")
-    print("Library API       → /api/library  /api/browser  /api/stream?path=...")
+    print(f"SHIBASS S1 player  -> http://127.0.0.1:{port}/")
+    print(f"Rokid remote       -> http://127.0.0.1:{port}/remote")
+    for u in _lan_urls(port):
+        if "127.0.0.1" not in u:
+            print(f"LAN / glasses     -> {u}remote")
+    print(f"Cubase Bridge API  -> http://127.0.0.1:{port}/health")
+    print("Library API        -> /api/library  /api/browser  /api/stream?path=...")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

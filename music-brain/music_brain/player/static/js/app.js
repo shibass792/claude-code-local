@@ -626,20 +626,83 @@
     } catch (_) {}
   }
 
-  async function boot() {
-    setAi("Indexing media on H:\\ D:\\ F:\\ …");
+  async function postState() {
     try {
-      const idx = await api("/api/media/index");
-      setAi("Indexed " + (idx.inserted || 0) + " new / " + (idx.seen || 0) + " seen");
-    } catch (_) {
-      // DB may already be full from pipeline
-    }
+      await fetch("/api/remote/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playing: !!engine.playing,
+          title: npTitle.textContent,
+          path: state.index >= 0 ? state.playlist[state.index]?.path : null,
+          position: engine.currentTime(),
+          duration: engine.duration(),
+          volume: state.params.gain ?? state.params.volume ?? 0.85,
+        }),
+      });
+    } catch (_) {}
+  }
+
+  let lastCmdId = 0;
+  async function pollRemote() {
+    try {
+      const data = await api("/api/remote/poll?after=" + lastCmdId);
+      for (const c of data.commands || []) {
+        lastCmdId = Math.max(lastCmdId, c.id);
+        const a = c.action;
+        const p = c.payload || {};
+        if (a === "toggle") $("btnPlay").click();
+        else if (a === "play") {
+          if (!engine.playing) $("btnPlay").click();
+        } else if (a === "pause") {
+          if (engine.playing) {
+            engine.pause();
+            updatePlayIcons(false);
+          }
+        } else if (a === "next") nextTrack();
+        else if (a === "prev") prevTrack();
+        else if (a === "stop") {
+          engine.stop();
+          updatePlayIcons(false);
+        } else if (a === "volume" && p.volume != null) {
+          engine.setGain(Number(p.volume));
+          state.params.gain = Number(p.volume);
+        } else if (a === "seek" && p.seconds != null) {
+          engine.seek(Number(p.seconds));
+        } else if (a === "play_path" && p.path) {
+          playItem({
+            path: p.path,
+            name: p.path.split(/[/\\]/).pop(),
+            stem: (p.path.split(/[/\\]/).pop() || "").replace(/\.[^.]+$/, ""),
+            extension: (p.path.match(/\.[^.]+$/) || [""])[0],
+          });
+        } else if (a === "add_path" && p.path) {
+          addToPlaylist(
+            {
+              path: p.path,
+              name: p.path.split(/[/\\]/).pop(),
+              stem: (p.path.split(/[/\\]/).pop() || "").replace(/\.[^.]+$/, ""),
+            },
+            false
+          );
+        }
+      }
+      await postState();
+    } catch (_) {}
+  }
+
+  async function boot() {
+    setAi("SHIBASS S1 starting...");
+    // Do NOT block UI on full-drive index
     await loadLibrary();
     await loadOutputs();
     try {
       const health = await api("/health");
-      if (health.ok) setAi("SHIBASS S1 online · library linked to Music Brain");
-    } catch (_) {}
+      if (health.ok) setAi("SHIBASS S1 online - Rokid: /remote");
+    } catch (_) {
+      setAi("Waiting for server...");
+    }
+    setInterval(pollRemote, 800);
   }
 
   boot();

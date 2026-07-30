@@ -1,27 +1,25 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Music Brain - one-click setup + multi-drive scan/analyze + Cubase Bridge.
+  Music Brain - one-click setup + SHIBASS player (+ optional scan).
 
 .DESCRIPTION
-  1) Finds the repo / music-brain package
-  2) Ensures Python deps
-  3) Scans H:\ D:\ F:\ and your user profile (incremental)
-  4) Analyzes new/changed samples + project DNA
-  5) Prints Brain summary
-  6) Starts Cubase Bridge on http://127.0.0.1:18766
+  Starts the player IMMEDIATELY so the browser can connect, then optionally
+  scans H:\ D:\ F:\ in the background / after.
 
 .EXAMPLE
   .\auto-start.ps1
-  .\auto-start.ps1 -SkipServe
+  .\auto-start.ps1 -ServeOnly
   .\auto-start.ps1 -ScanOnly
   .\auto-start.ps1 -Roots @('H:\','D:\')
 #>
 param(
   [string[]]$Roots = @("H:\", "D:\", "F:\", "$env:USERPROFILE"),
   [string]$HostAddress = "127.0.0.1",
+  [string]$BindHost = "0.0.0.0",
   [int]$Port = 18766,
   [switch]$SkipServe,
+  [switch]$ServeOnly,
   [switch]$ScanOnly,
   [switch]$Force,
   [switch]$NoPause
@@ -64,7 +62,6 @@ function Find-Python {
       if ($name -eq "py") {
         return @{ Exe = $cmd.Source; Args = @("-3") }
       }
-      # Reject Windows Store stub
       try {
         $ver = & $cmd.Source --version 2>&1 | Out-String
         if ($ver -match "Python 3") {
@@ -78,7 +75,7 @@ function Find-Python {
 
 Write-Host ""
 Write-Host "  MUSIC BRAIN  -  ShiBass production intelligence" -ForegroundColor Yellow
-Write-Host "  Scan -> Analyze -> Learn -> Cubase Bridge" -ForegroundColor DarkYellow
+Write-Host "  Serve first -> then scan (so browser connects)" -ForegroundColor DarkYellow
 Write-Host ""
 
 $MbRoot = Find-MusicBrainRoot
@@ -99,7 +96,6 @@ if (-not $Py) {
 }
 Write-Host "Python:  $($Py.Exe) $($Py.Args -join ' ')"
 
-# Existing roots only
 $ExistingRoots = @()
 foreach ($r in $Roots) {
   if ([string]::IsNullOrWhiteSpace($r)) { continue }
@@ -109,11 +105,6 @@ foreach ($r in $Roots) {
   } else {
     Write-Host "Root SKIP (missing): $r" -ForegroundColor DarkGray
   }
-}
-if ($ExistingRoots.Count -eq 0) {
-  Write-Host "ERROR: none of the scan roots exist." -ForegroundColor Red
-  if (-not $NoPause) { pause }
-  exit 1
 }
 
 Write-Step "Install / upgrade package"
@@ -139,48 +130,55 @@ if ($Force) { $forceArgs = @("--force") }
 if ($ScanOnly) {
   Write-Step "Scan only"
   & $Py.Exe @($Py.Args) -m music_brain scan @rootArgs @forceArgs -v
-} else {
-  Write-Step "Pipeline (scan + analyze + brain)"
-  & $Py.Exe @($Py.Args) -m music_brain pipeline @rootArgs @forceArgs -v
-  if ($LASTEXITCODE -ne 0) {
-    Write-Host "Pipeline failed with exit $LASTEXITCODE" -ForegroundColor Red
-    if (-not $NoPause) { pause }
-    exit $LASTEXITCODE
-  }
-
-  Write-Step "Brain summary"
-  & $Py.Exe @($Py.Args) -m music_brain learn --narrative-only
-}
-
-Write-Host ""
-Write-Host "Quick commands after this:" -ForegroundColor Cyan
-Write-Host "  Open player:  http://$HostAddress`:$Port/"
-Write-Host '  music-brain search "bass like Astrix"'
-Write-Host "  music-brain match --family bass --bpm 142 --limit 26"
-Write-Host "  music-brain match --melodies --key F# --limit 9"
-Write-Host "  GET http://$HostAddress`:$Port/api/library?category=midi"
-Write-Host "  GET http://$HostAddress`:$Port/match/bass?bpm=142"
-Write-Host "  GET http://$HostAddress`:$Port/search?q=bass+like+Astrix"
-Write-Host "  POST http://$HostAddress`:$Port/project/open  {""path"":""H:\\Projects\\track.cpr""}"
-
-if ($SkipServe) {
-  Write-Host ""
-  Write-Host "Done (-SkipServe). Cubase Bridge not started." -ForegroundColor Green
   Pop-Location
   if (-not $NoPause) { pause }
-  exit 0
+  exit $LASTEXITCODE
 }
 
-Write-Step "Cubase Bridge + SHIBASS S1 player  http://$HostAddress`:$Port/"
-Write-Host "Opening browser..." -ForegroundColor DarkGray
-Start-Process "http://$HostAddress`:$Port/"
-Write-Host "Press Ctrl+C to stop." -ForegroundColor DarkGray
-Write-Host ""
-try {
-  & $Py.Exe @($Py.Args) -m music_brain serve --host $HostAddress --port $Port --index
-  $ec = $LASTEXITCODE
-} finally {
-  Pop-Location
+# --- SERVE FIRST so browser does not get CONNECTION_REFUSED ---
+if (-not $SkipServe) {
+  Write-Step "Starting SHIBASS S1 NOW"
+  Write-Host "Panel : http://$HostAddress`:$Port/" -ForegroundColor Green
+  Write-Host "Remote: http://$HostAddress`:$Port/remote" -ForegroundColor Green
+  Write-Host "Keep this window OPEN. Press Ctrl+C to stop." -ForegroundColor Yellow
+  Write-Host ""
+
+  # Open browser after a short delay in background
+  Start-Job -ScriptBlock {
+    param($url)
+    Start-Sleep -Seconds 2
+    Start-Process $url
+  } -ArgumentList "http://$HostAddress`:$Port/" | Out-Null
+
+  if (-not $ServeOnly -and $ExistingRoots.Count -gt 0) {
+    Write-Host "Tip: library scan can run in another window:" -ForegroundColor DarkGray
+    Write-Host "  .\launchers\MusicBrain-Start.cmd -ScanOnly" -ForegroundColor DarkGray
+    Write-Host ""
+  }
+
+  try {
+    # No --index here: indexing huge drives blocks the port. Serve first.
+    & $Py.Exe @($Py.Args) -m music_brain serve --host $BindHost --port $Port
+    $ec = $LASTEXITCODE
+  } finally {
+    Pop-Location
+  }
+  if (-not $NoPause -and $ec -ne 0) { pause }
+  exit $ec
 }
-if (-not $NoPause -and $ec -ne 0) { pause }
-exit $ec
+
+# SkipServe path: run pipeline only
+if ($ExistingRoots.Count -eq 0) {
+  Write-Host "ERROR: none of the scan roots exist." -ForegroundColor Red
+  Pop-Location
+  if (-not $NoPause) { pause }
+  exit 1
+}
+
+Write-Step "Pipeline (scan + analyze + brain)"
+& $Py.Exe @($Py.Args) -m music_brain pipeline @rootArgs @forceArgs -v
+Write-Step "Brain summary"
+& $Py.Exe @($Py.Args) -m music_brain learn --narrative-only
+Pop-Location
+if (-not $NoPause) { pause }
+exit 0
