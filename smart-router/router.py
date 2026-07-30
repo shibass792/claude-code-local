@@ -247,30 +247,44 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     up = attempt("qwen")
                 except Exception as e2:
-                    self.send_response(502); self.end_headers()
-                    self.wfile.write(json.dumps({"error": str(e2)}).encode()); return
+                    self._send_error(502, json.dumps({"error": str(e2)}).encode()); return
             else:
-                code = getattr(e, "code", 502)
-                self.send_response(code); self.end_headers()
                 body_err = e.read() if hasattr(e, "read") else json.dumps({"error": str(e)}).encode()
-                self.wfile.write(body_err); return
+                self._send_error(getattr(e, "code", 502), body_err); return
         sys.stderr.write(f"[one-ai] -> {backend:8s} ({reason})  prep {time.time()-t0:.2f}s\n")
         sys.stderr.flush()
 
-        self.send_response(up.status)
-        for k, v in up.getheaders():
-            if k.lower() in ("content-length", "transfer-encoding", "connection"): continue
-            self.send_header(k, v)
-        self.send_header("x-one-ai-model", backend)   # tell callers which model answered
-        self.send_header("transfer-encoding", "chunked")
-        self.end_headers()
-        # stream chunks straight through (SSE for streaming responses)
-        while True:
-            chunk = up.read(2048)
-            if not chunk: break
-            self.wfile.write(b"%X\r\n%s\r\n" % (len(chunk), chunk))
-            self.wfile.flush()
-        self.wfile.write(b"0\r\n\r\n")
+        # Interrupting a generation (Esc in Claude Code, a client timeout) drops
+        # the socket mid-response. That's routine, so report it in one line
+        # instead of letting a BrokenPipeError unwind as a stack trace.
+        try:
+            self.send_response(up.status)
+            for k, v in up.getheaders():
+                if k.lower() in ("content-length", "transfer-encoding", "connection"): continue
+                self.send_header(k, v)
+            self.send_header("x-one-ai-model", backend)   # tell callers which model answered
+            self.send_header("transfer-encoding", "chunked")
+            self.end_headers()
+            # stream chunks straight through (SSE for streaming responses)
+            while True:
+                chunk = up.read(2048)
+                if not chunk: break
+                self.wfile.write(b"%X\r\n%s\r\n" % (len(chunk), chunk))
+                self.wfile.flush()
+            self.wfile.write(b"0\r\n\r\n")
+        except (BrokenPipeError, ConnectionResetError):
+            self._client_gone(f"{backend} response")
+
+    def _send_error(self, code, payload: bytes):
+        try:
+            self.send_response(code); self.end_headers()
+            self.wfile.write(payload)
+        except (BrokenPipeError, ConnectionResetError):
+            self._client_gone("error response")
+
+    def _client_gone(self, where):
+        sys.stderr.write(f"[one-ai] client disconnected during {where}\n")
+        sys.stderr.flush()
 
     def do_GET(self):
         if self.path == "/health":
