@@ -37,11 +37,16 @@ foreach ($name in $files) {
 $brain = @(
   @{ Rel = "shibass-brain/init-brain.ps1"; Out = "shibass-brain\init-brain.ps1" },
   @{ Rel = "shibass-brain/brain.ps1"; Out = "shibass-brain\brain.ps1" },
+  @{ Rel = "shibass-brain/import-session-memory.ps1"; Out = "shibass-brain\import-session-memory.ps1" },
   @{ Rel = "shibass-brain/README.md"; Out = "shibass-brain\README.md" },
   @{ Rel = "shibass-brain/templates/personal_profile.json"; Out = "shibass-brain\templates\personal_profile.json" },
   @{ Rel = "shibass-brain/templates/artistic_identity.json"; Out = "shibass-brain\templates\artistic_identity.json" },
   @{ Rel = "shibass-brain/templates/preferences.json"; Out = "shibass-brain\templates\preferences.json" },
-  @{ Rel = "shibass-brain/templates/permanent_rules.json"; Out = "shibass-brain\templates\permanent_rules.json" }
+  @{ Rel = "shibass-brain/templates/permanent_rules.json"; Out = "shibass-brain\templates\permanent_rules.json" },
+  @{ Rel = "shibass-brain/memory/WORKING_STACK.md"; Out = "shibass-brain\memory\WORKING_STACK.md" },
+  @{ Rel = "shibass-brain/memory/AGENT_SESSIONS.md"; Out = "shibass-brain\memory\AGENT_SESSIONS.md" },
+  @{ Rel = "shibass-brain/memory/FIXES_THAT_WORKED.md"; Out = "shibass-brain\memory\FIXES_THAT_WORKED.md" },
+  @{ Rel = "shibass-brain/memory/seed-facts.jsonl"; Out = "shibass-brain\memory\seed-facts.jsonl" }
 )
 foreach ($b in $brain) {
   Save-Utf8Bom "$base/$($b.Rel)" (Join-Path $Dest $b.Out)
@@ -53,6 +58,7 @@ if (Test-Path $panel) {
 }
 
 Write-Host ""
-Write-Host "Init brain:" -ForegroundColor Magenta
+Write-Host "Init brain + import session memory:" -ForegroundColor Magenta
 Write-Host '  powershell -ExecutionPolicy Bypass -File H:\models\shibass-brain\init-brain.ps1'
+Write-Host '  powershell -ExecutionPolicy Bypass -File H:\models\shibass-brain\import-session-memory.ps1'
 Write-Host "Then restart panel (npm start) if server.js was updated." -ForegroundColor Magenta
