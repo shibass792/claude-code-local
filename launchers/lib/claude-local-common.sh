@@ -78,8 +78,40 @@ resolve_mlx_model() {
   fi
 }
 
+# Bail out instead of spawning a second server onto an occupied port: the new
+# process would die on "Address already in use" while /health kept answering
+# from the old one, so the session would silently run on the wrong model.
+_die_port_busy() {
+  echo "  ERROR: port 4000 is still in use and the old MLX server wouldn't stop."
+  echo "  Find the process with:  lsof -i :4000"
+  echo "  Then kill that PID and run this launcher again."
+  exit 1
+}
+
+# Launch the MLX server in the background with the given model. Tuning knobs
+# are forwarded only when the caller actually set them: exporting e.g.
+# MLX_KV_BITS="" would reach the server as an empty string, and the server's
+# int() parse of it used to abort startup before the port was ever bound.
+_spawn_mlx_server() {
+  local desired="$1"
+  local -a env_args=("MLX_MODEL=$desired")
+  local knob
+  for knob in MLX_KV_BITS MLX_KV_QUANT_START; do
+    if [ -n "${!knob:-}" ]; then
+      env_args+=("$knob=${!knob}")
+    fi
+  done
+  env "${env_args[@]}" "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
+}
+
 _stop_mlx_server() {
   pkill -f "mlx-native-server/server.py" 2>/dev/null || true
+  # Also match a server started straight out of a repo checkout (MLX_SERVER
+  # pointed at proxy/server.py), which the canonical-path pattern above misses.
+  case "$MLX_SERVER" in
+    */mlx-native-server/server.py) ;;
+    *) pkill -f "$MLX_SERVER" 2>/dev/null || true ;;
+  esac
   local i
   for i in $(seq 1 15); do
     if ! lsof -i :4000 >/dev/null 2>&1; then
@@ -110,14 +142,11 @@ ensure_mlx_server() {
       return 0
     fi
     echo "  Different model is loaded (${running:-unknown}) — restarting MLX server..."
-    _stop_mlx_server || echo "  Warning: existing MLX server didn't exit cleanly, continuing anyway"
+    _stop_mlx_server || _die_port_busy
   fi
 
   echo "$msg"
-  MLX_MODEL="$desired" \
-  MLX_KV_BITS="${MLX_KV_BITS:-}" \
-  MLX_KV_QUANT_START="${MLX_KV_QUANT_START:-}" \
-  "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
+  _spawn_mlx_server "$desired"
   if ! _wait_for_mlx_health; then
     echo "  ERROR: MLX server failed to respond on port 4000 within 120s"
     echo "  Check /tmp/mlx-server.log for details"
@@ -134,14 +163,11 @@ force_restart_mlx_server() {
 
   if lsof -i :4000 >/dev/null 2>&1; then
     echo "  Stopping existing MLX server so new env vars take effect..."
-    _stop_mlx_server || echo "  Warning: existing MLX server didn't exit cleanly, continuing anyway"
+    _stop_mlx_server || _die_port_busy
   fi
 
   echo "$msg"
-  MLX_MODEL="$desired" \
-  MLX_KV_BITS="${MLX_KV_BITS:-}" \
-  MLX_KV_QUANT_START="${MLX_KV_QUANT_START:-}" \
-  "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
+  _spawn_mlx_server "$desired"
   if ! _wait_for_mlx_health; then
     echo "  ERROR: MLX server failed to respond on port 4000 within 120s"
     echo "  Check /tmp/mlx-server.log for details"
