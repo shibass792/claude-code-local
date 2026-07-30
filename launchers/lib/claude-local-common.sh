@@ -45,7 +45,8 @@ _wait_for_mlx_health() {
   # 180 attempts × 2s = 6 minutes. Enough for a cold load of Llama 70B 8-bit
   # on a warm file cache; not enough for a first-time download from HF — use
   # resolve_mlx_model to point at a local path and avoid downloads entirely.
-  local attempts="${1:-180}"
+  # Raise MLX_HEALTH_ATTEMPTS for slow disks, lower it to fail fast in tests.
+  local attempts="${1:-${MLX_HEALTH_ATTEMPTS:-180}}"
   local i
   for i in $(seq 1 "$attempts"); do
     if curl -s http://localhost:4000/health 2>/dev/null | grep -q '"status": "ok"'; then
@@ -81,6 +82,13 @@ resolve_mlx_model() {
 # Bail out instead of spawning a second server onto an occupied port: the new
 # process would die on "Address already in use" while /health kept answering
 # from the old one, so the session would silently run on the wrong model.
+_die_no_health() {
+  echo "  ERROR: the MLX server never answered on port 4000 (waited $(( ${MLX_HEALTH_ATTEMPTS:-180} * 2 ))s)."
+  echo "  The reason is at the end of /tmp/mlx-server.log — usually the model"
+  echo "  doesn't fit in RAM, or the model id/path is wrong."
+  exit 1
+}
+
 _die_port_busy() {
   echo "  ERROR: port 4000 is still in use and the old MLX server wouldn't stop."
   echo "  Find the process with:  lsof -i :4000"
@@ -170,9 +178,7 @@ ensure_mlx_server() {
   echo "$msg"
   _spawn_mlx_server "$desired"
   if ! _wait_for_mlx_health; then
-    echo "  ERROR: MLX server failed to respond on port 4000 within 120s"
-    echo "  Check /tmp/mlx-server.log for details"
-    exit 1
+    _die_no_health
   fi
 }
 
@@ -191,8 +197,6 @@ force_restart_mlx_server() {
   echo "$msg"
   _spawn_mlx_server "$desired"
   if ! _wait_for_mlx_health; then
-    echo "  ERROR: MLX server failed to respond on port 4000 within 120s"
-    echo "  Check /tmp/mlx-server.log for details"
-    exit 1
+    _die_no_health
   fi
 }
