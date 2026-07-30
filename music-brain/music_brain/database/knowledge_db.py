@@ -95,7 +95,7 @@ class KnowledgeDB:
     def __init__(self, db_path: str | Path) -> None:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path))
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(SCHEMA)
         self._conn.commit()
@@ -136,6 +136,21 @@ class KnowledgeDB:
             "SELECT * FROM files WHERE path=?", (path,)
         ).fetchone()
         return row
+
+    def get_file_by_id(self, file_id: int) -> sqlite3.Row | None:
+        return self._conn.execute(
+            "SELECT * FROM files WHERE id=?", (file_id,)
+        ).fetchone()
+
+    def get_file_with_analysis(self, file_id: int) -> sqlite3.Row | None:
+        return self._conn.execute(
+            """SELECT f.id as file_id, f.path, f.kind, f.plugin_hint,
+                      a.category, a.sub_style, a.bpm, a.key, a.lufs
+               FROM files f
+               LEFT JOIN audio_analysis a ON a.file_id = f.id
+               WHERE f.id=?""",
+            (file_id,),
+        ).fetchone()
 
     def upsert_file(
         self,

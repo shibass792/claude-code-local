@@ -1,8 +1,9 @@
-"""Local web UI — search, stats, Cubase recommendations."""
+"""Local web UI — search, stats, Cubase recommendations, audio player."""
 
 from __future__ import annotations
 
 import json
+import re
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -13,6 +14,11 @@ from music_brain.bridge.cubase_bridge import CubaseBridge
 from music_brain.database.knowledge_db import KnowledgeDB
 from music_brain.matcher.engine import MatcherEngine
 from music_brain.search.ai_search import AISearch
+from music_brain.web.audio_stream import (
+    mime_for_path,
+    read_file_range,
+    resolve_indexed_file,
+)
 
 INDEX_HTML = """<!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -24,7 +30,7 @@ INDEX_HTML = """<!DOCTYPE html>
     :root { --bg:#0d0d12; --card:#1a1a24; --accent:#7c5cff; --text:#e8e8f0; --muted:#888; }
     * { box-sizing:border-box; }
     body { font-family: system-ui, sans-serif; background:var(--bg); color:var(--text);
-           margin:0; padding:1.5rem; max-width:960px; margin-inline:auto; }
+           margin:0; padding:1.5rem; padding-bottom:6.5rem; max-width:960px; margin-inline:auto; }
     h1 { font-size:1.5rem; margin-bottom:0.25rem; }
     .sub { color:var(--muted); margin-bottom:1.5rem; }
     .card { background:var(--card); border-radius:12px; padding:1rem 1.25rem; margin-bottom:1rem; }
@@ -41,6 +47,19 @@ INDEX_HTML = """<!DOCTYPE html>
     pre { background:#111; padding:0.75rem; border-radius:8px; overflow:auto; font-size:0.8rem; }
     .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
     @media(max-width:600px){ .stats-grid { grid-template-columns:1fr; } }
+    .play-btn { background:#2a2540; color:#b8a8ff; border:none; border-radius:6px;
+                padding:0.25rem 0.55rem; cursor:pointer; font-size:0.85rem; margin-top:0; }
+    .play-btn:hover { filter:brightness(1.15); }
+    tr.playing td { background:#221f33; }
+    #player-bar { position:fixed; left:0; right:0; bottom:0; background:#14141c;
+                  border-top:1px solid #2a2a35; padding:0.75rem 1rem; display:none;
+                  align-items:center; gap:1rem; z-index:100; }
+    #player-bar.active { display:flex; }
+    #player-meta { flex:1; min-width:0; }
+    #player-title { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #player-sub { color:var(--muted); font-size:0.8rem; margin-top:0.15rem; }
+    #player-audio { flex:2; min-width:180px; max-width:480px; height:36px; }
+    #player-controls button { margin-top:0; margin-inline:0.15rem; padding:0.45rem 0.75rem; }
   </style>
 </head>
 <body>
@@ -68,6 +87,19 @@ INDEX_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
+  <div id="player-bar">
+    <div id="player-meta">
+      <div id="player-title">—</div>
+      <div id="player-sub">—</div>
+    </div>
+    <audio id="player-audio" controls preload="metadata"></audio>
+    <div id="player-controls">
+      <button onclick="playPrev()">⏮</button>
+      <button onclick="togglePlay()" id="btn-toggle">⏸</button>
+      <button onclick="playNext()">⏭</button>
+    </div>
+  </div>
+
   <div class="card">
     <strong>Cubase — המלצות לפרויקט</strong>
     <input id="cpr" placeholder="D:\\Projects\\Track.cpr" style="margin-top:0.5rem"/>
@@ -76,23 +108,79 @@ INDEX_HTML = """<!DOCTYPE html>
   </div>
 
 <script>
+let queue = [];
+let queueIndex = -1;
+const audio = () => document.getElementById('player-audio');
+
 async function api(path) {
   const r = await fetch(path);
   return r.json();
 }
 function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function basename(p){ return p.split(/[\\\\/]/).pop(); }
+
+function highlightRow(fileId){
+  document.querySelectorAll('#search-results tr[data-id]').forEach(tr => {
+    tr.classList.toggle('playing', tr.dataset.id === String(fileId));
+  });
+}
+
+function showPlayer(meta){
+  document.getElementById('player-bar').classList.add('active');
+  document.getElementById('player-title').textContent = meta.name || '—';
+  const bits = [meta.sub_style, meta.bpm ? meta.bpm+' BPM' : null, meta.key].filter(Boolean);
+  document.getElementById('player-sub').textContent = bits.join(' · ') || meta.path || '—';
+}
+
+async function playFileId(fileId, meta){
+  if(!fileId) return;
+  const a = audio();
+  a.src = '/api/stream/' + fileId;
+  showPlayer(meta || { name: 'קובץ #'+fileId });
+  highlightRow(fileId);
+  try { await a.play(); } catch(e) {}
+  document.getElementById('btn-toggle').textContent = '⏸';
+}
+
+function playAt(index){
+  if(index < 0 || index >= queue.length) return;
+  queueIndex = index;
+  const item = queue[index];
+  playFileId(item.file_id, {
+    name: basename(item.path),
+    path: item.path,
+    sub_style: item.sub_style,
+    bpm: item.bpm,
+    key: item.key,
+  });
+}
+
+function playNext(){ if(queue.length) playAt((queueIndex + 1) % queue.length); }
+function playPrev(){ if(queue.length) playAt((queueIndex - 1 + queue.length) % queue.length); }
+function togglePlay(){
+  const a = audio();
+  if(a.paused){ a.play(); document.getElementById('btn-toggle').textContent = '⏸'; }
+  else { a.pause(); document.getElementById('btn-toggle').textContent = '▶'; }
+}
+
+audio().addEventListener('ended', () => playNext());
+audio().addEventListener('play', () => { document.getElementById('btn-toggle').textContent = '⏸'; });
+audio().addEventListener('pause', () => { document.getElementById('btn-toggle').textContent = '▶'; });
+
 async function doSearch(){
   const q = document.getElementById('q').value;
   if(!q) return;
   const data = await api('/api/search?q='+encodeURIComponent(q));
   const el = document.getElementById('search-results');
-  if(!data.results.length){ el.innerHTML='<p>לא נמצאו תוצאות</p>'; return; }
-  let html = '<table><tr><th>קובץ</th><th>סגנון</th><th>BPM</th><th>Key</th><th>ציון</th></tr>';
-  for(const r of data.results){
-    const name = r.path.split(/[\\\\/]/).pop();
-    html += `<tr><td>${esc(name)}</td><td>${esc(r.sub_style||'-')}</td>
+  if(!data.results.length){ el.innerHTML='<p>לא נמצאו תוצאות</p>'; queue=[]; return; }
+  queue = data.results.filter(r => r.file_id);
+  let html = '<table><tr><th></th><th>קובץ</th><th>סגנון</th><th>BPM</th><th>Key</th><th>ציון</th></tr>';
+  queue.forEach((r, i) => {
+    const name = basename(r.path);
+    html += `<tr data-id="${r.file_id}"><td><button class="play-btn" onclick="playAt(${i})">▶</button></td>
+      <td>${esc(name)}</td><td>${esc(r.sub_style||'-')}</td>
       <td>${r.bpm||'-'}</td><td>${r.key||'-'}</td><td>${r.score.toFixed(2)}</td></tr>`;
-  }
+  });
   html += '</table>';
   el.innerHTML = html;
 }
@@ -159,12 +247,99 @@ def create_handler(
             self.end_headers()
             self.wfile.write(body)
 
+        def _parse_range(self, range_header: str, size: int) -> tuple[int, int] | None:
+            match = re.match(r"bytes=(\d*)-(\d*)", range_header.strip())
+            if not match:
+                return None
+            start_s, end_s = match.groups()
+            if start_s == "" and end_s == "":
+                return None
+            if start_s == "":
+                suffix = int(end_s)
+                start = max(0, size - suffix)
+                end = size - 1
+            else:
+                start = int(start_s)
+                end = int(end_s) if end_s else size - 1
+            if start >= size:
+                return None
+            end = min(end, size - 1)
+            if start > end:
+                return None
+            return start, end
+
+        def _stream_file(self, file_id: int) -> None:
+            path = resolve_indexed_file(db, file_id)
+            if path is None:
+                self._json({"error": "file not found"}, 404)
+                return
+
+            size = path.stat().st_size
+            mime = mime_for_path(path)
+            range_header = self.headers.get("Range")
+
+            if range_header:
+                byte_range = self._parse_range(range_header, size)
+                if byte_range is None:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{size}")
+                    self.end_headers()
+                    return
+                start, end = byte_range
+                data = read_file_range(path, start, end)
+                self.send_response(206)
+                self.send_header("Content-Type", mime)
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+
+            data = read_file_range(path, 0, size - 1)
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Content-Length", str(size))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _file_meta(self, file_id: int) -> None:
+            row = db.get_file_with_analysis(file_id)
+            if row is None:
+                self._json({"error": "file not found"}, 404)
+                return
+            path = Path(row["path"])
+            self._json({
+                "file_id": row["file_id"],
+                "path": row["path"],
+                "name": path.name,
+                "kind": row["kind"] if "kind" in row.keys() else None,
+                "plugin_hint": row["plugin_hint"],
+                "category": row["category"],
+                "sub_style": row["sub_style"],
+                "bpm": row["bpm"],
+                "key": row["key"],
+                "lufs": row["lufs"],
+                "stream_url": f"/api/stream/{file_id}",
+            })
+
         def do_GET(self) -> None:
             parsed = urllib.parse.urlparse(self.path)
             qs = urllib.parse.parse_qs(parsed.query)
 
             if parsed.path in ("/", "/index.html"):
                 self._html(INDEX_HTML)
+                return
+
+            stream_match = re.fullmatch(r"/api/stream/(\d+)", parsed.path)
+            if stream_match:
+                self._stream_file(int(stream_match.group(1)))
+                return
+
+            file_match = re.fullmatch(r"/api/file/(\d+)", parsed.path)
+            if file_match:
+                self._file_meta(int(file_match.group(1)))
                 return
 
             if parsed.path == "/api/search":

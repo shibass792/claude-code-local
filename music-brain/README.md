@@ -78,9 +78,13 @@ music-brain search "kick for 145 full on"
 # שלב 10 — Brain Mode
 music-brain brain
 
-# ממשק Web מקומי (חיפוש + סטטיסטיקות + Cubase)
+# ממשק Web מקומי (חיפוש + נגן + סטטיסטיקות + Cubase)
 music-brain serve
-# → http://127.0.0.1:8787
+# → http://127.0.0.1:8787 — לחץ ▶ ליד כל תוצאה
+
+# נגן קובץ מהאינדקס (פותח נגן ברירת מחדל ב-Windows)
+music-brain play 42
+music-brain play "D:\\Samples\\kick.wav"
 
 # רקע — סריקה אוטומטית כל 5 דקות
 music-brain watch
@@ -143,7 +147,8 @@ Transient, Attack, Release, Envelope, Stereo Width, RMS, LUFS, MFCC, Spectral Ro
 - **סריקה אינקרמנטלית** — רק קבצים חדשים או שהשתנו (mtime + hash)
 - **מסד נתונים מקומי** — אין סריקה מחדש בכל פתיחה
 - **`watch`** — רץ ברקע, לומד מכל טראק חדש (Brain Mode)
-- **`serve`** — UI בדפדפן לחיפוש ו-Cubase
+- **`serve`** — UI בדפדפן: חיפוש, נגן אודיו, סטטיסטיקות, Cubase
+- **`play`** — פתיחת קובץ מהאינדקס בנגן המקומי
 - **`analyze --workers 4`** — ניתוח מקבילי על מספר ליבות
 - **`backup`** — גיבוי אוטומטי של `music_brain.db` (שומר 10 אחרונים)
 

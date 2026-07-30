@@ -164,6 +164,7 @@ class AISearch:
 
             results.append(
                 {
+                    "file_id": row["file_id"],
                     "path": row["path"],
                     "category": row["category"],
                     "sub_style": row["sub_style"],

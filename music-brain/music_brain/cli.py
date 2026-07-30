@@ -312,7 +312,7 @@ def backup(ctx: click.Context, dir: str | None) -> None:
 @click.option("--port", "-p", default=8787, type=int)
 @click.pass_context
 def serve(ctx: click.Context, host: str, port: int) -> None:
-    """Local web UI — search, stats, Cubase."""
+    """Local web UI — search, stats, Cubase, audio player."""
     cfg = ctx.obj["config"]
     db = _get_db(cfg)
     from music_brain.web.server import serve as run_server
@@ -327,6 +327,48 @@ def serve(ctx: click.Context, host: str, port: int) -> None:
         pass
     finally:
         db.close()
+
+
+@main.command()
+@click.argument("target")
+@click.pass_context
+def play(ctx: click.Context, target: str) -> None:
+    """Play an indexed file by path or file id (opens default player on Windows)."""
+    import os
+    import subprocess
+    import sys
+
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.web.audio_stream import resolve_indexed_file, resolve_indexed_path
+
+    file_id: int | None = None
+    path: Path | None = None
+
+    if target.isdigit():
+        file_id = int(target)
+        path = resolve_indexed_file(db, file_id)
+    else:
+        resolved = resolve_indexed_path(db, target)
+        if resolved:
+            file_id, path = resolved
+        elif Path(target).is_file():
+            path = Path(target)
+
+    db.close()
+
+    if path is None:
+        console.print("[red]קובץ לא נמצא באינדקס[/] — הרץ scan ו-analyze קודם")
+        raise SystemExit(1)
+
+    console.print(f"[cyan]▶[/] {path.name}" + (f" (id={file_id})" if file_id else ""))
+
+    if sys.platform == "win32":
+        os.startfile(str(path))  # type: ignore[attr-defined]
+        return
+
+    opener = "open" if sys.platform == "darwin" else "xdg-open"
+    subprocess.run([opener, str(path)], check=False)
 
 
 @main.command("index-embeddings")
