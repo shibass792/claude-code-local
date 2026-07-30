@@ -17,10 +17,10 @@
     <main class="shell">
       <header class="brand">
         <p class="brand-mark">shibass AI</p>
-        <h1>שאל את המודל המקומי</h1>
+        <h1>שאל את המוח המקומי</h1>
         <p class="lede">
-          Ollama · <span id="modelName">myllama</span> · אינדקס כוננים בלי להעתיק
-          קבצים
+          Ollama · <span id="modelName">myllama</span> · Brain facts + אינדקס
+          כוננים
         </p>
       </header>
 
@@ -33,17 +33,17 @@
         <textarea
           id="question"
           rows="4"
-          placeholder="למשל: סכם את הפרויקט ב-H:\shibass-ai"
+          placeholder="למשל: מה ה-BPM שלי ומה כתובת הלוח?"
         ></textarea>
 
         <div class="mode-row">
           <label class="mode">
-            <input type="radio" name="mode" value="knowledge" checked />
-            ידע מהכוננים (Ask + אינדקס)
+            <input type="radio" name="mode" value="brain" checked />
+            ShiBass Brain (עובדות מאושרות)
           </label>
           <label class="mode">
-            <input type="radio" name="mode" value="chat" />
-            צ׳אט ישיר ל־Ollama
+            <input type="radio" name="mode" value="knowledge" />
+            Brain + ידע מהכוננים
           </label>
           <label class="mode">
             <input type="checkbox" id="waitIndex" />
@@ -62,7 +62,7 @@
           <h2>תשובה</h2>
           <span id="busy" class="busy" hidden>עובד…</span>
         </div>
-        <pre id="answerOut" class="out">ממתין לשאלה.</pre>
+        <pre id="answerOut" class="out">ממתין לשאלה על העובדות שלך.</pre>
       </section>
     </main>
     <script src="/app.js"></script>

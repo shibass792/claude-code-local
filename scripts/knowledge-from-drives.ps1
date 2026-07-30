@@ -173,36 +173,7 @@ function Read-FromDrive {
   }
 }
 
-function Ask-Ollama {
-  param([string]$Question)
-
-  Write-Host "Searching index + pulling matching files from drives..." -ForegroundColor Cyan
-  $hits = Find-Relevant -Query $Question -Take $TopK
-  if (-not $hits) {
-    Write-Host "No matching files in index. Try different words, or re-run -Index with more -Roots." -ForegroundColor Yellow
-    return
-  }
-
-  $chunks = New-Object System.Collections.Generic.List[string]
-  $used = 0
-  foreach ($h in $hits) {
-    $p = $h.Rec.path
-    Write-Host ("  pull [{0}] {1}" -f $h.Score, $p) -ForegroundColor DarkGray
-    $body = Read-FromDrive -Path $p -MaxChars $MaxCharsPerFile
-    if (-not $body) { continue }
-    $block = "----- FILE: $p -----`n$body"
-    if (($used + $block.Length) -gt $MaxTotalChars) { break }
-    $chunks.Add($block) | Out-Null
-    $used += $block.Length
-  }
-
-  if ($chunks.Count -eq 0) {
-    Write-Host "Found paths but could not read any file content." -ForegroundColor Red
-    return
-  }
-
-  $context = ($chunks -join "`n`n")
-
+function Get-BrainContext {
   $brain = ""
   try {
     if (Test-Path $BrainScript) {
@@ -215,15 +186,58 @@ function Ask-Ollama {
       }
     }
   } catch { }
+  return $brain
+}
+
+function Ask-Ollama {
+  param([string]$Question)
+
+  $brain = Get-BrainContext
+  if ($brain) {
+    Write-Host "[brain] loaded confirmed facts/rules for prompt" -ForegroundColor Magenta
+  } else {
+    Write-Host "[brain] no context yet - run import-session-memory.ps1 / ExportContext" -ForegroundColor Yellow
+  }
+
+  Write-Host "Searching index + pulling matching files from drives..." -ForegroundColor Cyan
+  $hits = Find-Relevant -Query $Question -Take $TopK
+
+  $chunks = New-Object System.Collections.Generic.List[string]
+  $used = 0
+  if ($hits) {
+    foreach ($h in $hits) {
+      $p = $h.Rec.path
+      Write-Host ("  pull [{0}] {1}" -f $h.Score, $p) -ForegroundColor DarkGray
+      $body = Read-FromDrive -Path $p -MaxChars $MaxCharsPerFile
+      if (-not $body) { continue }
+      $block = "----- FILE: $p -----`n$body"
+      if (($used + $block.Length) -gt $MaxTotalChars) { break }
+      $chunks.Add($block) | Out-Null
+      $used += $block.Length
+    }
+  } else {
+    Write-Host "No matching drive files - answering from ShiBass Brain facts only." -ForegroundColor Yellow
+  }
+
+  $context = if ($chunks.Count -gt 0) { ($chunks -join "`n`n") } else { "(none)" }
+
+  if (-not $brain -and $chunks.Count -eq 0) {
+    Write-Host "No brain context and no drive matches." -ForegroundColor Red
+    return
+  }
 
   $prompt = @"
-You are ShiBass local assistant.
-Answer in Hebrew unless asked otherwise.
-Use ShiBass Brain rules/facts when present.
-Use only pulled drive files for project-specific claims.
-If unsure between versions, list options with confidence. Do not invent paths.
+You are ShiBass personal local assistant.
+Answer in Hebrew unless the user asks otherwise.
 
-SHIBASS BRAIN:
+CRITICAL:
+- Treat SHIBASS BRAIN confirmed facts as ground truth about ShiBass setup and preferences.
+- When the user asks about BPM, panel URL, Ollama, index path, Cubase/Ableton method, scripts, or agent sessions - quote/use those confirmed facts explicitly.
+- Do not invent conflicting facts.
+- Drive files are extra evidence for project/code questions; if absent, answer from Brain only.
+- If unsure between options, list them with confidence.
+
+SHIBASS BRAIN (must use):
 $brain
 
 QUESTION:
@@ -243,7 +257,7 @@ $context
   try {
     $resp = Invoke-RestMethod -Uri "$OllamaUrl/api/generate" -Method Post -Body $payload -ContentType "application/json; charset=utf-8"
     Write-Host ""
-    Write-Host "===== תשובה =====" -ForegroundColor Magenta
+    Write-Host "===== answer =====" -ForegroundColor Magenta
     Write-Host $resp.response
     Write-Host "=================" -ForegroundColor Magenta
   } catch {

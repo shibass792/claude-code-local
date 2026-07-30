@@ -54,7 +54,11 @@ foreach ($b in $brain) {
 
 $panel = "H:\shibass-ai-panel"
 if (Test-Path $panel) {
+  New-Item -ItemType Directory -Force -Path (Join-Path $panel "public") | Out-Null
   Save-Utf8Bom "$base/shibass-ai-panel/server.js" (Join-Path $panel "server.js")
+  Save-Utf8Bom "$base/shibass-ai-panel/public/index.html" (Join-Path $panel "public\index.html")
+  Save-Utf8Bom "$base/shibass-ai-panel/public/app.js" (Join-Path $panel "public\app.js")
+  Save-Utf8Bom "$base/shibass-ai-panel/public/styles.css" (Join-Path $panel "public\styles.css")
 }
 
 Write-Host ""

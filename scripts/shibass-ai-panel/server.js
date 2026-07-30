@@ -17,10 +17,70 @@ const BRAIN_CONTEXT =
   "H:\\shibass-ai\\SHIBASS_BRAIN\\system\\context_for_model.txt";
 const BRAIN_SCRIPT =
   process.env.BRAIN_SCRIPT || "H:\\models\\shibass-brain\\brain.ps1";
+const BRAIN_FACTS =
+  process.env.BRAIN_FACTS ||
+  "H:\\shibass-ai\\SHIBASS_BRAIN\\system\\facts.jsonl";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+function loadBrainContext() {
+  try {
+    if (fs.existsSync(BRAIN_CONTEXT)) {
+      return fs.readFileSync(BRAIN_CONTEXT, "utf8").slice(0, 16000);
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}
+
+function countActiveFacts() {
+  try {
+    if (!fs.existsSync(BRAIN_FACTS)) return 0;
+    return fs
+      .readFileSync(BRAIN_FACTS, "utf8")
+      .split(/\r?\n/)
+      .filter((line) => line.trim())
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter((f) => f && f.active !== false).length;
+  } catch {
+    return 0;
+  }
+}
+
+async function refreshBrainContext() {
+  if (fs.existsSync(BRAIN_SCRIPT)) {
+    await runPowerShell(["-File", BRAIN_SCRIPT, "-ExportContext"], {
+      timeoutMs: 60000,
+    });
+  }
+  return loadBrainContext();
+}
+
+function brainSystemPrompt(brain, userPrompt) {
+  return `You are ShiBass personal local assistant.
+Answer in Hebrew unless asked otherwise.
+
+CRITICAL:
+- Confirmed facts in SHIBASS BRAIN are ground truth.
+- When asked about BPM, Ollama, panel, index, Cubase/Ableton handoff, scripts, or agent links - use those facts explicitly.
+- Do not invent conflicting setup details.
+- If Brain has the answer, speak from it clearly.
+
+SHIBASS BRAIN:
+${brain}
+
+USER:
+${userPrompt}`;
+}
 
 function runPowerShell(args, { timeoutMs = 15 * 60 * 1000 } = {}) {
   return new Promise((resolve) => {
@@ -124,6 +184,7 @@ app.get("/api/status", async (_req, res) => {
     ollama = { ok: false, error: String(err.message || err) };
   }
 
+  const factsCount = countActiveFacts();
   res.json({
     ollamaUrl: OLLAMA_URL,
     model: MODEL,
@@ -136,6 +197,7 @@ app.get("/api/status", async (_req, res) => {
     brainContext: fs.existsSync(BRAIN_CONTEXT),
     brainScript: fs.existsSync(BRAIN_SCRIPT),
     brainRoot: "H:\\shibass-ai\\SHIBASS_BRAIN",
+    brainFactsCount: factsCount,
   });
 });
 
@@ -148,21 +210,12 @@ app.post("/api/chat", async (req, res) => {
 
   let brain = "";
   try {
-    if (fs.existsSync(BRAIN_SCRIPT)) {
-      await runPowerShell(["-File", BRAIN_SCRIPT, "-ExportContext"], {
-        timeoutMs: 60000,
-      });
-    }
-    if (fs.existsSync(BRAIN_CONTEXT)) {
-      brain = fs.readFileSync(BRAIN_CONTEXT, "utf8").slice(0, 12000);
-    }
+    brain = await refreshBrainContext();
   } catch {
-    brain = "";
+    brain = loadBrainContext();
   }
 
-  const fullPrompt = brain
-    ? `You are ShiBass local assistant. Follow SHIBASS BRAIN rules.\n\nSHIBASS BRAIN:\n${brain}\n\nUSER:\n${prompt}`
-    : prompt;
+  const fullPrompt = brain ? brainSystemPrompt(brain, prompt) : prompt;
 
   try {
     const result = await ollamaFetch("/api/generate", {
@@ -187,6 +240,7 @@ app.post("/api/chat", async (req, res) => {
       response: result.json?.response || "",
       model: result.json?.model || MODEL,
       brainInjected: Boolean(brain),
+      brainFactsCount: countActiveFacts(),
     });
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

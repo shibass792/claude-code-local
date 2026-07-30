@@ -9,7 +9,7 @@ async function getJson(url, options) {
 }
 
 function fmtBytes(n) {
-  if (n == null) return "—";
+  if (n == null) return "-";
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -24,16 +24,26 @@ async function refreshStatus() {
     const lines = [];
     if (s.ollama?.ok) {
       lines.push(
-        `<p class="ok">Ollama: חי · מודלים: ${(s.ollama.models || []).join(", ") || "—"}</p>`
+        `<p class="ok">Ollama: חי · מודלים: ${(s.ollama.models || []).join(", ") || "-"}</p>`
       );
       if (!s.ollama.hasMyllama) {
         lines.push(
-          `<p class="warn">המודל ${s.model} לא נמצא ברשימה — הרץ ollama run ${s.model}</p>`
+          `<p class="warn">המודל ${s.model} לא ברשימה - ודא שהוא רץ ב-Ollama</p>`
         );
       }
     } else {
       lines.push(
-        `<p class="bad">Ollama לא זמין על ${s.ollamaUrl} — הפעל Ollama</p>`
+        `<p class="bad">Ollama לא זמין על ${s.ollamaUrl}</p>`
+      );
+    }
+
+    if (s.brainContext || s.brainFactsCount > 0) {
+      lines.push(
+        `<p class="ok">Brain: ${s.brainFactsCount || 0} עובדות פעילות · context מוכן</p>`
+      );
+    } else {
+      lines.push(
+        `<p class="warn">Brain ריק - הרץ import-session-memory.ps1</p>`
       );
     }
 
@@ -42,9 +52,7 @@ async function refreshStatus() {
         `<p class="ok">אינדקס: ${fmtBytes(s.index.bytes)} · עודכן ${s.index.mtime}</p>`
       );
     } else {
-      lines.push(
-        `<p class="warn">אין אינדקס ב־${s.index?.path || "H:\\ai-knowledge\\drive-index.jsonl"}</p>`
-      );
+      lines.push(`<p class="warn">אין אינדקס כוננים</p>`);
     }
 
     lines.push(
@@ -77,23 +85,29 @@ async function sendAsk() {
   const wait = document.getElementById("waitIndex").checked;
 
   setBusy(true);
-  out.textContent = mode === "chat" ? "שולח ל־Ollama…" : "מחפש באינדקס + שואל…";
+  out.textContent =
+    mode === "knowledge"
+      ? "Brain + חיפוש בכוננים..."
+      : "שואל לפי עובדות ה-Brain...";
 
   try {
-    if (mode === "chat") {
-      const data = await getJson("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: question }),
-      });
-      out.textContent = data.response || "(ריק)";
-    } else {
+    if (mode === "knowledge") {
       const data = await getJson("/api/ask-knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, wait }),
       });
       out.textContent = data.output || "(אין פלט)";
+    } else {
+      const data = await getJson("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: question }),
+      });
+      const prefix = data.brainInjected
+        ? `[Brain facts: ${data.brainFactsCount || "?"}]\n\n`
+        : "[בלי Brain]\n\n";
+      out.textContent = prefix + (data.response || "(ריק)");
     }
   } catch (err) {
     out.textContent = `שגיאה: ${err.message}`;
