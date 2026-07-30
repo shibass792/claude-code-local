@@ -7,10 +7,18 @@
 # Total ~64 GB — fits in 128 GB with headroom. The 80 GB giants (GLM, DeepSeek)
 # can't coexist with this pool, so they stay on-demand (router unloads the pool).
 set -uo pipefail
-L="$HOME/Desktop/PROJECTS/Local AI Setup/launchers/lib/claude-local-common.sh"
+# Resolve the checkout from this script's own location so the pool works from
+# any clone. CLAUDE_CODE_LOCAL_DIR overrides it if you moved the pieces apart.
+REPO_DIR="${CLAUDE_CODE_LOCAL_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+L="$REPO_DIR/launchers/lib/claude-local-common.sh"
+if [ ! -f "$L" ]; then
+  echo "ERROR: missing $L" >&2
+  echo "Run this from a claude-code-local checkout, or set CLAUDE_CODE_LOCAL_DIR to one." >&2
+  exit 1
+fi
 source "$L"
-MLX_PY="$HOME/.local/mlx-server/bin/python3"
-MLX_SRV="$HOME/.local/mlx-native-server/server.py"
+MLX_PY="${MLX_PYTHON:-$HOME/.local/mlx-server/bin/python3}"
+MLX_SRV="${MLX_SERVER:-$HOME/.local/mlx-native-server/server.py}"
 
 start_one() {  # port local_path repo
   local port="$1" local_path="$2" repo="$3"

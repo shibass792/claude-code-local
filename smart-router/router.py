@@ -10,8 +10,10 @@ speaks Anthropic.
 
 Backends (all Anthropic-compatible):
   qwen     -> MLX server  :4000  (Qwen3-Coder 30B-A3B 8-bit)  DEFAULT / code / agentic
-  gemma    -> MLX server  :4000  (Gemma 4)                    quick / trivial
-  deepseek -> ds4 server  :8000  (DeepSeek V4 Flash 284B)     huge context / hard reasoning
+  gemma    -> MLX server  :4001  (Gemma 4)                    quick / trivial
+  glm      -> MLX server  :4003  (GLM-4.5-Air 6-bit)          hard reasoning
+  qwen-new -> MLX server  :4004  (Qwen3-Coder-Next 80B)       on-demand, /qwen-new
+  deepseek -> ds4 server  :8000  (DeepSeek V4 Flash 284B)     huge context
 
 Note: the MLX server holds ONE model at a time, so qwen<->gemma is a swap
 (restart). The decision is instant; switching the actually-loaded model costs a
@@ -23,8 +25,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 LISTEN_PORT = int(os.environ.get("ONE_AI_PORT", "4010"))
 MLX_URL   = "http://127.0.0.1:4000"
 DS4_URL   = "http://127.0.0.1:8000"
-SETUP     = os.path.expanduser("~/Desktop/PROJECTS/Local AI Setup")
-LAUNCH_LIB = f"{SETUP}/launchers/lib/claude-local-common.sh"
+# The repo this file lives in, so the router works from any checkout instead of
+# one hardcoded Desktop path. ONE_AI_REPO overrides it if you moved the pieces.
+REPO_DIR  = os.environ.get("ONE_AI_REPO") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LAUNCH_LIB = os.path.join(REPO_DIR, "launchers", "lib", "claude-local-common.sh")
 
 # (local_path, repo_id) pairs — resolved via the launchers' resolve_mlx_model
 # helper so the MLX server gets a real local path, not a bare name it tries to
@@ -96,10 +100,11 @@ def route(body) -> tuple[str, str]:
     low = text.lower()
 
     # explicit overrides win
-    if "/deep" in low:  return "deepseek", "override /deep"
-    if "/glm"  in low:  return "glm",      "override /glm"
-    if "/fast" in low:  return "gemma",    "override /fast"
-    if "/code" in low:  return "qwen",     "override /code"
+    if "/deep" in low:      return "deepseek", "override /deep"
+    if "/glm"  in low:      return "glm",      "override /glm"
+    if "/qwen-new" in low:  return "qwen-new", "override /qwen-new"
+    if "/fast" in low:      return "gemma",    "override /fast"
+    if "/code" in low:      return "qwen",     "override /code"
 
     # NOTE: local vision is unavailable — Qwen3-VL needs mlx-vlm, not this
     # mlx_lm text server (verified). Images fall through to the text default;
@@ -125,8 +130,12 @@ def _mlx_running_model() -> str:
 # Warm pool: these two text models stay loaded together on their own ports, so
 # switching between them is INSTANT (no load/unload). ~46 GB total.
 WARM_PORTS = {"qwen": 4000, "gemma": 4001}
-WARM_SH = f"{SETUP}/smart-router/warm_pool.sh"
-GLM_PORT = 4003   # GLM gets its own port; loading it displaces the warm pool
+WARM_SH = os.path.join(REPO_DIR, "smart-router", "warm_pool.sh")
+# The giants each get their own port. Loading one displaces the warm pool and
+# the other giant — none of them fit in memory together.
+GLM_PORT = 4003
+QWEN_NEW_PORT = 4004
+EXCLUSIVE_MLX = {"glm": GLM_PORT, "qwen-new": QWEN_NEW_PORT}
 
 def _port_listening(port: int) -> bool:
     return subprocess.run(["bash", "-lc", f"lsof -i :{port} -sTCP:LISTEN >/dev/null 2>&1"]).returncode == 0
@@ -147,8 +156,14 @@ def _wait_health(port: int, timeout=180):
 def _stop_ds4():
     subprocess.run(["bash", "-lc", "pkill -f ds4-server 2>/dev/null; true"], check=False)
 
-def _stop_glm():
-    subprocess.run(["bash", "-lc", f"lsof -ti :{GLM_PORT} 2>/dev/null | xargs -r kill -9 2>/dev/null; true"], check=False)
+def _stop_port(port: int):
+    subprocess.run(["bash", "-lc", f"lsof -ti :{port} 2>/dev/null | xargs -r kill -9 2>/dev/null; true"], check=False)
+
+def _stop_exclusive_mlx(keep: str = ""):
+    for key, port in EXCLUSIVE_MLX.items():
+        if key != keep and _port_listening(port):
+            sys.stderr.write(f"[one-ai] unloading {key} on :{port}\n")
+            _stop_port(port)
 
 def _start_warm_pool():
     subprocess.run(["bash", WARM_SH, "start"], check=False)
@@ -166,31 +181,32 @@ def ensure_backend(backend: str):
             # pool not up (a giant displaced it, or cold start) -> bring it back
             if _port_listening(8000):
                 sys.stderr.write("[one-ai] unloading DeepSeek to restore warm pool\n"); _stop_ds4()
-            if _port_listening(GLM_PORT):
-                sys.stderr.write("[one-ai] unloading GLM to restore warm pool\n"); _stop_glm()
+            _stop_exclusive_mlx()
             _start_warm_pool(); _wait_health(port)
         return f"http://127.0.0.1:{port}"
     # --- DeepSeek 284B: exclusive ---
     if backend == "deepseek":
         if _port_listening(4000) or _port_listening(4001):
             sys.stderr.write("[one-ai] unloading warm pool for DeepSeek 284B\n"); _stop_warm_pool()
-        if _port_listening(GLM_PORT): _stop_glm()
+        _stop_exclusive_mlx()
         subprocess.run(["bash", "-lc", os.path.expanduser("~/.local/bin/ds4-server-up")],
                        check=False, capture_output=True)
         return DS4_URL
-    # --- GLM-4.5-Air: exclusive, own port ---
-    if backend == "glm":
+    # --- the exclusive MLX giants (GLM-4.5-Air, Qwen3-Coder-Next 80B) ---
+    if backend in EXCLUSIVE_MLX:
+        port = EXCLUSIVE_MLX[backend]
         if _port_listening(4000) or _port_listening(4001):
-            sys.stderr.write("[one-ai] unloading warm pool for GLM-4.5-Air\n"); _stop_warm_pool()
+            sys.stderr.write(f"[one-ai] unloading warm pool for {backend}\n"); _stop_warm_pool()
         if _port_listening(8000): _stop_ds4()
-        if not _health_ok(GLM_PORT):
-            local, repo = MLX_MODELS["glm"]
+        _stop_exclusive_mlx(keep=backend)
+        if not _health_ok(port):
+            local, repo = MLX_MODELS[backend]
             subprocess.run(["bash", "-lc",
                 f'source "{LAUNCH_LIB}"; M="$(resolve_mlx_model "{local}" "{repo}")"; '
-                f'MLX_PORT={GLM_PORT} MLX_MODEL="$M" nohup "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-{GLM_PORT}.log 2>&1 & disown'],
+                f'MLX_PORT={port} MLX_MODEL="$M" nohup "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-{port}.log 2>&1 & disown'],
                 check=False)
-            _wait_health(GLM_PORT)
-        return f"http://127.0.0.1:{GLM_PORT}"
+            _wait_health(port)
+        return f"http://127.0.0.1:{port}"
     # fallback (e.g. images) -> default warm qwen
     return ensure_backend("qwen")
 
@@ -271,6 +287,9 @@ if __name__ == "__main__":
             ("refactor this async function and fix the stack trace", "code"),
             ("/deep walk me through the proof", "deep override"),
             ("/fast what's 2+2", "fast override"),
+            ("/glm untangle this type error", "glm override"),
+            ("/qwen-new rewrite the scheduler", "qwen-new override"),
+            ("think hard about the cache invalidation", "hard hint"),
         ]
         for txt, label in tests:
             b, r = route({"messages": [{"role": "user", "content": txt}]})
@@ -279,5 +298,13 @@ if __name__ == "__main__":
         big = {"messages": [{"role": "user", "content": "x" * 500_000}]}
         b, r = route(big); print(f"  {'500k-char context':28s} -> {b:9s} ({r})")
         sys.exit(0)
+    # Fail here rather than 180 seconds into the first request's health wait.
+    missing = [p for p in (LAUNCH_LIB, WARM_SH) if not os.path.isfile(p)]
+    if missing:
+        for p in missing:
+            print(f"ERROR: missing {p}", file=sys.stderr)
+        print("Run the router from a claude-code-local checkout, or set ONE_AI_REPO to one.",
+              file=sys.stderr)
+        sys.exit(1)
     print(f"ONE AI router on :{LISTEN_PORT}  (qwen default · gemma quick · deepseek deep)")
     ThreadingHTTPServer(("127.0.0.1", LISTEN_PORT), Handler).serve_forever()
