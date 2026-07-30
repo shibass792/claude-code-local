@@ -12,6 +12,8 @@ class FileKind(str, Enum):
     PRESET = "preset"
     PROJECT = "project"
     SAMPLE = "sample"
+    VIDEO = "video"
+    GUIDE = "guide"
     UNKNOWN = "unknown"
 
 

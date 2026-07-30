@@ -84,14 +84,18 @@ CREATE TABLE IF NOT EXISTS sonic_embeddings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_files_kind ON files(kind);
-CREATE INDEX IF NOT EXISTS idx_files_library ON files(library);
-CREATE INDEX IF NOT EXISTS idx_files_library_sub ON files(library, library_sub);
 CREATE INDEX IF NOT EXISTS idx_files_hash ON files(content_hash);
 CREATE INDEX IF NOT EXISTS idx_analysis_category ON audio_analysis(category);
 CREATE INDEX IF NOT EXISTS idx_analysis_bpm ON audio_analysis(bpm);
 CREATE INDEX IF NOT EXISTS idx_analysis_key ON audio_analysis(key);
 CREATE INDEX IF NOT EXISTS idx_projects_bpm ON projects(bpm);
 CREATE INDEX IF NOT EXISTS idx_projects_key ON projects(key);
+"""
+
+# Indexes that depend on columns added by migration (must run AFTER ALTER TABLE).
+POST_MIGRATE_INDEXES = """
+CREATE INDEX IF NOT EXISTS idx_files_library ON files(library);
+CREATE INDEX IF NOT EXISTS idx_files_library_sub ON files(library, library_sub);
 """
 
 
@@ -101,11 +105,29 @@ class KnowledgeDB:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        self._conn.executescript(SCHEMA)
+        # Migrate existing tables FIRST — CREATE INDEX on missing columns fails
+        # when opening an older DB that was created before library columns existed.
         self._migrate_schema()
+        self._conn.executescript(SCHEMA)
+        self._conn.executescript(POST_MIGRATE_INDEXES)
         self._conn.commit()
 
     def _migrate_schema(self) -> None:
+        # Ensure base files table exists before PRAGMA / ALTER.
+        self._conn.execute(
+            """CREATE TABLE IF NOT EXISTS files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT UNIQUE NOT NULL,
+                kind TEXT NOT NULL,
+                size_bytes INTEGER NOT NULL,
+                mtime REAL NOT NULL,
+                content_hash TEXT NOT NULL,
+                plugin_hint TEXT,
+                category_hint TEXT,
+                scanned_at REAL NOT NULL,
+                analyzed_at REAL
+            )"""
+        )
         cols = {row[1] for row in self._conn.execute("PRAGMA table_info(files)")}
         if "library" not in cols:
             self._conn.execute("ALTER TABLE files ADD COLUMN library TEXT")

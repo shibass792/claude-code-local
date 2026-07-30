@@ -25,3 +25,10 @@ def test_browse_library():
         kicks = db.browse_library("samples", library_sub="kick")
         assert len(kicks) == 1
         db.close()
+
+
+def test_fresh_db_opens():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = KnowledgeDB(Path(tmp) / "fresh.db")
+        assert db.count_files() == {}
+        db.close()
