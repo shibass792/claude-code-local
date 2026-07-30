@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from music_brain.analyzer.audio_analyzer import AudioAnalyzer
 from music_brain.brain.learner import Brain
 from music_brain.bridge.cubase_bridge import CubaseBridge
 from music_brain.config import load_config
