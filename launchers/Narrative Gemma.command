@@ -14,7 +14,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/claude-local-common.sh"
 
-CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
+CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude || echo $HOME/.local/bin/claude)}"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/NarrativeGemma"
 COMBINED_PROMPT="/tmp/narrative_gemma_combined_prompt.md"
 
@@ -102,6 +102,7 @@ cd "$PROJECT_DIR" || exit 1
 # MLX_APPEND_SYSTEM_PROMPT_FILE above tells the server to append the
 # narration prompt instead.
 ANTHROPIC_BASE_URL=http://localhost:4000 \
+ANTHROPIC_API_KEY=sk-local \
 CLAUDE_SESSION_LABEL="Narrative Gemma · Local" \
 exec "$CLAUDE_BIN" --model claude-sonnet-4-6 \
   --permission-mode auto \

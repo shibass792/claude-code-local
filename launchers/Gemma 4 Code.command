@@ -8,7 +8,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/claude-local-common.sh"
 
-CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
+CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude || echo $HOME/.local/bin/claude)}"
 
 # Override with MLX_MODEL=<your-path-or-hf-id>. Prefers a local flat-folder
 # cache if you already downloaded the model via scripts/download-and-import.sh,
@@ -28,6 +28,7 @@ echo "  → Running on Apple Silicon — no cloud, no API fees"
 echo ""
 
 ANTHROPIC_BASE_URL=http://localhost:4000 \
+ANTHROPIC_API_KEY=sk-local \
 CLAUDE_SESSION_LABEL="Gemma 4 · Local" \
 exec "$CLAUDE_BIN" --model claude-sonnet-4-6 \
   --permission-mode auto \

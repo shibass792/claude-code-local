@@ -8,7 +8,7 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/lib/claude-local-common.sh"
 
-CLAUDE_BIN="${CLAUDE_BIN:-$HOME/.local/bin/claude}"
+CLAUDE_BIN="${CLAUDE_BIN:-$(command -v claude || echo $HOME/.local/bin/claude)}"
 
 # Default points at our own abliterated MLX upload:
 #   https://huggingface.co/divinetribe/Llama-3.3-70B-Instruct-abliterated-8bit-mlx
@@ -29,6 +29,7 @@ echo "  → Running on Apple Silicon — no cloud, no API fees"
 echo ""
 
 ANTHROPIC_BASE_URL=http://localhost:4000 \
+ANTHROPIC_API_KEY=sk-local \
 CLAUDE_SESSION_LABEL="Llama 70B · Local" \
 exec "$CLAUDE_BIN" --model claude-sonnet-4-6 \
   --permission-mode auto \
