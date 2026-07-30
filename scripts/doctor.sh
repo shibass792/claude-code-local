@@ -100,41 +100,56 @@ echo ""
 echo "${C_BOLD}🎯 Verdict — what to actually run${C_RESET}"
 echo ""
 
-# Memory tiers (rough — leaves ~6GB for the OS + Claude Code)
-USABLE=$((MEM_GB - 6))
-
-if [ $MEM_GB -lt 16 ]; then
-  err "${MEM_GB} GB is tight for any of the lineup."
-  echo "    The smallest model in the lineup (Gemma 4 31B 4-bit) needs ~20 GB free."
-  echo "    Consider a smaller MLX model from HuggingFace, or upgrade RAM."
-  echo "    Tip: try ${C_CYAN}mlx-community/Phi-3-mini-4k-instruct-4bit${C_RESET}"
-  RECOMMENDED=""
-  EXPECTED_TPS="?"
-elif [ $MEM_GB -lt 32 ]; then
-  ok "${MEM_GB} GB → ${C_BOLD}${C_GREEN}Gemma 4 31B${C_RESET} is your fighter"
-  echo "    Expected: ~25-32 tok/s on M-series. Best balance of quality + speed for this RAM."
-  echo "    Don't try Qwen 122B — it won't fit (needs 64 GB+)."
-  RECOMMENDED="divinetribe/gemma-4-31b-it-abliterated-4bit-mlx"
-  EXPECTED_TPS="~28"
-elif [ $MEM_GB -lt 64 ]; then
-  ok "${MEM_GB} GB → ${C_BOLD}${C_GREEN}Gemma 4 31B${C_RESET} (default) — fast, gets the job done"
-  echo "    Expected: ~30-40 tok/s. Matt's daily-use favorite — completes most tasks."
-  echo "    You can ALSO fit Qwen 3.5 122B (MoE) if you want max throughput on long tasks."
-  RECOMMENDED="divinetribe/gemma-4-31b-it-abliterated-4bit-mlx"
-  EXPECTED_TPS="~35"
-else
-  ok "${MEM_GB} GB → ${C_BOLD}${C_GREEN}Gemma 4 31B${C_RESET} for daily, ${C_BOLD}Qwen 3.5 122B${C_RESET} when you need throughput"
-  echo "    Gemma daily: ~40+ tok/s. Qwen 122B MoE: ~65 tok/s on big-RAM Macs."
-  echo "    Also solid: ${C_CYAN}Qwen3.6-35B-A3B (MLX 4-bit)${C_RESET} — ~100 tok/s gen, ~22GB peak, MoE w/ 3B active. Community-validated on M4 Max (issue #31)."
+# Memory tiers. These mirror setup.sh exactly — the doctor must not recommend
+# a model that setup.sh won't install for the same amount of RAM, or you get
+# told to run a 31B on a 16 GB Mac and it swaps itself to death.
+if [ $MEM_GB -ge 96 ]; then
+  ok "${MEM_GB} GB → ${C_BOLD}${C_GREEN}Qwen 3.5 122B${C_RESET} (THE BEAST) — what setup.sh installs here"
+  echo "    Expected: ~65 tok/s. MoE with 10B active, 256K context, ~75 GB RAM."
+  echo "    Also solid: ${C_CYAN}Qwen3.6-35B-A3B (MLX 4-bit)${C_RESET} — ~100 tok/s gen, ~22 GB peak. Community-validated on M4 Max (issue #31)."
   echo "    You have headroom for any MLX model on HuggingFace."
+  RECOMMENDED="mlx-community/Qwen3.5-122B-A10B-4bit"
+  NEEDS_DISK_GB=65
+  EXPECTED_TPS="~65"
+elif [ $MEM_GB -ge 64 ]; then
+  ok "${MEM_GB} GB → ${C_BOLD}${C_GREEN}Gemma 4 31B${C_RESET} (THE QUICK ONE) — what setup.sh installs here"
+  echo "    Expected: ~15 tok/s, ~18 GB RAM. Matt's daily-use favorite."
+  echo "    Qwen 3.5 122B needs 96 GB+ — it won't fit here."
   RECOMMENDED="divinetribe/gemma-4-31b-it-abliterated-4bit-mlx"
-  EXPECTED_TPS="~40+"
+  NEEDS_DISK_GB=18
+  EXPECTED_TPS=""
+elif [ $MEM_GB -ge 32 ]; then
+  ok "${MEM_GB} GB → ${C_BOLD}${C_GREEN}Gemma 4 12B${C_RESET} — what setup.sh installs here"
+  echo "    ~7 GB on disk, fits 32 GB comfortably alongside Claude Code and your editor."
+  echo "    With headroom (~15 GB) you can upgrade to ${C_CYAN}divinetribe/Qwen3.6-27B-abliterated-4bit-mlx${C_RESET}:"
+  echo "      MLX_MODEL=divinetribe/Qwen3.6-27B-abliterated-4bit-mlx bash scripts/download-and-import.sh"
+  echo "    Gemma 4 31B needs ~18 GB of weights — tight on this tier, don't start there."
+  RECOMMENDED="divinetribe/gemma-4-12B-it-abliterated-4bit-mlx-text"
+  NEEDS_DISK_GB=7
+  EXPECTED_TPS=""
+elif [ $MEM_GB -ge 16 ]; then
+  warn "${MEM_GB} GB → ${C_BOLD}Qwen 3.5 4B${C_RESET} only — the lightweight tier"
+  echo "    setup.sh installs the 4B here. It's browser-agent friendly, but it is not"
+  echo "    the coding experience the benchmarks in the README show."
+  echo "    Nothing bigger fits: Gemma 4 12B wants 32 GB, Gemma 4 31B wants 64 GB."
+  RECOMMENDED="mlx-community/Qwen3.5-4B-4bit"
+  NEEDS_DISK_GB=3
+  EXPECTED_TPS=""
+else
+  err "${MEM_GB} GB is below what this stack needs."
+  echo "    Even the smallest model setup.sh installs (Qwen 3.5 4B) leaves nothing"
+  echo "    for macOS and Claude Code at this RAM. Upgrade, or run the cloud CLI."
+  RECOMMENDED=""
+  NEEDS_DISK_GB=0
+  EXPECTED_TPS=""
 fi
 echo ""
 
 # ── Disk warning ──────────────────────────────────────────────
-if [ -n "$RECOMMENDED" ] && [ $DISK_FREE_GB -lt 25 ]; then
-  warn "Only ${DISK_FREE_GB} GB free on disk — Gemma 4 31B 4-bit needs ~20 GB."
+# Compare against the model this tier actually downloads, plus a few GB of
+# slack for the HuggingFace staging copy.
+if [ -n "$RECOMMENDED" ] && [ "$DISK_FREE_GB" -lt $((NEEDS_DISK_GB + 5)) ]; then
+  warn "Only ${DISK_FREE_GB} GB free on disk — ${RECOMMENDED##*/} needs ~${NEEDS_DISK_GB} GB."
   warn "Free some space before running ${C_CYAN}bash setup.sh${C_RESET}."
   echo ""
 fi
@@ -153,8 +168,8 @@ if [[ "$1" == "--bench" ]]; then
     warn "Skipping — MLX not installed yet."
   elif [ -z "$RECOMMENDED" ]; then
     warn "Skipping — no recommended model for this RAM tier."
-  elif [ ! -d "$HF_CACHE/hub/models--$(echo "$RECOMMENDED" | tr '/' '-')" ] && \
-       [ ! -d "$HF_CACHE/hub/models--$(echo "$RECOMMENDED" | sed 's|/|--|g')" ]; then
+  elif [ ! -d "$HF_CACHE/hub/models--$(echo "$RECOMMENDED" | sed 's|/|--|g')" ] && \
+       [ ! -d "$HF_CACHE/hub/${RECOMMENDED##*/}" ]; then
     warn "Recommended model not downloaded yet — run setup.sh first to bench it."
   else
     info "Running 100-token generation on $RECOMMENDED ..."
@@ -166,8 +181,10 @@ if [[ "$1" == "--bench" ]]; then
     END=$(date +%s)
     ELAPSED=$((END - START))
     TPS=$(echo "$OUT" | grep -oE 'Generation: *[0-9.]+ tokens-per-sec' | grep -oE '[0-9.]+' | head -1)
-    if [ -n "$TPS" ]; then
+    if [ -n "$TPS" ] && [ -n "$EXPECTED_TPS" ]; then
       ok "Measured: ${C_BOLD}${TPS} tok/s${C_RESET} (vs. ${EXPECTED_TPS} expected for your tier)"
+    elif [ -n "$TPS" ]; then
+      ok "Measured: ${C_BOLD}${TPS} tok/s${C_RESET}"
     else
       info "Run completed in ${ELAPSED}s. Couldn't parse tok/s from output."
     fi
