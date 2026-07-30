@@ -19,6 +19,28 @@ recommends basses / leads / FX chains that fit — even when the key differs.
 | 9 | `search` | NL: "באס כמו Astrix", "Lead כמו Ranji", "Kick ל־145 Full On" |
 | 10 | Brain Mode | Every new project teaches the engine your workflow |
 
+## Permanent install (Windows)
+
+```bat
+launchers\MusicBrain-Install.cmd
+```
+
+This plants SHIBASS on the PC:
+
+- Desktop shortcuts: **SHIBASS Player**, **SHIBASS Scan**, **SHIBASS Remote**
+- Persistent scan memory: `%LOCALAPPDATA%\MusicBrain\knowledge.db`
+- User env: `MUSIC_BRAIN_DB`, `MUSIC_BRAIN_ROOTS`
+- Starts with Windows
+- Firewall rule for Rokid (`TCP 18766`) when possible
+
+Then:
+
+1. Double-click **SHIBASS Player** (full panel)
+2. Double-click **SHIBASS Scan** (second window — fills memory)
+3. Reload `http://127.0.0.1:18766/`
+
+Uninstall shortcuts (keeps DB): `launchers\MusicBrain-Uninstall.cmd`
+
 ## Quick start (Windows)
 
 **לחיצה כפולה — פותח את פאנל הנגן SHIBASS S1:**

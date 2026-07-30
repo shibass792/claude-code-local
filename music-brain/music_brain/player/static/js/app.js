@@ -231,7 +231,7 @@
     browserList.innerHTML = "";
     if (!items.length) {
       const li = document.createElement("li");
-      li.textContent = "No files — run scan / index";
+      li.textContent = "No files - click SCAN or run MusicBrain-Scan.cmd";
       browserList.appendChild(li);
       return;
     }
