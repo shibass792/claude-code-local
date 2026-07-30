@@ -1,0 +1,32 @@
+[project]
+name = "music-brain"
+version = "0.1.0"
+description = "Modular music production AI — scanner, analyzer, matcher, Cubase bridge"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "librosa>=0.10.2",
+    "numpy>=1.26.0",
+    "soundfile>=0.12.1",
+    "pyloudnorm>=0.1.1",
+    "pyyaml>=6.0.1",
+    "click>=8.1.7",
+    "rich>=13.7.0",
+    "scipy>=1.11.0",
+    "mutagen>=1.47.0",
+]
+
+[project.optional-dependencies]
+embeddings = ["sentence-transformers>=2.7.0"]
+dev = ["pytest>=8.0.0", "ruff>=0.4.0"]
+
+[project.scripts]
+music-brain = "music_brain.cli:main"
+
+[build-system]
+requires = ["setuptools>=69.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["music_brain*"]

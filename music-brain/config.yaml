@@ -1,0 +1,111 @@
+# Music Brain — scan configuration
+# Edit paths for your Windows machine before first scan.
+
+scan_paths:
+  - "H:\\"
+  - "D:\\"
+  - "F:\\"
+  - "C:\\Users\\shibass\\"
+
+# Incremental scan: only new/changed files (mtime + size hash)
+incremental: true
+
+# File extensions to index
+audio_extensions:
+  - .wav
+  - .aiff
+  - .aif
+  - .flac
+  - .mp3
+  - .ogg
+
+project_extensions:
+  - .cpr      # Cubase
+  - .als      # Ableton
+  - .song     # Studio One
+  - .logicx
+
+preset_extensions:
+  - .vstpreset
+  - .fxp
+  - .fxb
+  - .nmsv     # Serum
+  - .vital
+  - .osp      # Omnisphere
+
+# Plugin / DAW keywords — used to tag folders and presets
+plugins:
+  synths:
+    - Serum
+    - Sylenth
+    - Vital
+    - Nexus
+    - Spire
+    - Diva
+    - Pigments
+    - Massive
+    - Omnisphere
+    - Kontakt
+  drums:
+    - Kick 3
+    - Battery
+    - Groove Agent
+
+daws:
+  - Cubase
+  - Ableton
+  - "Studio One"
+
+# Bass style taxonomy (psytrance / electronic)
+bass_styles:
+  - rolling_bass
+  - offbeat_bass
+  - fullon_bass
+  - progressive_bass
+  - dark_bass
+  - goa_bass
+  - psy_bass
+  - reese_bass
+  - sub_bass
+
+lead_styles:
+  - acid_lead
+  - pluck_lead
+  - supersaw_lead
+  - vocal_lead
+  - arp_lead
+  - stab_lead
+
+kick_types:
+  - fullon_kick
+  - progressive_kick
+  - dark_kick
+  - psy_kick
+  - techno_kick
+  - sub_kick
+
+pad_styles:
+  - atmospheric_pad
+  - string_pad
+  - choir_pad
+  - dark_pad
+  - bright_pad
+
+# Database location (relative to project or absolute)
+database_path: "data/music_brain.db"
+
+# Matcher weights (must sum to ~1.0)
+matcher_weights:
+  key: 0.15
+  bpm: 0.15
+  spectral: 0.20
+  transient: 0.20
+  envelope: 0.15
+  stereo: 0.05
+  category: 0.10
+
+# Cubase bridge (OSC / future VST)
+cubase_bridge:
+  enabled: false
+  osc_host: "127.0.0.1"
+  osc_port: 9000
