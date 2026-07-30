@@ -147,6 +147,18 @@ Transient, Attack, Release, Envelope, Stereo Width, RMS, LUFS, MFCC, Spectral Ro
 - **`analyze --workers 4`** — ניתוח מקבילי על מספר ליבות
 - **`backup`** — גיבוי אוטומטי של `music_brain.db` (שומר 10 אחרונים)
 
+## Windows — סקריפטים מוכנים
+
+ראה `INSTALL-WINDOWS.md` ו-`scripts\windows\`:
+
+| קובץ | פעולה |
+|------|--------|
+| `Music-Brain-Install.bat` | התקנה |
+| `Music-Brain-Pipeline.bat` | סריקה ראשונה |
+| `Music-Brain-Start.bat` | הפעל UI + Brain + Cubase |
+
+הורדה: https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/music-brain-system-f88d.zip
+
 ## רישיון
 
 MIT
