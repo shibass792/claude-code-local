@@ -7,6 +7,7 @@ from typing import Any
 from music_brain.analyzer.audio_analyzer import AudioAnalyzer
 from music_brain.brain.learner import Brain
 from music_brain.database.knowledge_db import KnowledgeDB
+from music_brain.library.service import refine_after_analysis, reclassify_all
 from music_brain.scanner.file_scanner import Scanner
 
 
@@ -65,6 +66,9 @@ def analyze_batch(
                     failed += 1
                     continue
                 db.save_analysis(file_id, **payload)
+                row = db.get_file_by_id(file_id)
+                if row:
+                    refine_after_analysis(db, file_id, row["path"], payload["features"])
                 ok += 1
             except Exception:
                 failed += 1
@@ -86,6 +90,9 @@ def _analyze_sequential(db: KnowledgeDB, rows: list) -> dict[str, int]:
                 bpm=features.bpm,
                 key=features.key,
                 lufs=features.lufs,
+            )
+            refine_after_analysis(
+                db, int(row["id"]), row["path"], features.to_dict()
             )
             ok += 1
         except Exception:
@@ -119,8 +126,10 @@ def run_full_pipeline(
     scan_stats = run_scan(db, cfg)
     projects_learned = learn_projects(db)
     analyze_stats = analyze_batch(db, limit=analyze_limit, workers=workers)
+    reclassified = reclassify_all(db)
     return {
         "scan": scan_stats,
         "projects_learned": projects_learned,
         "analyze": analyze_stats,
+        "reclassified": reclassified,
     }

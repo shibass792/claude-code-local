@@ -26,7 +26,7 @@ def resolve_indexed_file(db: KnowledgeDB, file_id: int) -> Path | None:
     row = db.get_file_by_id(file_id)
     if row is None:
         return None
-    if row["kind"] not in ("audio", "sample"):
+    if row["kind"] not in ("audio", "sample", "music"):
         return None
     path = Path(row["path"])
     if not path.is_file():
@@ -38,7 +38,7 @@ def resolve_indexed_path(db: KnowledgeDB, file_path: str) -> tuple[int, Path] | 
     row = db.get_file_by_path(file_path)
     if row is None:
         return None
-    if row["kind"] not in ("audio", "sample"):
+    if row["kind"] not in ("audio", "sample", "music"):
         return None
     path = Path(row["path"])
     if not path.is_file():

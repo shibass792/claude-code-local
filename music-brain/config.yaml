@@ -18,6 +18,9 @@ audio_extensions:
   - .flac
   - .mp3
   - .ogg
+  - .m4a
+  - .aac
+  - .wma
 
 project_extensions:
   - .cpr      # Cubase

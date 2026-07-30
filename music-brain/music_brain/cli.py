@@ -236,6 +236,7 @@ def status(ctx: click.Context) -> None:
     counts = db.count_files()
     unanalyzed = len(db.get_unanalyzed_files(limit=10000))
     projects = db.get_project_stats()
+    lib_stats = db.get_library_stats()
     db.close()
 
     table = Table(title="Music Brain Status")
@@ -245,7 +246,48 @@ def status(ctx: click.Context) -> None:
         table.add_row(f"Files ({kind})", str(count))
     table.add_row("Unanalyzed audio", str(unanalyzed))
     table.add_row("Projects indexed", str(projects.get("total_projects", 0)))
+    for lib_id, info in lib_stats.get("libraries", {}).items():
+        table.add_row(f"Library: {lib_id}", str(info["total"]))
     console.print(table)
+
+
+@main.command()
+@click.pass_context
+def libraries(ctx: click.Context) -> None:
+    """Show music / samples / loops library breakdown."""
+    from music_brain.library.classifier import LIBRARY_LABELS_HE, SAMPLE_SUB_LABELS_HE
+
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    stats = db.get_library_stats()
+    db.close()
+
+    table = Table(title="ספריות שמיעה")
+    table.add_column("ספרייה")
+    table.add_column("תת-קטגוריה")
+    table.add_column("כמות", justify="right")
+    for lib_id, info in stats.get("libraries", {}).items():
+        label = LIBRARY_LABELS_HE.get(lib_id, lib_id)
+        subs = sorted(info["subs"].items(), key=lambda x: -x[1])
+        for i, (sub_id, count) in enumerate(subs):
+            sub_label = SAMPLE_SUB_LABELS_HE.get(sub_id, sub_id) if lib_id == "samples" else sub_id
+            table.add_row(label if i == 0 else "", sub_label, str(count))
+    table.add_row("[bold]סה\"כ[/]", "", str(stats.get("total", 0)))
+    console.print(table)
+
+
+@main.command()
+@click.pass_context
+def classify(ctx: click.Context) -> None:
+    """Re-classify all audio into music / samples libraries."""
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.library.service import reclassify_all
+
+    with console.status("מסווג קבצים לספריות..."):
+        updated = reclassify_all(db)
+    db.close()
+    console.print(f"[green]✓[/] עודכנו {updated} קבצים")
 
 
 @main.command()

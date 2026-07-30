@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Iterator
 
 from music_brain.database.knowledge_db import KnowledgeDB
+from music_brain.library.classifier import classify_path
 from music_brain.models.types import FileKind, ScannedFile, SoundCategory
 
 # Path keywords → category hints
@@ -176,16 +177,24 @@ class Scanner:
                 ):
                     continue
 
+            if kind == FileKind.AUDIO:
+                file_kind, library, library_sub = classify_path(
+                    str(path), category_hint=category.value
+                )
+            else:
+                file_kind = kind.value
+                library, library_sub = "other", "other"
+
             file_id, is_new = self.db.upsert_file(
                 path=str(path),
-                kind=kind.value if kind == FileKind.AUDIO else (
-                    "sample" if "sample" in str(path).lower() else kind.value
-                ),
+                kind=file_kind,
                 size_bytes=stat.st_size,
                 mtime=stat.st_mtime,
                 content_hash=content_hash,
                 plugin_hint=plugin_hint,
                 category_hint=category.value,
+                library=library,
+                library_sub=library_sub,
             )
             if is_new:
                 new_count += 1

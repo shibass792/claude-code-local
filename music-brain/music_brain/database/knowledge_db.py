@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     path TEXT UNIQUE NOT NULL,
     kind TEXT NOT NULL,
+    library TEXT,
+    library_sub TEXT,
     size_bytes INTEGER NOT NULL,
     mtime REAL NOT NULL,
     content_hash TEXT NOT NULL,
@@ -82,6 +84,8 @@ CREATE TABLE IF NOT EXISTS sonic_embeddings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_files_kind ON files(kind);
+CREATE INDEX IF NOT EXISTS idx_files_library ON files(library);
+CREATE INDEX IF NOT EXISTS idx_files_library_sub ON files(library, library_sub);
 CREATE INDEX IF NOT EXISTS idx_files_hash ON files(content_hash);
 CREATE INDEX IF NOT EXISTS idx_analysis_category ON audio_analysis(category);
 CREATE INDEX IF NOT EXISTS idx_analysis_bpm ON audio_analysis(bpm);
@@ -98,7 +102,15 @@ class KnowledgeDB:
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(SCHEMA)
+        self._migrate_schema()
         self._conn.commit()
+
+    def _migrate_schema(self) -> None:
+        cols = {row[1] for row in self._conn.execute("PRAGMA table_info(files)")}
+        if "library" not in cols:
+            self._conn.execute("ALTER TABLE files ADD COLUMN library TEXT")
+        if "library_sub" not in cols:
+            self._conn.execute("ALTER TABLE files ADD COLUMN library_sub TEXT")
 
     def close(self) -> None:
         self._conn.close()
@@ -161,6 +173,8 @@ class KnowledgeDB:
         content_hash: str,
         plugin_hint: str | None = None,
         category_hint: str | None = None,
+        library: str | None = None,
+        library_sub: str | None = None,
     ) -> tuple[int, bool]:
         """Returns (file_id, is_new)."""
         import time
@@ -169,12 +183,14 @@ class KnowledgeDB:
         now = time.time()
         if existing is None:
             cur = self._conn.execute(
-                """INSERT INTO files (path, kind, size_bytes, mtime, content_hash,
-                   plugin_hint, category_hint, scanned_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO files (path, kind, library, library_sub, size_bytes, mtime,
+                   content_hash, plugin_hint, category_hint, scanned_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     path,
                     kind,
+                    library,
+                    library_sub,
                     size_bytes,
                     mtime,
                     content_hash,
@@ -193,11 +209,13 @@ class KnowledgeDB:
         )
         if changed:
             self._conn.execute(
-                """UPDATE files SET kind=?, size_bytes=?, mtime=?, content_hash=?,
-                   plugin_hint=?, category_hint=?, scanned_at=?, analyzed_at=NULL
+                """UPDATE files SET kind=?, library=?, library_sub=?, size_bytes=?, mtime=?,
+                   content_hash=?, plugin_hint=?, category_hint=?, scanned_at=?, analyzed_at=NULL
                    WHERE id=?""",
                 (
                     kind,
+                    library,
+                    library_sub,
                     size_bytes,
                     mtime,
                     content_hash,
@@ -244,12 +262,95 @@ class KnowledgeDB:
         )
         self._conn.commit()
 
+    def update_file_library(
+        self,
+        file_id: int,
+        kind: str,
+        library: str,
+        library_sub: str,
+    ) -> None:
+        self._conn.execute(
+            "UPDATE files SET kind=?, library=?, library_sub=? WHERE id=?",
+            (kind, library, library_sub, file_id),
+        )
+        self._conn.commit()
+
+    def get_all_audio_files(self, limit: int = 50000) -> list[sqlite3.Row]:
+        return list(
+            self._conn.execute(
+                """SELECT * FROM files
+                   WHERE kind IN ('audio', 'sample', 'music')
+                   ORDER BY id LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        )
+
+    def get_library_stats(self) -> dict[str, Any]:
+        rows = self._conn.execute(
+            """SELECT library, library_sub, COUNT(*) as c
+               FROM files
+               WHERE kind IN ('audio', 'sample', 'music')
+               GROUP BY library, library_sub
+               ORDER BY c DESC"""
+        ).fetchall()
+        libraries: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            lib = row["library"] or "other"
+            sub = row["library_sub"] or "other"
+            if lib not in libraries:
+                libraries[lib] = {"total": 0, "subs": {}}
+            libraries[lib]["total"] += row["c"]
+            libraries[lib]["subs"][sub] = row["c"]
+        total = sum(v["total"] for v in libraries.values())
+        return {"total": total, "libraries": libraries}
+
+    def browse_library(
+        self,
+        library: str,
+        library_sub: str | None = None,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        query = """
+            SELECT f.id as file_id, f.path, f.kind, f.library, f.library_sub,
+                   a.category, a.sub_style, a.bpm, a.key, a.lufs
+            FROM files f
+            LEFT JOIN audio_analysis a ON a.file_id = f.id
+            WHERE f.kind IN ('audio', 'sample', 'music')
+              AND COALESCE(f.library, 'other') = ?
+        """
+        params: list[Any] = [library]
+        if library_sub:
+            query += " AND COALESCE(f.library_sub, 'other') = ?"
+            params.append(library_sub)
+        query += " ORDER BY f.path LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+        rows = self._conn.execute(query, params).fetchall()
+        return [dict(row) for row in rows]
+
+    def count_library(
+        self,
+        library: str,
+        library_sub: str | None = None,
+    ) -> int:
+        query = """
+            SELECT COUNT(*) as c FROM files
+            WHERE kind IN ('audio', 'sample', 'music')
+              AND COALESCE(library, 'other') = ?
+        """
+        params: list[Any] = [library]
+        if library_sub:
+            query += " AND COALESCE(library_sub, 'other') = ?"
+            params.append(library_sub)
+        row = self._conn.execute(query, params).fetchone()
+        return int(row["c"]) if row else 0
+
     def get_unanalyzed_files(self, limit: int = 100) -> list[sqlite3.Row]:
         return list(
             self._conn.execute(
                 """SELECT f.* FROM files f
                    LEFT JOIN audio_analysis a ON f.id = a.file_id
-                   WHERE f.kind IN ('audio', 'sample') AND a.file_id IS NULL
+                   WHERE f.kind IN ('audio', 'sample', 'music') AND a.file_id IS NULL
                    LIMIT ?""",
                 (limit,),
             ).fetchall()

@@ -78,13 +78,18 @@ music-brain search "kick for 145 full on"
 # שלב 10 — Brain Mode
 music-brain brain
 
-# ממשק Web מקומי (חיפוש + נגן + סטטיסטיקות + Cubase)
+# ממשק Web מקומי (ספריות + חיפוש + נגן + Cubase)
 music-brain serve
-# → http://127.0.0.1:8787 — לחץ ▶ ליד כל תוצאה
+# → http://127.0.0.1:8787 — לשוניות: מוזיקה | סמפלים (באס/קיק/...) | לופים
 
-# נגן קובץ מהאינדקס (פותח נגן ברירת מחדל ב-Windows)
-music-brain play 42
-music-brain play "D:\\Samples\\kick.wav"
+# סריקה מלאה + סיווג לספריות
+music-brain pipeline
+
+# צפייה בספריות מהטרמינל
+music-brain libraries
+
+# סיווג מחדש (אחרי עדכון)
+music-brain classify
 
 # רקע — סריקה אוטומטית כל 5 דקות
 music-brain watch

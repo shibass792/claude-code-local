@@ -13,6 +13,7 @@ from music_brain.brain.learner import Brain
 from music_brain.bridge.cubase_bridge import CubaseBridge
 from music_brain.database.knowledge_db import KnowledgeDB
 from music_brain.matcher.engine import MatcherEngine
+from music_brain.library.classifier import LIBRARY_LABELS_HE, SAMPLE_SUB_LABELS_HE
 from music_brain.search.ai_search import AISearch
 from music_brain.web.audio_stream import (
     mime_for_path,
@@ -60,11 +61,25 @@ INDEX_HTML = """<!DOCTYPE html>
     #player-sub { color:var(--muted); font-size:0.8rem; margin-top:0.15rem; }
     #player-audio { flex:2; min-width:180px; max-width:480px; height:36px; }
     #player-controls button { margin-top:0; margin-inline:0.15rem; padding:0.45rem 0.75rem; }
+    .lib-tabs, .sub-tabs { display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.5rem; }
+    .lib-tab, .sub-tab { background:#2a2540; color:#b8a8ff; border:none; border-radius:8px;
+                          padding:0.45rem 0.85rem; cursor:pointer; font-size:0.85rem; margin-top:0; }
+    .lib-tab.active, .sub-tab.active { background:var(--accent); color:#fff; }
+    .lib-count { opacity:0.7; font-size:0.75rem; margin-inline-start:0.25rem; }
   </style>
 </head>
 <body>
   <h1>🧠 Music Brain</h1>
-  <p class="sub">חיפוש AI · סטטיסטיקות · Cubase</p>
+  <p class="sub">ספריות · חיפוש AI · נגן · Cubase</p>
+
+  <div class="card" id="library-card">
+    <strong>הספריות שלי</strong>
+    <p class="sub" id="lib-summary" style="margin:0.5rem 0">טוען...</p>
+    <div class="lib-tabs" id="lib-tabs"></div>
+    <div class="sub-tabs" id="sub-tabs" style="display:none"></div>
+    <div id="browse-results" style="margin-top:1rem"></div>
+    <button onclick="loadMoreBrowse()" id="btn-more" style="display:none">טען עוד</button>
+  </div>
 
   <div class="card">
     <label>חיפוש (לדוגמה: באס כמו Astrix, kick 145 full on)</label>
@@ -110,6 +125,11 @@ INDEX_HTML = """<!DOCTYPE html>
 <script>
 let queue = [];
 let queueIndex = -1;
+let currentLibrary = 'music';
+let currentSub = null;
+let browseOffset = 0;
+let browseItems = [];
+const browsePage = 80;
 const audio = () => document.getElementById('player-audio');
 
 async function api(path) {
@@ -120,7 +140,7 @@ function esc(s){ const d=document.createElement('div'); d.textContent=s; return 
 function basename(p){ return p.split(/[\\\\/]/).pop(); }
 
 function highlightRow(fileId){
-  document.querySelectorAll('#search-results tr[data-id]').forEach(tr => {
+  document.querySelectorAll('tr[data-id]').forEach(tr => {
     tr.classList.toggle('playing', tr.dataset.id === String(fileId));
   });
 }
@@ -167,6 +187,100 @@ audio().addEventListener('ended', () => playNext());
 audio().addEventListener('play', () => { document.getElementById('btn-toggle').textContent = '⏸'; });
 audio().addEventListener('pause', () => { document.getElementById('btn-toggle').textContent = '▶'; });
 
+function renderBrowseTable(){
+  const el = document.getElementById('browse-results');
+  queue = browseItems.filter(r => r.file_id);
+  if(!browseItems.length){
+    el.innerHTML = '<p class="sub">אין קבצים בספרייה זו — הרץ music-brain pipeline</p>';
+    return;
+  }
+  let html = '<table><tr><th></th><th>קובץ</th><th>תיקייה</th><th>BPM</th><th>Key</th></tr>';
+  browseItems.forEach((r, i) => {
+    const name = basename(r.path);
+    const folder = r.library_sub || '-';
+    html += `<tr data-id="${r.file_id}"><td><button class="play-btn" onclick="playAt(${i})">▶</button></td>
+      <td title="${esc(r.path)}">${esc(name)}</td><td>${esc(folder)}</td>
+      <td>${r.bpm||'-'}</td><td>${r.key||'-'}</td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+async function loadLibraries(){
+  const data = await api('/api/libraries');
+  document.getElementById('lib-summary').textContent =
+    `${data.total.toLocaleString()} קבצי שמיעה באינדקס`;
+  const tabs = document.getElementById('lib-tabs');
+  tabs.innerHTML = '';
+  for(const lib of data.libraries){
+    const btn = document.createElement('button');
+    btn.className = 'lib-tab' + (lib.id === currentLibrary ? ' active' : '');
+    btn.innerHTML = `${esc(lib.label)}<span class="lib-count">${lib.total}</span>`;
+    btn.onclick = () => selectLibrary(lib.id);
+    tabs.appendChild(btn);
+  }
+  renderSubTabs(data.libraries.find(l => l.id === currentLibrary));
+  await browseLibrary(true);
+}
+
+function renderSubTabs(lib){
+  const box = document.getElementById('sub-tabs');
+  box.innerHTML = '';
+  if(!lib || !lib.subs.length){
+    box.style.display = 'none';
+    currentSub = null;
+    return;
+  }
+  box.style.display = 'flex';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'sub-tab' + (!currentSub ? ' active' : '');
+  allBtn.textContent = 'הכל';
+  allBtn.onclick = () => { currentSub = null; updateSubActive(); browseLibrary(true); };
+  box.appendChild(allBtn);
+  for(const sub of lib.subs){
+    const btn = document.createElement('button');
+    btn.className = 'sub-tab' + (currentSub === sub.id ? ' active' : '');
+    btn.innerHTML = `${esc(sub.label)}<span class="lib-count">${sub.count}</span>`;
+    btn.onclick = () => { currentSub = sub.id; updateSubActive(); browseLibrary(true); };
+    box.appendChild(btn);
+  }
+}
+
+function updateSubActive(){
+  document.querySelectorAll('.sub-tab').forEach((b,i) => {
+    const isAll = i === 0 && !currentSub;
+    const match = currentSub && b.textContent.includes(currentSub);
+    b.classList.toggle('active', isAll || !!match);
+  });
+}
+
+async function selectLibrary(id){
+  currentLibrary = id;
+  currentSub = null;
+  const data = await api('/api/libraries');
+  document.querySelectorAll('.lib-tab').forEach((b, i) => {
+    b.classList.toggle('active', data.libraries[i].id === id);
+  });
+  renderSubTabs(data.libraries.find(l => l.id === id));
+  await browseLibrary(true);
+}
+
+async function browseLibrary(reset){
+  if(reset){
+    browseOffset = 0;
+    browseItems = [];
+  }
+  let url = `/api/browse?library=${encodeURIComponent(currentLibrary)}&offset=${browseOffset}&limit=${browsePage}`;
+  if(currentSub) url += `&sub=${encodeURIComponent(currentSub)}`;
+  const data = await api(url);
+  browseItems = browseItems.concat(data.items);
+  browseOffset += data.items.length;
+  renderBrowseTable();
+  document.getElementById('btn-more').style.display = data.has_more ? 'inline-block' : 'none';
+}
+
+function loadMoreBrowse(){ browseLibrary(false); }
+
 async function doSearch(){
   const q = document.getElementById('q').value;
   if(!q) return;
@@ -207,6 +321,7 @@ async function doCubase(){
   pre.textContent = data.message_he + '\\n\\n' + JSON.stringify(data, null, 2);
 }
 loadStats();
+loadLibraries();
 </script>
 </body>
 </html>
@@ -367,6 +482,65 @@ def create_handler(
                     return
                 result = bridge.on_project_open(path)
                 self._json(result)
+                return
+
+            if parsed.path == "/api/libraries":
+                stats = db.get_library_stats()
+                libs = []
+                order = ["music", "samples", "loops", "other"]
+                for lib_id in order:
+                    info = stats["libraries"].get(lib_id)
+                    if not info:
+                        continue
+                    entry: dict[str, Any] = {
+                        "id": lib_id,
+                        "label": LIBRARY_LABELS_HE.get(lib_id, lib_id),
+                        "total": info["total"],
+                        "subs": [],
+                    }
+                    if lib_id == "samples":
+                        for sub_id, count in sorted(
+                            info["subs"].items(), key=lambda x: -x[1]
+                        ):
+                            entry["subs"].append({
+                                "id": sub_id,
+                                "label": SAMPLE_SUB_LABELS_HE.get(sub_id, sub_id),
+                                "count": count,
+                            })
+                    elif lib_id == "music":
+                        for sub_id, count in sorted(
+                            info["subs"].items(), key=lambda x: -x[1]
+                        )[:20]:
+                            entry["subs"].append({
+                                "id": sub_id,
+                                "label": sub_id,
+                                "count": count,
+                            })
+                    libs.append(entry)
+                self._json({"total": stats["total"], "libraries": libs})
+                return
+
+            if parsed.path == "/api/browse":
+                library = qs.get("library", ["music"])[0]
+                library_sub = qs.get("sub", [None])[0]
+                offset = int(qs.get("offset", ["0"])[0])
+                limit = min(int(qs.get("limit", ["100"])[0]), 200)
+                items = db.browse_library(
+                    library,
+                    library_sub=library_sub or None,
+                    offset=offset,
+                    limit=limit,
+                )
+                total = db.count_library(library, library_sub=library_sub or None)
+                self._json({
+                    "library": library,
+                    "sub": library_sub,
+                    "items": items,
+                    "offset": offset,
+                    "limit": limit,
+                    "total": total,
+                    "has_more": offset + len(items) < total,
+                })
                 return
 
             if parsed.path == "/api/status":
