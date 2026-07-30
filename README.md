@@ -867,6 +867,37 @@ bash ~/NarrateClaude/narrative-claude.sh
 
 ---
 
+## 🧭 Smart Router — one endpoint, several local brains
+
+`smart-router/router.py` ("ONE AI") is an optional layer in front of the MLX servers. Claude Code points at the router instead of a single model; the router reads each request, picks a backend with pure heuristics (no model call), makes sure that backend is up, and streams the Anthropic response straight back.
+
+```bash
+# keep the two small models loaded side by side (:4000 code · :4001 quick)
+bash smart-router/warm_pool.sh start
+bash smart-router/warm_pool.sh status
+
+# then run the router and point Claude Code at it
+python3 smart-router/router.py            # listens on :4010
+
+ANTHROPIC_BASE_URL=http://localhost:4010 \
+ANTHROPIC_API_KEY=sk-local \
+claude --model claude-sonnet-4-6
+```
+
+| Lane | Port | Picked when |
+|---|---|---|
+| `qwen` — Qwen3-Coder 30B | 4000 | default: code and agentic work, or `/code` |
+| `gemma` — Gemma 4 31B | 4001 | a bare greeting or ack, or `/fast` |
+| `glm` — GLM-4.5-Air | 4003 | "think hard", "prove", "derive"…, or `/glm` |
+| `qwen-new` — Qwen3-Coder-Next 80B | 4004 | `/qwen-new` |
+| `deepseek` — DeepSeek V4 Flash | 8000 | over ~100K tokens of context, or `/deep` |
+
+The warm pair stays loaded together so switching between them is instant. The giants can't coexist with the pair, so reaching one unloads the pool and vice versa. Every backend the router points at has to exist locally first — it starts servers, it doesn't download models.
+
+The router finds the launcher lib and the warm-pool script inside its own checkout. Override with `ONE_AI_REPO` (router) and `CLAUDE_CODE_LOCAL_DIR` (warm pool) if you split the pieces up, `ONE_AI_PORT` to move the listener, and `MLX_PYTHON` / `MLX_SERVER` to point at a non-standard venv. `python3 smart-router/router.py --selftest` prints the routing table without starting anything.
+
+---
+
 ## ✈️ When To Use This
 
 | Situation | Use This? | Why |
@@ -896,7 +927,11 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   └── lib/claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
  ├── 🎭 NarrativeGemma/
  │   └── CLAUDE.md              ← Narration persona (sanitized, generic, opt-in)
+ ├── 🧭 smart-router/
+ │   ├── router.py              ← ONE AI: one endpoint, routes each request to the best local backend
+ │   └── warm_pool.sh           ← Keeps the two small models loaded together on :4000 / :4001
  ├── 🛠️  scripts/
+ │   ├── doctor.sh              ← What can this Mac actually run?
  │   ├── download-and-import.sh ← Download a fighter (`gemma` / `llama` / `qwen`)
  │   ├── persistent-download.sh ← Auto-retry downloader for big models
  │   ├── start-mlx-server.sh    ← Server start helper
