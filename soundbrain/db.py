@@ -177,14 +177,25 @@ class FileRecord:
 class Database:
     """Thin, dependency-free wrapper around the SQLite knowledge base."""
 
+    # Wait for other SoundBrain / scanner / serve processes instead of failing
+    # immediately with ``database is locked``.
+    CONNECT_TIMEOUT_SEC = 60.0
+    BUSY_TIMEOUT_MS = 60_000
+    LOCK_RETRIES = 8
+
     def __init__(self, path: str | Path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         # The bridge serves requests from worker threads, so the connection is
         # shared across threads and callers serialise on ``lock``.
         self.lock = threading.RLock()
-        self.conn = sqlite3.connect(str(self.path), check_same_thread=False)
+        self.conn = sqlite3.connect(
+            str(self.path),
+            check_same_thread=False,
+            timeout=self.CONNECT_TIMEOUT_SEC,
+        )
         self.conn.row_factory = sqlite3.Row
+        self.conn.execute(f"PRAGMA busy_timeout={self.BUSY_TIMEOUT_MS}")
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.execute("PRAGMA synchronous=NORMAL")
         self.conn.execute("PRAGMA foreign_keys=ON")
@@ -192,9 +203,27 @@ class Database:
 
     # -- lifecycle -------------------------------------------------------
     def migrate(self) -> None:
-        self.conn.executescript(SCHEMA)
-        self.set_meta("schema_version", str(SCHEMA_VERSION))
-        self.conn.commit()
+        last_err: Exception | None = None
+        for attempt in range(1, self.LOCK_RETRIES + 1):
+            try:
+                with self.lock:
+                    self.conn.executescript(SCHEMA)
+                    self.set_meta("schema_version", str(SCHEMA_VERSION))
+                    self.conn.commit()
+                return
+            except sqlite3.OperationalError as exc:
+                last_err = exc
+                msg = str(exc).lower()
+                if "locked" not in msg and "busy" not in msg:
+                    raise
+                # Another process (serve/scan/analyze) holds the write lock.
+                self.conn.rollback()
+                time.sleep(min(0.25 * attempt, 2.0))
+        assert last_err is not None
+        raise sqlite3.OperationalError(
+            f"{last_err} — close other SoundBrain windows "
+            f"(serve/scan/analyze) that use {self.path}, then retry."
+        ) from last_err
 
     def close(self) -> None:
         try:
