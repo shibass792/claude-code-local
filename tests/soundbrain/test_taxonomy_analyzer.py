@@ -190,7 +190,7 @@ def test_analysis_is_incremental(db: Database, cfg: Config, library: Path):
 
     scanner.scan(db, cfg)
     first = analyzer.analyze_pending(db, cfg)
-    assert first["analyzed"] == 8
+    assert first["analyzed"] == 9
     assert analyzer.analyze_pending(db, cfg)["total"] == 0
 
     target = next((library / "Samples" / "Zenhiser Psytrance" / "Bass").glob("Rolling*"))
@@ -214,5 +214,5 @@ def test_broken_files_do_not_stop_a_batch(db: Database, cfg: Config, library: Pa
     scanner.scan(db, cfg)
     result = analyzer.analyze_pending(db, cfg)
     assert result["failed"] == 1
-    assert result["analyzed"] == 8
+    assert result["analyzed"] == 9
     assert result["failures"][0]["path"].endswith("broken.wav")

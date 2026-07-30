@@ -13,14 +13,36 @@ soundbrain init                       # detect drives, write a config
 soundbrain pipeline                   # scan -> analyse -> parse projects -> learn
 soundbrain search "bass like Astrix"
 soundbrain project "H:\Projects\Night Track.cpr"
-soundbrain serve                      # local HTTP bridge on 127.0.0.1:8770
+soundbrain match-track "https://youtu.be/…"   # ARPs + Cubase/Ableton projects
+soundbrain serve                      # Match Panel UI on http://127.0.0.1:8770/panel
 ```
+
+## Match Panel (YouTube → ARP → Cubase)
+
+Paste a YouTube link, a song name, or a local path into the panel. SoundBrain
+reads public YouTube metadata only (oEmbed — no audio download), searches your
+indexed library for matching **ARPs / leads / MIDI** and **Cubase / Ableton
+projects**, lets you **download** the selected files into
+`~/.soundbrain/downloads/`, and **Open in Cubase** builds a session folder that
+associates the reference track with the chosen project + ARPs, then launches
+Cubase when it is installed.
+
+```
+soundbrain serve
+# → http://127.0.0.1:8770/panel
+
+soundbrain match-track "Astrix Deep Jungle 145"
+soundbrain open-cubase --project "H:\Projects\Night.cpr" --arp "H:\Samples\arp.wav"
+```
+
+Windows launcher: `launchers/SoundBrain-Panel.cmd`
 
 ---
 
 ## Contents
 
 - [Install](#install)
+- [Match Panel (YouTube → ARP → Cubase)](#match-panel-youtube--arp--cubase)
 - [The ten stages](#the-ten-stages)
 - [Command reference](#command-reference)
 - [The bridge (HTTP API)](#the-bridge-http-api)
@@ -329,6 +351,7 @@ scripting against it.
 
 | route | returns |
 | --- | --- |
+| `GET /panel` · `GET /` | Match Panel UI (HTML) |
 | `GET /health` | database path, file counts, configured roots |
 | `GET /inventory` | stage 1 inventory |
 | `GET /stats` | stages 5+6 |
@@ -339,11 +362,14 @@ scripting against it.
 | `GET /search?q=bass like Astrix&llm=1` | stage 9 |
 | `GET /match?path=…&role=bass` · `?file_id=…` | stage 4 partners |
 | `GET /similar?path=…` · `GET /inkey?key=…` | neighbours, key search |
+| `GET /api/match-track?q=…` | YouTube / song / path → ARPs + projects |
+| `POST /api/download {"hits":[…],"label":"…"}` | copy selected library files to downloads |
+| `POST /api/open-cubase {reference, project_file_id, arp_file_ids}` | associate + launch Cubase |
 | `POST /like {"file_id": 123}` | teach Brain Mode |
 
-Read-only with respect to your audio: the engine never writes into your sample
-libraries, and the only files it creates are the database, reports, and the
-`.soundbrain.*` files next to a project when you ask for them.
+Read-only with respect to your audio libraries: the engine never mutates sample
+packs in place. It only creates the database, reports, session/download folders
+under `~/.soundbrain/`, and optional `.soundbrain*` sidecars next to a project.
 
 ---
 

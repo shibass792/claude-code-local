@@ -9,8 +9,10 @@
     soundbrain project "...track.cpr"        stage 7: basses that fit, melodies in key
     soundbrain search "bass like Astrix"     stage 9: AI search
     soundbrain match kick.wav --role bass    stage 4: partners for one sound
+    soundbrain match-track "youtube/song"    Match Panel: ARPs + Cubase/Ableton projects
+    soundbrain open-cubase --project x.cpr   associate ARPs and launch Cubase
     soundbrain brain observe|profile|suggest stage 10: Brain Mode
-    soundbrain serve / soundbrain watch      the bridge
+    soundbrain serve / soundbrain watch      Match Panel UI + the bridge
     soundbrain pipeline                      scan + analyze + projects + learn, in order
 """
 
@@ -391,6 +393,77 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_match_track(args: argparse.Namespace) -> int:
+    from . import studio_match
+
+    db, cfg = _open(args)
+    try:
+        result = studio_match.match_track(
+            db,
+            cfg,
+            args.query,
+            limit_arps=args.limit,
+            limit_projects=args.projects,
+            daw=args.daw,
+            use_llm=args.llm,
+        )
+        lines = [
+            result["message_he"] if args.lang == "he" else result["message_en"],
+            "",
+            "ARPs:",
+        ]
+        for hit in result["arps"][: args.limit]:
+            lines.append(
+                f"  {hit['score']:.3f}  {hit['name']} [{hit.get('kind')}/{hit.get('subtype') or '-'}]"
+                + (f"  {hit['bpm']:.0f}BPM" if hit.get("bpm") else "")
+            )
+        lines.append("")
+        lines.append("Projects:")
+        for hit in result["projects"][: args.projects]:
+            lines.append(
+                f"  {hit['score']:.3f}  {hit['name']} ({hit.get('daw') or '?'})"
+                + (f"  {hit['bpm']:.0f}BPM" if hit.get("bpm") else "")
+            )
+        _out(result, args.json, lines)
+    finally:
+        db.close()
+    return 0
+
+
+def cmd_open_cubase(args: argparse.Namespace) -> int:
+    from . import session
+
+    db, cfg = _open(args)
+    try:
+        reference = {
+            "source": "cli",
+            "input": args.reference or args.project,
+            "title": Path(args.reference or args.project).stem if (args.reference or args.project) else "session",
+            "query": args.reference or "",
+        }
+        arp_paths = list(args.arp or [])
+        result = session.open_in_cubase(
+            db,
+            cfg,
+            reference=reference,
+            project_path=args.project,
+            arp_paths=arp_paths,
+            open_daw=not args.no_launch,
+        )
+        lines = [
+            result["message_he"] if args.lang == "he" else result["message_en"],
+            f"session: {result['session_dir']}",
+        ]
+        if result.get("project_path"):
+            lines.append(f"project: {result['project_path']}")
+        for note in result.get("notes") or []:
+            lines.append(f"  - {note}")
+        _out(result, args.json, lines)
+    finally:
+        db.close()
+    return 0
+
+
 def cmd_watch(args: argparse.Namespace) -> int:
     db, cfg = _open(args)
     try:
@@ -530,10 +603,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--lang", choices=("en", "he"), default="en")
     p.set_defaults(func=cmd_brain)
 
-    p = sub.add_parser("serve", help="run the local bridge HTTP API")
+    p = sub.add_parser("serve", help="run the Match Panel + local bridge HTTP API")
     p.add_argument("--host", default=None)
     p.add_argument("--port", type=int, default=None)
     p.set_defaults(func=cmd_serve)
+
+    p = sub.add_parser("match-track", help="match a YouTube link / song / path to ARPs + projects")
+    p.add_argument("query", help="YouTube URL, song title, or local file path")
+    p.add_argument("--limit", type=int, default=15, help="max ARP results")
+    p.add_argument("--projects", type=int, default=10, help="max project results")
+    p.add_argument("--daw", choices=("cubase", "ableton"), default=None)
+    p.add_argument("--llm", action="store_true")
+    p.add_argument("--lang", choices=("en", "he"), default="he")
+    p.set_defaults(func=cmd_match_track)
+
+    p = sub.add_parser("open-cubase", help="associate ARPs with a project and open Cubase")
+    p.add_argument("--project", required=True, help="path to a .cpr / .als project")
+    p.add_argument("--arp", action="append", default=[], help="ARP/MIDI/preset path (repeatable)")
+    p.add_argument("--reference", help="optional reference label / YouTube URL / song name")
+    p.add_argument("--no-launch", action="store_true", help="build the session folder without launching Cubase")
+    p.add_argument("--lang", choices=("en", "he"), default="he")
+    p.set_defaults(func=cmd_open_cubase)
 
     p = sub.add_parser("watch", help="watch project folders and report on every save")
     p.add_argument("folders", nargs="*")

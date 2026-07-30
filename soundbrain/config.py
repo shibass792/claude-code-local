@@ -332,9 +332,20 @@ class Config:
     def reports_path(self) -> Path:
         return self.home_path / "reports"
 
+    @property
+    def sessions_path(self) -> Path:
+        """Working folders for Match Panel packs (ARP + project + reference)."""
+        return self.home_path / "sessions"
+
+    @property
+    def downloads_path(self) -> Path:
+        return self.home_path / "downloads"
+
     def ensure_dirs(self) -> None:
         self.home_path.mkdir(parents=True, exist_ok=True)
         self.reports_path.mkdir(parents=True, exist_ok=True)
+        self.sessions_path.mkdir(parents=True, exist_ok=True)
+        self.downloads_path.mkdir(parents=True, exist_ok=True)
 
     # -- serialisation ---------------------------------------------------
     def to_dict(self) -> dict[str, Any]:

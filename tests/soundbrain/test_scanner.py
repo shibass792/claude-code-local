@@ -11,9 +11,9 @@ from soundbrain.db import Database
 
 def test_scan_indexes_the_library(db: Database, cfg: Config):
     stats = scanner.scan(db, cfg)
-    assert stats.seen == 8
-    assert stats.added == 8
-    assert stats.by_kind["audio"] == 8
+    assert stats.seen == 9
+    assert stats.added == 9
+    assert stats.by_kind["audio"] == 9
     assert stats.errors == 0
 
 
@@ -22,7 +22,7 @@ def test_second_scan_reports_everything_unchanged(db: Database, cfg: Config):
     second = scanner.scan(db, cfg)
     assert second.added == 0
     assert second.changed == 0
-    assert second.unchanged == 8
+    assert second.unchanged == 9
 
 
 def test_touching_a_file_marks_it_changed_and_pending(db: Database, cfg: Config, library: Path):
@@ -42,8 +42,8 @@ def test_deleted_files_are_flagged_missing_not_dropped(db: Database, cfg: Config
     victim.unlink()
     stats = scanner.scan(db, cfg)
     assert stats.missing == 1
-    assert len(db.files(kind="audio")) == 7
-    assert len(db.files(kind="audio", include_missing=True)) == 8
+    assert len(db.files(kind="audio")) == 8
+    assert len(db.files(kind="audio", include_missing=True)) == 9
 
 
 def test_multiple_roots_are_all_indexed(db: Database, cfg: Config, tmp_path: Path, library: Path):
@@ -56,7 +56,7 @@ def test_multiple_roots_are_all_indexed(db: Database, cfg: Config, tmp_path: Pat
     (second_drive / "Damage 2.nki").write_bytes(b"fake kontakt instrument")
 
     stats = scanner.scan(db, cfg, roots=[str(library), str(tmp_path / "D_drive")])
-    assert stats.by_kind["audio"] == 9
+    assert stats.by_kind["audio"] == 10
     assert stats.by_kind["preset"] == 1
     drives = {str(row["drive"]) for row in db.files()}
     assert len(drives) >= 1
@@ -139,7 +139,7 @@ def test_inventory_reports_coverage_and_libraries(db: Database, cfg: Config, tmp
         target.write_bytes(b"x")
     scanner.scan(db, cfg, roots=[str(tmp_path / "H_drive")])
     data = scanner.inventory(db)
-    assert data["counts"]["audio"] == 8
+    assert data["counts"]["audio"] == 9
     assert "Serum" in {t["name"] for t in data["tools"].get("instrument", [])}
     assert "Kick 3" in {t["name"] for t in data["tools"].get("drum", [])}
     assert "Cubase" in data["coverage"]

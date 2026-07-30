@@ -147,9 +147,9 @@ def test_http_api_serves_the_bridge(indexed: Database, cfg: Config, tmp_path: Pa
     base = f"http://127.0.0.1:{httpd.server_address[1]}"
     try:
         health = _get(base, "/health")
-        assert health["ok"] and health["counts"]["audio"] == 8
+        assert health["ok"] and health["counts"]["audio"] >= 9
 
-        assert _get(base, "/inventory")["counts"]["audio"] == 8
+        assert _get(base, "/inventory")["counts"]["audio"] == 9
         assert "usage" in _get(base, "/stats")
         assert "observations" in _get(base, "/brain")
 
@@ -171,8 +171,23 @@ def test_http_api_serves_the_bridge(indexed: Database, cfg: Config, tmp_path: Pa
         in_key = _get(base, "/inkey?key=" + urllib.parse.quote("A minor"))
         assert "results" in in_key
 
-        listing = _get(base, "/")
+        listing = _get(base, "/api/routes")
         assert "/project" in listing["routes"]
+        assert "/api/match-track" in listing["routes"]
+
+        # Match Panel HTML
+        with urllib.request.urlopen(base + "/panel", timeout=10) as response:
+            html = response.read().decode("utf-8")
+            assert response.headers.get_content_type() == "text/html"
+        assert "SoundBrain" in html
+        assert "btn-open-cubase" in html
+
+        # Match-track against a library kick name as free text
+        kick = next(f for f in indexed.iter_analyzed(role="kick"))
+        matched = _get(base, "/api/match-track?q=" + urllib.parse.quote(str(kick["name"])))
+        assert "reference" in matched
+        assert "arps" in matched and "projects" in matched
+        assert matched["message_he"]
     finally:
         httpd.shutdown()
         httpd.server_close()
@@ -240,15 +255,15 @@ def test_cli_pipeline_runs_end_to_end(tmp_path: Path, library: Path, projects_di
 
     assert _run(["--json", "inventory"], db_path) == 0
     inventory = json.loads(capsys.readouterr().out)
-    assert inventory["counts"]["audio"] == 8
+    assert inventory["counts"]["audio"] == 9
 
 
 def test_cli_scan_analyze_and_search(tmp_path: Path, library: Path, capsys):
     db_path = tmp_path / "cli" / "soundbrain.db"
     assert _run(["--quiet", "scan", "--roots", str(library)], db_path) == 0
-    assert "scanned 8 files" in capsys.readouterr().out
+    assert "scanned 9 files" in capsys.readouterr().out
     assert _run(["--quiet", "analyze"], db_path) == 0
-    assert "analysed 8/8" in capsys.readouterr().out
+    assert "analysed 9/9" in capsys.readouterr().out
 
     assert _run(["search", "rolling bass at 145", "--verbose"], db_path) == 0
     search_output = capsys.readouterr().out

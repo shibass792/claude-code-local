@@ -291,6 +291,7 @@ def library(tmp_path: Path) -> Path:
     write_wav(packs / "Bass" / "Offbeat Bass 136 Am.wav", _stereo(make_offbeat_bass()), SR)
     write_wav(packs / "Bass" / "Sustained Bass 145.wav", _stereo(make_sustained_bass()), SR)
     write_wav(packs / "Leads" / "Lead Acid 145 F#m.wav", _stereo(make_lead(), width=0.4), SR)
+    write_wav(packs / "Leads" / "Arp Sequence 145 F#m.wav", _stereo(make_lead(root_hz=523.0), width=0.35), SR)
     write_wav(packs / "Pads" / "Pad Warm Am.wav", _stereo(make_pad(), width=0.5), SR)
     write_wav(packs / "FX" / "Riser Uplifter.wav", _stereo(make_riser(), width=0.3), SR)
     return root
