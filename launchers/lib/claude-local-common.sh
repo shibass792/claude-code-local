@@ -94,23 +94,45 @@ _die_port_busy() {
 # int() parse of it used to abort startup before the port was ever bound.
 _spawn_mlx_server() {
   local desired="$1"
-  local -a env_args=("MLX_MODEL=$desired")
-  local knob
-  for knob in MLX_KV_BITS MLX_KV_QUANT_START; do
-    if [ -n "${!knob:-}" ]; then
-      env_args+=("$knob=${!knob}")
-    fi
-  done
+  local -a env_args
+  env_args=("MLX_MODEL=$desired")
+  if [ -n "${MLX_KV_BITS:-}" ]; then
+    env_args=("${env_args[@]}" "MLX_KV_BITS=$MLX_KV_BITS")
+  fi
+  if [ -n "${MLX_KV_QUANT_START:-}" ]; then
+    env_args=("${env_args[@]}" "MLX_KV_QUANT_START=$MLX_KV_QUANT_START")
+  fi
   env "${env_args[@]}" "$MLX_PYTHON" "$MLX_SERVER" >/tmp/mlx-server.log 2>&1 &
 }
 
+# Kill processes whose command line matches a pattern, skipping this shell and
+# its ancestors. A full-command-line match also hits any shell that merely
+# mentions the path — e.g. `MLX_SERVER=.../proxy/server.py bash launcher` — and
+# killing those means the launcher takes itself down mid-restart.
+_kill_matching() {
+  local pattern="$1"
+  local self_chain pid ancestor
+  self_chain=" "
+  ancestor=$$
+  while [ -n "$ancestor" ] && [ "$ancestor" != "0" ] && [ "$ancestor" != "1" ]; do
+    self_chain="$self_chain$ancestor "
+    ancestor="$(ps -o ppid= -p "$ancestor" 2>/dev/null | tr -d ' ')"
+  done
+  for pid in $(pgrep -f "$pattern" 2>/dev/null); do
+    case "$self_chain" in
+      *" $pid "*) continue ;;
+    esac
+    kill "$pid" 2>/dev/null || true
+  done
+}
+
 _stop_mlx_server() {
-  pkill -f "mlx-native-server/server.py" 2>/dev/null || true
+  _kill_matching "mlx-native-server/server.py"
   # Also match a server started straight out of a repo checkout (MLX_SERVER
   # pointed at proxy/server.py), which the canonical-path pattern above misses.
   case "$MLX_SERVER" in
     */mlx-native-server/server.py) ;;
-    *) pkill -f "$MLX_SERVER" 2>/dev/null || true ;;
+    *) _kill_matching "$MLX_SERVER" ;;
   esac
   local i
   for i in $(seq 1 15); do
