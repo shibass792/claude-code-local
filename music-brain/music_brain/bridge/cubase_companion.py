@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from typing import Any, Callable
 
+from music_brain.config import resolve_data_path
 from music_brain.bridge.cubase_bridge import CubaseBridge
 from music_brain.brain.learner import Brain
 from music_brain.database.knowledge_db import KnowledgeDB
@@ -36,7 +37,7 @@ class CubaseCompanion:
             companion_cfg.get("recommendations_file", "data/cubase_recommendations.json")
         )
         if not self.output_file.is_absolute():
-            self.output_file = Path(__file__).resolve().parents[2] / self.output_file
+            self.output_file = resolve_data_path(str(self.output_file))
 
         matcher = MatcherEngine(db, cfg.get("matcher_weights"))
         brain = Brain(db)

@@ -12,7 +12,7 @@ from rich.table import Table
 
 from music_brain.brain.learner import Brain
 from music_brain.bridge.cubase_bridge import CubaseBridge
-from music_brain.config import load_config
+from music_brain.config import load_config, resolve_data_path
 from music_brain.database.knowledge_db import KnowledgeDB
 from music_brain.matcher.engine import MatcherEngine
 from music_brain.scanner.file_scanner import Scanner
@@ -22,9 +22,7 @@ console = Console()
 
 
 def _get_db(config: dict) -> KnowledgeDB:
-    db_path = config.get("database_path", "data/music_brain.db")
-    if not Path(db_path).is_absolute():
-        db_path = Path(__file__).resolve().parents[1] / db_path
+    db_path = resolve_data_path(config.get("database_path", "data/music_brain.db"))
     return KnowledgeDB(db_path)
 
 
@@ -302,9 +300,7 @@ def watch(ctx: click.Context, interval: int, events: bool) -> None:
 def backup(ctx: click.Context, dir: str | None) -> None:
     """Backup music_brain.db (keeps last 10)."""
     cfg = ctx.obj["config"]
-    db_path = cfg.get("database_path", "data/music_brain.db")
-    if not Path(db_path).is_absolute():
-        db_path = Path(__file__).resolve().parents[1] / db_path
+    db_path = resolve_data_path(cfg.get("database_path", "data/music_brain.db"))
     from music_brain.database.backup import backup_database
 
     dest = backup_database(db_path, dir)
