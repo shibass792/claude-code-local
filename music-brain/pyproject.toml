@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "music-brain"
+version = "0.1.0"
+description = "Local music intelligence engine — scan, analyze, match, and learn your production style"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ShiBass" }]
+dependencies = []
+
+[project.optional-dependencies]
+audio = ["numpy>=1.24", "librosa>=0.10", "soundfile>=0.12"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+music-brain = "music_brain.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["music_brain*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
