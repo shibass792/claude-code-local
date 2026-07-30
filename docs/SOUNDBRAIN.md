@@ -59,9 +59,15 @@ Windows launcher: `launchers/SoundBrain-Panel.cmd`
 ## Install
 
 ```bash
+pip install -e ".[audio]"          # recommended (editable, from repo root)
+# or:
 pip install -r requirements-soundbrain.txt
 python -m soundbrain init
 ```
+
+**Windows:** see [`docs/SOUNDBRAIN-WINDOWS.md`](SOUNDBRAIN-WINDOWS.md) — if you get
+`No module named soundbrain`, checkout `cursor/match-panel-cubase-8080` and run
+`launchers\SoundBrain-Install.cmd`.
 
 Only **numpy** is mandatory. `soundfile` (libsndfile) adds fast flac/aiff/ogg
 decoding, and `ffmpeg` on `PATH` covers mp3/m4a/opus. Plain PCM `.wav` — most of
