@@ -1,6 +1,5 @@
 @echo off
 setlocal EnableExtensions
-REM Scan disks into Music Brain DB while the player server stays running.
 title SHIBASS Scan
 color 0B
 
@@ -26,10 +25,13 @@ if not exist "%MB%\music_brain\cli.py" (
 )
 
 :found
+if "%MUSIC_BRAIN_DB%"=="" set "MUSIC_BRAIN_DB=%LOCALAPPDATA%\MusicBrain\knowledge.db"
+if not exist "%LOCALAPPDATA%\MusicBrain" mkdir "%LOCALAPPDATA%\MusicBrain"
+
 echo.
-echo   SHIBASS - scanning media library
-echo   Roots: H:\  D:\  F:\  %USERPROFILE%
-echo   Keep MusicBrain-Serve.cmd running in the other window.
+echo   SHIBASS - scanning into persistent memory
+echo   DB: %MUSIC_BRAIN_DB%
+echo   Keep SHIBASS Player running in the other window.
 echo.
 
 cd /d "%MB%"
@@ -43,6 +45,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo   Done. Reload http://127.0.0.1:18766/ in the browser.
+echo   Done. Reload http://127.0.0.1:18766/
 pause
 exit /b %ERRORLEVEL%

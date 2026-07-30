@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions
-REM Instant SHIBASS player - no full-disk scan first.
+REM Instant SHIBASS player with persistent scan memory.
 title SHIBASS S1 Serve
 color 0B
 
@@ -26,9 +26,13 @@ if not exist "%MB%\music_brain\cli.py" (
 )
 
 :found
+if "%MUSIC_BRAIN_DB%"=="" set "MUSIC_BRAIN_DB=%LOCALAPPDATA%\MusicBrain\knowledge.db"
+if not exist "%LOCALAPPDATA%\MusicBrain" mkdir "%LOCALAPPDATA%\MusicBrain"
+
 echo.
-echo   SHIBASS S1 - starting player NOW
+echo   SHIBASS S1 - full panel
 echo   http://127.0.0.1:18766/
+echo   Memory: %MUSIC_BRAIN_DB%
 echo   Keep this window open.
 echo.
 

@@ -167,6 +167,8 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
             # --- Cubase / Music Brain API (compat) ---
             api_path = path.rstrip("/") or "/"
             if api_path == "/health":
+                from music_brain.config import default_db_path
+
                 return self._json(
                     200,
                     {
@@ -175,6 +177,8 @@ def build_handler(db: KnowledgeDB) -> type[BaseHTTPRequestHandler]:
                         "player": "/",
                         "remote": "/remote",
                         "bridge": True,
+                        "db": str(default_db_path()),
+                        "counts": db.count_by_kind(),
                         "urls": _lan_urls(self.server.server_address[1]),
                     },
                 )
