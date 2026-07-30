@@ -73,6 +73,39 @@ pre {
 }
 .play-btn:hover { filter: brightness(1.15); }
 tr.playing td { background: #221f33; }
+.inline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-left: 1rem;
+}
+.btn-primary { width: 100%; margin-top: 0.75rem; }
+.ref-meta { margin-top: 0.5rem; }
+.ref-title { font-size: 1.05rem; }
+.match-results { margin-top: 0.75rem; overflow-x: auto; }
+.match-table { font-size: 0.82rem; }
+.match-table .proj-name { font-weight: 600; }
+.match-table .proj-path { font-size: 0.72rem; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-table .proj-reasons { font-size: 0.72rem; margin-top: 0.15rem; }
+.score-badge {
+  display: inline-block;
+  background: #1e3a2f;
+  color: #7dffb8;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #2a2a35;
+  font-size: 0.85rem;
+}
 .panel-nav {
   display: flex;
   flex-wrap: wrap;

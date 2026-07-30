@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Music Brain — התאמת טראק</title>
+  <link rel="stylesheet" href="/assets/css/panel.css"/>
+</head>
+<body>
+  <h1>🎯 התאמת טראק לפרויקט</h1>
+  <p class="sub">הדבק קישור YouTube או נתיב לטראק — המערכת תמצא פרויקט Cubase/Ableton מתאים, תאפשר האזנה, ותפתח ב-DAW עם שיוך</p>
+  <nav class="panel-nav" id="panel-nav"></nav>
+
+  <div class="card">
+    <label for="source">קישור YouTube / שיתוף / נתיב לקובץ אודיו</label>
+    <input id="source" type="text" placeholder="https://youtu.be/... או D:\Music\track.wav" style="margin-top:0.5rem"/>
+    <div class="row" style="margin-top:0.75rem">
+      <label class="inline-label">
+        <input type="checkbox" id="filter-cubase" checked/>
+        Cubase (.cpr)
+      </label>
+      <label class="inline-label">
+        <input type="checkbox" id="filter-ableton"/>
+        Ableton (.als)
+      </label>
+    </div>
+    <button type="button" id="btn-analyze" class="btn-primary">חפש פרויקט מתאים</button>
+    <p id="match-status" class="sub" style="margin-top:0.75rem"></p>
+  </div>
+
+  <div class="card" id="reference-card" style="display:none">
+    <strong>טראק ייחוס</strong>
+    <div id="reference-meta" class="ref-meta"></div>
+    <audio id="reference-audio" controls preload="metadata" style="width:100%;margin-top:0.75rem"></audio>
+  </div>
+
+  <div class="card" id="results-card" style="display:none">
+    <strong>פרויקטים מתאימים</strong>
+    <div id="match-results" class="match-results"></div>
+  </div>
+
+  <div class="card" id="links-card" style="display:none">
+    <strong>שיוכים אחרונים</strong>
+    <div id="recent-links"></div>
+  </div>
+
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/boot.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script src="/assets/js/match.js"></script>
+  <script>
+    MB.Nav.render("/match");
+    MB.Match.init();
+  </script>
+</body>
+</html>

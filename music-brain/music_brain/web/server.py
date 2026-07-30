@@ -12,9 +12,13 @@ from typing import Any
 
 from music_brain.brain.learner import Brain
 from music_brain.bridge.cubase_bridge import CubaseBridge
+from music_brain.bridge.daw_launcher import open_project
+from music_brain.bridge.reference_links import ReferenceLinks
 from music_brain.database.knowledge_db import KnowledgeDB
 from music_brain.library.classifier import LIBRARY_LABELS_HE, SAMPLE_SUB_LABELS_HE
 from music_brain.matcher.engine import MatcherEngine
+from music_brain.matcher.project_matcher import ProjectMatcher
+from music_brain.reference.analyzer import ReferenceAnalyzer
 from music_brain.search.ai_search import AISearch
 from music_brain.web.audio_stream import (
     mime_for_path,
@@ -37,6 +41,8 @@ PANEL_PAGES: dict[str, str] = {
     "/search.html": "panel/search.html",
     "/cubase": "panel/cubase.html",
     "/cubase.html": "panel/cubase.html",
+    "/match": "panel/match.html",
+    "/match.html": "panel/match.html",
     "/embed": "panel/embed.html",
     "/embed.html": "panel/embed.html",
 }
@@ -67,6 +73,17 @@ def create_handler(
         enabled=bridge_cfg.get("enabled", False),
         osc_host=bridge_cfg.get("osc_host", "127.0.0.1"),
         osc_port=bridge_cfg.get("osc_port", 9000),
+    )
+    ref_cfg = cfg.get("reference_match", {})
+    ref_analyzer = ReferenceAnalyzer(
+        cache_dir=ref_cfg.get("cache_dir", "data/references"),
+        registry_path=ref_cfg.get("registry_path", "data/reference_registry.json"),
+        max_analyze_sec=float(ref_cfg.get("max_analyze_sec", 90)),
+    )
+    project_matcher = ProjectMatcher(db)
+    ref_links = ReferenceLinks(
+        db,
+        sidecar_dir=ref_cfg.get("sidecar_dir", "data/project_links"),
     )
 
     class Handler(BaseHTTPRequestHandler):
@@ -181,6 +198,141 @@ def create_handler(
                 "stream_url": f"/api/stream/{file_id}",
             })
 
+        def _read_json_body(self) -> dict[str, Any]:
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0:
+                return {}
+            raw = self.rfile.read(length)
+            try:
+                return json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError:
+                return {}
+
+        def _handle_match_analyze(self, source: str, daw: str | None) -> None:
+            try:
+                reference = ref_analyzer.analyze(source)
+            except (ValueError, FileNotFoundError, RuntimeError) as exc:
+                self._json({"error": str(exc)}, 400)
+                return
+
+            matches = project_matcher.find_matches(
+                bpm=reference.get("bpm"),
+                key=reference.get("key"),
+                title=reference.get("title"),
+                daw=daw,
+                limit=20,
+            )
+            recent_links = ref_links.list_recent(limit=5)
+            self._json({
+                "reference": reference,
+                "matches": matches,
+                "message_he": (
+                    f"ניתחתי: {reference.get('title')} — "
+                    f"{reference.get('bpm') or '?'} BPM, Key {reference.get('key') or '?'}. "
+                    f"נמצאו {len(matches)} פרויקטים מתאימים."
+                ),
+                "recent_links": recent_links,
+            })
+
+        def _handle_match_open(
+            self,
+            project_path: str,
+            reference_id: str | None = None,
+            reference_source: str | None = None,
+            reference_title: str | None = None,
+            bpm: float | None = None,
+            key: str | None = None,
+            link_only: bool = False,
+        ) -> None:
+            result: dict[str, Any] = {"project_path": project_path}
+            if reference_id and reference_source:
+                link_result = ref_links.link(
+                    reference_id=reference_id,
+                    reference_source=reference_source,
+                    reference_title=reference_title or reference_id,
+                    project_path=project_path,
+                    bpm=bpm,
+                    key=key,
+                )
+                result["link"] = link_result
+
+            if not link_only:
+                open_result = open_project(project_path)
+                result["open"] = open_result
+                if not open_result.get("ok"):
+                    self._json(result, 400)
+                    return
+
+            self._json({
+                **result,
+                "message_he": "הפרויקט שויך לטראק ונפתח ב-Cubase" if not link_only else "הפרויקט שויך לטראק",
+            })
+
+        def _stream_reference(self, ref_id: str) -> None:
+            path = ref_analyzer.resolve_audio_path(ref_id)
+            if path is None:
+                self._json({"error": "reference not found"}, 404)
+                return
+            size = path.stat().st_size
+            mime = mime_for_path(path)
+            range_header = self.headers.get("Range")
+            if range_header:
+                byte_range = self._parse_range(range_header, size)
+                if byte_range is None:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{size}")
+                    self.end_headers()
+                    return
+                start, end = byte_range
+                data = read_file_range(path, start, end)
+                self.send_response(206)
+                self.send_header("Content-Type", mime)
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            data = read_file_range(path, 0, size - 1)
+            self.send_response(200)
+            self.send_header("Content-Type", mime)
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Content-Length", str(size))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_POST(self) -> None:
+            parsed = urllib.parse.urlparse(self.path)
+            path = parsed.path
+            body = self._read_json_body()
+
+            if path == "/api/match/analyze":
+                source = str(body.get("source") or "").strip()
+                daw = body.get("daw")
+                if not source:
+                    self._json({"error": "source required"}, 400)
+                    return
+                self._handle_match_analyze(source, daw)
+                return
+
+            if path == "/api/match/open":
+                project_path = str(body.get("project_path") or "").strip()
+                if not project_path:
+                    self._json({"error": "project_path required"}, 400)
+                    return
+                self._handle_match_open(
+                    project_path=project_path,
+                    reference_id=body.get("reference_id"),
+                    reference_source=body.get("reference_source"),
+                    reference_title=body.get("reference_title"),
+                    bpm=body.get("bpm"),
+                    key=body.get("key"),
+                    link_only=bool(body.get("link_only")),
+                )
+                return
+
+            self._json({"error": "not found"}, 404)
+
         def do_GET(self) -> None:
             parsed = urllib.parse.urlparse(self.path)
             qs = urllib.parse.parse_qs(parsed.query)
@@ -235,6 +387,41 @@ def create_handler(
                     return
                 result = bridge.on_project_open(cpr_path)
                 self._json(result)
+                return
+
+            if path == "/api/match/analyze":
+                source = qs.get("source", [""])[0]
+                daw = qs.get("daw", [None])[0]
+                if not source:
+                    self._json({"error": "source required"}, 400)
+                    return
+                self._handle_match_analyze(source, daw)
+                return
+
+            if path == "/api/match/open":
+                project_path = qs.get("project", [""])[0]
+                if not project_path:
+                    self._json({"error": "project required"}, 400)
+                    return
+                self._handle_match_open(
+                    project_path=project_path,
+                    reference_id=qs.get("ref_id", [None])[0],
+                    reference_source=qs.get("ref_source", [None])[0],
+                    reference_title=qs.get("ref_title", [None])[0],
+                    bpm=float(qs["bpm"][0]) if qs.get("bpm") else None,
+                    key=qs.get("key", [None])[0],
+                )
+                return
+
+            if path == "/api/match/links":
+                project = qs.get("project", [None])[0]
+                links = ref_links.list_for_project(project) if project else ref_links.list_recent()
+                self._json({"links": links})
+                return
+
+            ref_stream = re.fullmatch(r"/api/reference/([^/]+)/stream", path)
+            if ref_stream:
+                self._stream_reference(ref_stream.group(1))
                 return
 
             if path == "/api/libraries":
@@ -319,5 +506,6 @@ def serve(
     server = ThreadingHTTPServer((host, port), handler)
     print(f"Music Brain Panel → http://{host}:{port}")
     print(f"  מוזיקה:  http://{host}:{port}/music")
-    print(f"  סמפלים:  http://{host}:{port}/samples")
+    print(f"  חיפוש:   http://{host}:{port}/search")
+    print(f"  התאמה:   http://{host}:{port}/match")
     server.serve_forever()

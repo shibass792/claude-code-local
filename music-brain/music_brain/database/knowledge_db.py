@@ -66,6 +66,20 @@ CREATE TABLE IF NOT EXISTS brain_events (
     created_at REAL NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reference_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reference_id TEXT NOT NULL,
+    reference_source TEXT NOT NULL,
+    reference_title TEXT,
+    project_path TEXT NOT NULL,
+    bpm REAL,
+    key TEXT,
+    created_at REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_ref_links_project ON reference_links(project_path);
+CREATE INDEX IF NOT EXISTS idx_ref_links_ref ON reference_links(reference_id);
+
 CREATE TABLE IF NOT EXISTS sonic_embeddings (
     file_id INTEGER PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
     vector_json TEXT NOT NULL,
@@ -585,3 +599,73 @@ class KnowledgeDB:
             "SELECT COUNT(*) as c FROM sonic_embeddings"
         ).fetchone()
         return int(row["c"]) if row else 0
+
+    def list_projects(
+        self,
+        daw: str | None = None,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        query = "SELECT path, daw, bpm, key, genre FROM projects WHERE 1=1"
+        params: list[Any] = []
+        if daw:
+            query += " AND (daw LIKE ? OR path LIKE ?)"
+            params.extend([f"%{daw}%", f"%.{daw.lower()}%"])
+        query += " ORDER BY analyzed_at DESC LIMIT ?"
+        params.append(limit)
+        return [dict(row) for row in self._conn.execute(query, params).fetchall()]
+
+    def list_project_files(self, limit: int = 300) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            """SELECT path FROM files
+               WHERE kind='project'
+               ORDER BY scanned_at DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def save_reference_link(
+        self,
+        reference_id: str,
+        reference_source: str,
+        reference_title: str,
+        project_path: str,
+        bpm: float | None = None,
+        key: str | None = None,
+    ) -> int:
+        import time
+
+        cur = self._conn.execute(
+            """INSERT INTO reference_links
+               (reference_id, reference_source, reference_title, project_path, bpm, key, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                reference_id,
+                reference_source,
+                reference_title,
+                project_path,
+                bpm,
+                key,
+                time.time(),
+            ),
+        )
+        self._conn.commit()
+        return int(cur.lastrowid)
+
+    def get_reference_links(
+        self,
+        project_path: str | None = None,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        if project_path:
+            rows = self._conn.execute(
+                """SELECT * FROM reference_links
+                   WHERE project_path=? ORDER BY created_at DESC LIMIT ?""",
+                (project_path, limit),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                """SELECT * FROM reference_links
+                   ORDER BY created_at DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        return [dict(row) for row in rows]

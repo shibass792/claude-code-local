@@ -22,6 +22,7 @@
 | **Brain** | לומד שימוש בפלאגינים, BPM, Key, שרשראות FX |
 | **AI Search** | "באס כמו Astrix", "Kick ל-145 Full On" |
 | **Cubase Bridge** | המלצות בפתיחת פרויקט |
+| **Track Match** | קישור YouTube/טראק → פרויקט Cubase/Ableton + האזנה + פתיחה |
 
 ## התקנה (Windows)
 

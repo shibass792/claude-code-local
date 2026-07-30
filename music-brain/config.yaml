@@ -130,3 +130,10 @@ cubase_companion:
     - "H:\\Projects"
     - "D:\\Projects"
   recommendations_file: "data/cubase_recommendations.json"
+
+# Reference track → project matching panel
+reference_match:
+  cache_dir: "data/references"
+  registry_path: "data/reference_registry.json"
+  sidecar_dir: "data/project_links"
+  max_analyze_sec: 90
