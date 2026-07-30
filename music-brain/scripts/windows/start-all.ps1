@@ -38,7 +38,9 @@ $cubaseJob = Start-Process -FilePath $musicBrain -ArgumentList "cubase-companion
 
 Write-Host ""
 Write-Host "Services started:" -ForegroundColor Green
-Write-Host "  Web UI:            http://127.0.0.1:8787"
+Write-Host "  Panel:             http://127.0.0.1:8787"
+Write-Host "  Music library:     http://127.0.0.1:8787/music"
+Write-Host "  Samples library:   http://127.0.0.1:8787/samples"
 Write-Host "  Watch PID:         $($watchJob.Id)"
 Write-Host "  Serve PID:         $($serveJob.Id)"
 Write-Host "  Cubase Companion:  $($cubaseJob.Id)"

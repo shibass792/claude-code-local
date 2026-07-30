@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Music Brain — Cubase</title>
+  <link rel="stylesheet" href="/assets/css/panel.css"/>
+</head>
+<body>
+  <h1>🎹 Cubase</h1>
+  <p class="sub">המלצות באס/קיק לפי פרויקט</p>
+  <nav class="panel-nav" id="panel-nav"></nav>
+
+  <div class="card">
+    <strong>נתח פרויקט Cubase</strong>
+    <input id="cpr" placeholder="D:\\Projects\\Track.cpr" style="margin-top:0.5rem"/>
+    <button type="button" onclick="doCubase()">נתח פרויקט</button>
+    <pre id="cubase-out" style="margin-top:0.75rem;display:none"></pre>
+  </div>
+
+  <div class="stats-grid">
+    <div class="card">
+      <strong>שימוש בפלאגינים</strong>
+      <div id="plugins" style="margin-top:0.5rem"></div>
+    </div>
+    <div class="card">
+      <strong>BPM & Key</strong>
+      <div id="bpmkey" style="margin-top:0.5rem"></div>
+    </div>
+  </div>
+
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    MB.Nav.render("/cubase");
+    MB.Player.init();
+    async function doCubase() {
+      const p = document.getElementById("cpr").value;
+      if (!p) return;
+      const data = await MB.API.cubase(p);
+      const pre = document.getElementById("cubase-out");
+      pre.style.display = "block";
+      pre.textContent = data.message_he + "\n\n" + JSON.stringify(data, null, 2);
+    }
+    MB.API.stats().then(data => {
+      let ph = "";
+      for (const p of (data.plugins || []).slice(0, 8)) {
+        ph += `<div>${MB.esc(p.name)} <span class="tag">${p.percent}%</span></div>`;
+      }
+      document.getElementById("plugins").innerHTML = ph || '<span class="sub">אין נתונים</span>';
+      let bk = "";
+      for (const b of (data.top_bpms || []).slice(0, 3))
+        bk += `<div>${b.bpm} BPM <span class="tag">${b.percent}%</span></div>`;
+      for (const k of (data.top_keys || []).slice(0, 3))
+        bk += `<div>${k.key} <span class="tag">${k.percent}%</span></div>`;
+      document.getElementById("bpmkey").innerHTML = bk || '<span class="sub">—</span>';
+    });
+  </script>
+</body>
+</html>

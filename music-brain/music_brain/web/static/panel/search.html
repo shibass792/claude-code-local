@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Music Brain — חיפוש</title>
+  <link rel="stylesheet" href="/assets/css/panel.css"/>
+</head>
+<body>
+  <h1>🔍 חיפוש AI</h1>
+  <p class="sub">חפש בסמפלים ובמוזיקה שלך</p>
+  <nav class="panel-nav" id="panel-nav"></nav>
+
+  <div class="card">
+    <label>חיפוש (לדוגמה: באס כמו Astrix, kick 145 full on)</label>
+    <div class="row" style="margin-top:0.5rem">
+      <input id="q" placeholder="אני רוצה באס כמו Astrix..." />
+    </div>
+    <button type="button" onclick="doSearch()">חפש בספריות שלי</button>
+    <div id="search-results" style="margin-top:1rem"></div>
+  </div>
+
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/search.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    MB.Nav.render("/search");
+    function doSearch() {
+      MB.Search.run(document.getElementById("q").value);
+    }
+    document.getElementById("q").addEventListener("keydown", e => {
+      if (e.key === "Enter") doSearch();
+    });
+  </script>
+</body>
+</html>

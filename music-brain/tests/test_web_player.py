@@ -15,7 +15,7 @@ from music_brain.web.audio_stream import (
     read_file_range,
     resolve_indexed_file,
 )
-from music_brain.web.server import serve
+from music_brain.web.server import STATIC_DIR, serve
 
 
 def _write_test_wav(path: Path) -> None:
@@ -50,6 +50,8 @@ def test_resolve_indexed_file():
 
 
 def test_stream_endpoint():
+    assert (STATIC_DIR / "panel" / "index.html").is_file()
+    assert (STATIC_DIR / "js" / "api.js").is_file()
     with tempfile.TemporaryDirectory() as tmp:
         wav = Path(tmp) / "play.wav"
         _write_test_wav(wav)
