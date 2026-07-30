@@ -37,16 +37,35 @@ from mlx_lm.models.cache import make_prompt_cache
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
-MODEL_PATH = os.environ.get("MLX_MODEL", "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx")
-PORT = int(os.environ.get("MLX_PORT", "4000"))
-KV_BITS = int(os.environ.get("MLX_KV_BITS", "0"))  # Gemma 4 RotatingKVCache doesn't support quantization
-PREFILL_SIZE = int(os.environ.get("MLX_PREFILL_SIZE", "8192"))
+def env_int(name, default):
+    """Read an int env var, falling back to the default when unset or unusable.
+
+    Launchers pass tuning knobs through as `MLX_KV_BITS="${MLX_KV_BITS:-}"`, so
+    an env var that nobody set arrives here as an empty string rather than
+    absent. Plain int() would raise on that and take the whole server down
+    before it ever binds the port.
+    """
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        print(f"[warn] {name}={raw!r} is not an integer — using {default}",
+              file=sys.stderr, flush=True)
+        return default
+
+
+MODEL_PATH = os.environ.get("MLX_MODEL", "").strip() or "divinetribe/gemma-4-31b-it-abliterated-4bit-mlx"
+PORT = env_int("MLX_PORT", 4000)
+KV_BITS = env_int("MLX_KV_BITS", 0)  # Gemma 4 RotatingKVCache doesn't support quantization
+PREFILL_SIZE = env_int("MLX_PREFILL_SIZE", 8192)
 # Pre-fill an empty thinking block to skip Gemma 4 reasoning chains entirely.
 # Set MLX_SUPPRESS_THINKING=0 to disable (e.g. when you want reasoning output).
 SUPPRESS_THINKING = os.environ.get("MLX_SUPPRESS_THINKING", "1") == "1"
-DEFAULT_MAX_TOKENS = int(os.environ.get("MLX_MAX_TOKENS", "8192"))
-KV_QUANT_START = int(os.environ.get("MLX_KV_QUANT_START", "256"))
-MAX_TOOL_RETRIES = int(os.environ.get("MLX_TOOL_RETRIES", "2"))
+DEFAULT_MAX_TOKENS = env_int("MLX_MAX_TOKENS", 8192)
+KV_QUANT_START = env_int("MLX_KV_QUANT_START", 256)
+MAX_TOOL_RETRIES = env_int("MLX_TOOL_RETRIES", 2)
 # Browser mode: strip Claude Code bloat, keep only MCP tools
 BROWSER_MODE = os.environ.get("MLX_BROWSER_MODE", "0") == "1"
 # Code mode: auto-detect Claude Code coding sessions and replace the huge harness
