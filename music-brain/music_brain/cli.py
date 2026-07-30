@@ -11,7 +11,6 @@ from rich.panel import Panel
 from rich.table import Table
 
 from music_brain.analyzer.audio_analyzer import AudioAnalyzer
-from music_brain.analyzer.project_parser import ProjectParser
 from music_brain.brain.learner import Brain
 from music_brain.bridge.cubase_bridge import CubaseBridge
 from music_brain.config import load_config
@@ -66,38 +65,22 @@ def scan(ctx: click.Context) -> None:
 
 @main.command()
 @click.option("--limit", "-n", default=50, help="Max files to analyze per run")
+@click.option("--workers", "-w", default=1, help="Parallel workers (CPU cores)")
 @click.pass_context
-def analyze(ctx: click.Context, limit: int) -> None:
+def analyze(ctx: click.Context, limit: int, workers: int) -> None:
     """Step 2+3 — analyze unanalyzed audio files."""
     cfg = ctx.obj["config"]
     db = _get_db(cfg)
-    analyzer = AudioAnalyzer()
+    from music_brain.services.pipeline import analyze_batch
+
     rows = db.get_unanalyzed_files(limit=limit)
-    console.print(f"מנתח {len(rows)} קבצים...")
-
-    for row in rows:
-        try:
-            features = analyzer.analyze(
-                row["path"], category_hint=row["category_hint"]
-            )
-            db.save_analysis(
-                file_id=int(row["id"]),
-                features=features.to_dict(),
-                category=features.category.value,
-                sub_style=features.sub_style,
-                bpm=features.bpm,
-                key=features.key,
-                lufs=features.lufs,
-            )
-            console.print(
-                f"  [green]✓[/] {Path(row['path']).name} "
-                f"→ {features.category.value}/{features.sub_style} "
-                f"{features.bpm}BPM {features.key}"
-            )
-        except Exception as e:
-            console.print(f"  [red]✗[/] {row['path']}: {e}")
-
+    console.print(f"מנתח {len(rows)} קבצים... (workers={workers})")
+    stats = analyze_batch(db, limit=limit, workers=workers)
     db.close()
+    console.print(Panel(
+        f"הצליח: {stats['analyzed']}\nנכשל: {stats['failed']}",
+        title="Analyze Complete",
+    ))
 
 
 @main.command()
@@ -269,53 +252,86 @@ def status(ctx: click.Context) -> None:
 
 
 @main.command()
+@click.option("--limit", "-n", default=500)
+@click.option("--workers", "-w", default=1)
 @click.pass_context
-def pipeline(ctx: click.Context) -> None:
-    """Run full pipeline: scan → analyze projects → analyze audio."""
+def pipeline(ctx: click.Context, limit: int, workers: int) -> None:
+    """Run full pipeline: scan → learn projects → analyze audio."""
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.services.pipeline import run_full_pipeline
+
+    console.print("[bold]Music Brain Pipeline[/]")
+    result = run_full_pipeline(db, cfg, analyze_limit=limit, workers=workers)
+    db.close()
+    console.print_json(data=result)
+
+
+@main.command()
+@click.option("--interval", "-i", default=300, help="Poll interval (seconds)")
+@click.option("--events", is_flag=True, help="Use watchdog events (needs pip install watchdog)")
+@click.pass_context
+def watch(ctx: click.Context, interval: int, events: bool) -> None:
+    """Brain Mode — auto scan + analyze in background."""
     cfg = ctx.obj["config"]
     db = _get_db(cfg)
 
-    scanner = Scanner(
-        db=db,
-        scan_paths=cfg["scan_paths"],
-        audio_extensions=cfg["audio_extensions"],
-        project_extensions=cfg["project_extensions"],
-        preset_extensions=cfg["preset_extensions"],
-        plugins=cfg.get("plugins", {}),
-        incremental=cfg.get("incremental", True),
-    )
-    console.print("[1/4] Scanning...")
-    scan_stats = scanner.scan()
-    console.print(f"  → {scan_stats}")
+    def on_tick(result: dict) -> None:
+        console.print(f"[dim]tick[/] scan={result['scan']} analyze={result['analyze']}")
 
-    brain = Brain(db)
-    parser = ProjectParser()
-    project_rows = db._conn.execute(
-        "SELECT path FROM files WHERE kind='project'"
-    ).fetchall()
-    console.print(f"[2/4] Learning from {len(project_rows)} projects...")
-    for row in project_rows:
+    if events:
+        from music_brain.scanner.watcher import run_watchdog
+        console.print("[cyan]Watching with watchdog (Ctrl+C to stop)...[/]")
         try:
-            brain.learn_from_project(row["path"])
-        except Exception:
+            run_watchdog(db, cfg)
+        except KeyboardInterrupt:
             pass
-
-    analyzer = AudioAnalyzer()
-    rows = db.get_unanalyzed_files(limit=500)
-    console.print(f"[3/4] Analyzing {len(rows)} audio files...")
-    for row in rows:
+    else:
+        from music_brain.scanner.watcher import MusicBrainWatcher
+        w = MusicBrainWatcher(db, cfg, interval_sec=interval, on_tick=on_tick)
+        console.print(f"[cyan]Polling every {interval}s (Ctrl+C to stop)...[/]")
         try:
-            features = analyzer.analyze(row["path"], row["category_hint"])
-            db.save_analysis(
-                int(row["id"]), features.to_dict(),
-                features.category.value, features.sub_style,
-                features.bpm, features.key, features.lufs,
-            )
-        except Exception:
-            pass
-
-    console.print("[4/4] Done!")
+            w.run_forever()
+        except KeyboardInterrupt:
+            w.stop()
     db.close()
+
+
+@main.command()
+@click.option("--dir", "-d", default=None, help="Backup directory")
+@click.pass_context
+def backup(ctx: click.Context, dir: str | None) -> None:
+    """Backup music_brain.db (keeps last 10)."""
+    cfg = ctx.obj["config"]
+    db_path = cfg.get("database_path", "data/music_brain.db")
+    if not Path(db_path).is_absolute():
+        db_path = Path(__file__).resolve().parents[1] / db_path
+    from music_brain.database.backup import backup_database
+
+    dest = backup_database(db_path, dir)
+    console.print(f"[green]✓[/] Backup saved: {dest}")
+
+
+@main.command()
+@click.option("--host", default="127.0.0.1")
+@click.option("--port", "-p", default=8787, type=int)
+@click.pass_context
+def serve(ctx: click.Context, host: str, port: int) -> None:
+    """Local web UI — search, stats, Cubase."""
+    cfg = ctx.obj["config"]
+    db = _get_db(cfg)
+    from music_brain.web.server import serve as run_server
+
+    console.print(Panel(
+        f"פתח בדפדפן: http://{host}:{port}",
+        title="Music Brain UI",
+    ))
+    try:
+        run_server(db, cfg, host=host, port=port)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":

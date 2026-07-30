@@ -78,6 +78,22 @@ music-brain search "kick for 145 full on"
 # שלב 10 — Brain Mode
 music-brain brain
 
+# ממשק Web מקומי (חיפוש + סטטיסטיקות + Cubase)
+music-brain serve
+# → http://127.0.0.1:8787
+
+# רקע — סריקה אוטומטית כל 5 דקות
+music-brain watch
+# או עם watchdog (מהיר יותר):
+pip install music-brain[watch]
+music-brain watch --events
+
+# גיבוי מסד נתונים
+music-brain backup
+
+# ניתוח מקבילי (4 ליבות)
+music-brain analyze --workers 4 --limit 200
+
 # סטטוס
 music-brain status
 ```
@@ -126,7 +142,10 @@ Transient, Attack, Release, Envelope, Stereo Width, RMS, LUFS, MFCC, Spectral Ro
 
 - **סריקה אינקרמנטלית** — רק קבצים חדשים או שהשתנו (mtime + hash)
 - **מסד נתונים מקומי** — אין סריקה מחדש בכל פתיחה
-- הרץ `analyze` ברקע אחרי `scan` — אפשר לעצור ולהמשיך
+- **`watch`** — רץ ברקע, לומד מכל טראק חדש (Brain Mode)
+- **`serve`** — UI בדפדפן לחיפוש ו-Cubase
+- **`analyze --workers 4`** — ניתוח מקבילי על מספר ליבות
+- **`backup`** — גיבוי אוטומטי של `music_brain.db` (שומר 10 אחרונים)
 
 ## רישיון
 

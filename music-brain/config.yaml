@@ -109,3 +109,13 @@ cubase_bridge:
   enabled: false
   osc_host: "127.0.0.1"
   osc_port: 9000
+
+# Background watcher (music-brain watch)
+watch:
+  poll_interval_sec: 300
+  analyze_per_tick: 50
+
+# Web UI (music-brain serve)
+web:
+  host: "127.0.0.1"
+  port: 8787
