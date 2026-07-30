@@ -43,12 +43,12 @@ exit /b 1
 :run
 echo.
 echo   ========================================
-echo      MUSIC BRAIN  —  ShiBass
-echo      Scan / Analyze / Learn / Cubase
+echo      SHIBASS S1  —  Media Player
+echo      Scan MIDI / WAV / Music / Samples
 echo   ========================================
 echo.
 echo   סורק: H:\  D:\  F:\  %USERPROFILE%
-echo   Bridge: http://127.0.0.1:18766
+echo   Player: http://127.0.0.1:18766/
 echo.
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%AUTO%" %*

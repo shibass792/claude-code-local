@@ -21,7 +21,7 @@ recommends basses / leads / FX chains that fit — even when the key differs.
 
 ## Quick start (Windows)
 
-**לחיצה כפולה (הכי פשוט):**
+**לחיצה כפולה — פותח את פאנל הנגן SHIBASS S1:**
 
 ```bat
 launchers\MusicBrain-Start.cmd
@@ -33,7 +33,10 @@ launchers\MusicBrain-Start.cmd
 launchers\MusicBrain-Desktop.cmd
 ```
 
-זה יריץ: התקנה → סריקת `H:\` `D:\` `F:\` + הפרופיל → ניתוח → Brain → Cubase Bridge על `http://127.0.0.1:18766`.
+נפתח בדפדפן: `http://127.0.0.1:18766/`
+
+הפאנל סורק וקורא **MIDI / WAV / MP3 / FLAC / Samples** מ־`H:\` `D:\` `F:\` + הפרופיל,
+עם Waveform, Spectrum, EQ, Playlist, Browser ופסנתר MIDI.
 
 פקודות נוספות:
 

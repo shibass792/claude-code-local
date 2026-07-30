@@ -10,6 +10,8 @@ from typing import Callable, Iterable
 
 from music_brain.config import (
     DAW_NAMES,
+    MEDIA_EXTENSIONS,
+    MIDI_EXTENSIONS,
     PRESET_EXTENSIONS,
     PROJECT_EXTENSIONS,
     ROLE_HINTS,
@@ -82,6 +84,10 @@ def detect_daw(path: Path) -> str | None:
 
 def classify_kind(path: Path) -> str:
     ext = path.suffix.lower()
+    if ext in MIDI_EXTENSIONS:
+        return "midi"
+    if ext in {".mp3", ".m4a", ".aac", ".ogg", ".opus", ".wma"}:
+        return "track"
     if ext in SAMPLE_EXTENSIONS:
         return "sample"
     if ext in PRESET_EXTENSIONS:
@@ -103,7 +109,7 @@ def _should_skip_dir(name: str) -> bool:
 
 def iter_files(roots: Iterable[Path], progress: ProgressCb | None = None) -> Iterable[tuple[Path, Path]]:
     """Yield (root, file_path) for every interesting file under roots."""
-    interesting = SAMPLE_EXTENSIONS | PRESET_EXTENSIONS | PROJECT_EXTENSIONS
+    interesting = MEDIA_EXTENSIONS | PRESET_EXTENSIONS | PROJECT_EXTENSIONS
     for root in roots:
         if progress:
             progress(f"scanning {root}")

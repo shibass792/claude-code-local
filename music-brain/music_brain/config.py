@@ -53,7 +53,15 @@ SAMPLE_EXTENSIONS = {
     ".ogg",
     ".rex",
     ".rx2",
+    ".m4a",
+    ".aac",
+    ".opus",
 }
+
+MIDI_EXTENSIONS = {".mid", ".midi"}
+
+MEDIA_EXTENSIONS = SAMPLE_EXTENSIONS | MIDI_EXTENSIONS
+
 
 PRESET_EXTENSIONS = {
     ".fxp",

@@ -132,9 +132,15 @@ def cmd_dna(args: argparse.Namespace) -> int:
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
-    from music_brain.cubase import serve
+    from music_brain.player import serve
 
     db = _db(args)
+    # Optional: light media re-index before serving the player panel
+    if getattr(args, "index", False):
+        from music_brain.player.media import ensure_media_indexed
+
+        print("Indexing media…")
+        print(ensure_media_indexed(db, args.root if getattr(args, "root", None) else None))
     serve(db, host=args.host, port=args.port)
     return 0
 
@@ -216,9 +222,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("path")
     sp.set_defaults(func=cmd_dna)
 
-    sp = sub.add_parser("serve", help="Stage 7 — Cubase Bridge HTTP API")
+    sp = sub.add_parser("serve", help="SHIBASS S1 player panel + Cubase Bridge HTTP API")
+    add_roots(sp)
     sp.add_argument("--host", default="127.0.0.1")
     sp.add_argument("--port", type=int, default=18766)
+    sp.add_argument("--index", action="store_true", help="Re-index media before serving")
     sp.set_defaults(func=cmd_serve)
 
     sp = sub.add_parser("status", help="DB + roots overview")

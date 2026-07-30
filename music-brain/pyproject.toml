@@ -23,6 +23,9 @@ music-brain = "music_brain.cli:main"
 where = ["."]
 include = ["music_brain*"]
 
+[tool.setuptools.package-data]
+"music_brain" = ["player/static/**/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

@@ -154,9 +154,11 @@ if ($ScanOnly) {
 
 Write-Host ""
 Write-Host "Quick commands after this:" -ForegroundColor Cyan
+Write-Host "  Open player:  http://$HostAddress`:$Port/"
 Write-Host '  music-brain search "באס כמו Astrix"'
 Write-Host "  music-brain match --family bass --bpm 142 --limit 26"
 Write-Host "  music-brain match --melodies --key F# --limit 9"
+Write-Host "  GET http://$HostAddress`:$Port/api/library?category=midi"
 Write-Host "  GET http://$HostAddress`:$Port/match/bass?bpm=142"
 Write-Host "  GET http://$HostAddress`:$Port/search?q=bass+like+Astrix"
 Write-Host "  POST http://$HostAddress`:$Port/project/open  {""path"":""H:\\Projects\\track.cpr""}"
@@ -169,11 +171,13 @@ if ($SkipServe) {
   exit 0
 }
 
-Write-Step "Cubase Bridge  http://$HostAddress`:$Port"
+Write-Step "Cubase Bridge + SHIBASS S1 player  http://$HostAddress`:$Port/"
+Write-Host "Opening browser…" -ForegroundColor DarkGray
+Start-Process "http://$HostAddress`:$Port/"
 Write-Host "Press Ctrl+C to stop." -ForegroundColor DarkGray
 Write-Host ""
 try {
-  & $Py.Exe @($Py.Args) -m music_brain serve --host $HostAddress --port $Port
+  & $Py.Exe @($Py.Args) -m music_brain serve --host $HostAddress --port $Port --index
   $ec = $LASTEXITCODE
 } finally {
   Pop-Location

@@ -115,6 +115,31 @@ def build_fixture_tree(root: Path) -> Path:
         amp=0.3,
     )
 
+    # MIDI + "music" track stubs for SHIBASS player browser
+    midi_dir = root / "MIDI"
+    midi_dir.mkdir(parents=True, exist_ok=True)
+    # Minimal Type-0 SMF: header + one track with Note On/Off C4
+    mid = bytearray()
+    mid += b"MThd"
+    mid += (6).to_bytes(4, "big")
+    mid += (0).to_bytes(2, "big")  # format 0
+    mid += (1).to_bytes(2, "big")  # 1 track
+    mid += (480).to_bytes(2, "big")
+    track = bytearray()
+    # delta 0, note on C4 vel 100
+    track += bytes([0x00, 0x90, 60, 100])
+    # delta 480, note off
+    track += bytes([0x83, 0x60, 0x80, 60, 0])
+    # end of track
+    track += bytes([0x00, 0xFF, 0x2F, 0x00])
+    mid += b"MTrk"
+    mid += len(track).to_bytes(4, "big")
+    mid += track
+    (midi_dir / "01_Intro_MIDI.mid").write_bytes(mid)
+
+    music = root / "Music"
+    write_tone_wav(music / "Neon_Galaxy_Vandeta.wav", freq=220, duration=1.0, stereo=True, amp=0.4)
+
     presets = root / "Presets" / "Serum"
     presets.mkdir(parents=True, exist_ok=True)
     (presets / "FullOn_Bass_Rolling.fxp").write_bytes(b"CcnK" + b"\x00" * 64)
