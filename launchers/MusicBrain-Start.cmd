@@ -2,10 +2,8 @@
 setlocal EnableExtensions
 chcp 65001 >nul
 REM ============================================================
-REM  Music Brain — לחיצה כפולה על המחשב
-REM  סורק H:\ D:\ F:\ + הפרופיל שלך → מנתח → לומד → Cubase Bridge
-REM
-REM  אפשר גם להעתיק לקובץ לשולחן העבודה.
+REM  Music Brain - double-click launcher for Windows
+REM  Scans H:\ D:\ F:\ + profile, then opens SHIBASS S1 player
 REM ============================================================
 
 title Music Brain
@@ -34,8 +32,8 @@ for %%D in (
 )
 
 echo.
-echo  ERROR: לא נמצא scripts\music-brain\auto-start.ps1
-echo  משוך/שכפל את claude-code-local ואז הרץ שוב.
+echo  ERROR: scripts\music-brain\auto-start.ps1 not found
+echo  Clone claude-code-local and run again.
 echo.
 pause
 exit /b 1
@@ -43,11 +41,11 @@ exit /b 1
 :run
 echo.
 echo   ========================================
-echo      SHIBASS S1  —  Media Player
+echo      SHIBASS S1  -  Media Player
 echo      Scan MIDI / WAV / Music / Samples
 echo   ========================================
 echo.
-echo   סורק: H:\  D:\  F:\  %USERPROFILE%
+echo   Roots: H:\  D:\  F:\  %USERPROFILE%
 echo   Player: http://127.0.0.1:18766/
 echo.
 

@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Music Brain — one-click setup + multi-drive scan/analyze + Cubase Bridge.
+  Music Brain - one-click setup + multi-drive scan/analyze + Cubase Bridge.
 
 .DESCRIPTION
   1) Finds the repo / music-brain package
@@ -77,8 +77,8 @@ function Find-Python {
 }
 
 Write-Host ""
-Write-Host "  MUSIC BRAIN  —  ShiBass production intelligence" -ForegroundColor Yellow
-Write-Host "  Scan → Analyze → Learn → Cubase Bridge" -ForegroundColor DarkYellow
+Write-Host "  MUSIC BRAIN  -  ShiBass production intelligence" -ForegroundColor Yellow
+Write-Host "  Scan -> Analyze -> Learn -> Cubase Bridge" -ForegroundColor DarkYellow
 Write-Host ""
 
 $MbRoot = Find-MusicBrainRoot
@@ -155,7 +155,7 @@ if ($ScanOnly) {
 Write-Host ""
 Write-Host "Quick commands after this:" -ForegroundColor Cyan
 Write-Host "  Open player:  http://$HostAddress`:$Port/"
-Write-Host '  music-brain search "באס כמו Astrix"'
+Write-Host '  music-brain search "bass like Astrix"'
 Write-Host "  music-brain match --family bass --bpm 142 --limit 26"
 Write-Host "  music-brain match --melodies --key F# --limit 9"
 Write-Host "  GET http://$HostAddress`:$Port/api/library?category=midi"
@@ -172,7 +172,7 @@ if ($SkipServe) {
 }
 
 Write-Step "Cubase Bridge + SHIBASS S1 player  http://$HostAddress`:$Port/"
-Write-Host "Opening browser…" -ForegroundColor DarkGray
+Write-Host "Opening browser..." -ForegroundColor DarkGray
 Start-Process "http://$HostAddress`:$Port/"
 Write-Host "Press Ctrl+C to stop." -ForegroundColor DarkGray
 Write-Host ""
