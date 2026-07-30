@@ -7,7 +7,11 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-SCHEMA = """
+# Bump when schema bootstrap logic changes (shown in errors / debug).
+SCHEMA_BOOTSTRAP_VERSION = 2
+
+# Tables + indexes that do NOT require migrated columns.
+SCHEMA_TABLES = """
 CREATE TABLE IF NOT EXISTS scan_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     started_at REAL NOT NULL,
@@ -16,21 +20,6 @@ CREATE TABLE IF NOT EXISTS scan_runs (
     files_found INTEGER DEFAULT 0,
     files_new INTEGER DEFAULT 0,
     files_updated INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS files (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    path TEXT UNIQUE NOT NULL,
-    kind TEXT NOT NULL,
-    library TEXT,
-    library_sub TEXT,
-    size_bytes INTEGER NOT NULL,
-    mtime REAL NOT NULL,
-    content_hash TEXT NOT NULL,
-    plugin_hint TEXT,
-    category_hint TEXT,
-    scanned_at REAL NOT NULL,
-    analyzed_at REAL
 );
 
 CREATE TABLE IF NOT EXISTS audio_analysis (
@@ -82,9 +71,13 @@ CREATE TABLE IF NOT EXISTS sonic_embeddings (
     vector_json TEXT NOT NULL,
     indexed_at REAL NOT NULL
 );
+"""
 
+SCHEMA_INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_files_kind ON files(kind);
 CREATE INDEX IF NOT EXISTS idx_files_hash ON files(content_hash);
+CREATE INDEX IF NOT EXISTS idx_files_library ON files(library);
+CREATE INDEX IF NOT EXISTS idx_files_library_sub ON files(library, library_sub);
 CREATE INDEX IF NOT EXISTS idx_analysis_category ON audio_analysis(category);
 CREATE INDEX IF NOT EXISTS idx_analysis_bpm ON audio_analysis(bpm);
 CREATE INDEX IF NOT EXISTS idx_analysis_key ON audio_analysis(key);
@@ -92,11 +85,8 @@ CREATE INDEX IF NOT EXISTS idx_projects_bpm ON projects(bpm);
 CREATE INDEX IF NOT EXISTS idx_projects_key ON projects(key);
 """
 
-# Indexes that depend on columns added by migration (must run AFTER ALTER TABLE).
-POST_MIGRATE_INDEXES = """
-CREATE INDEX IF NOT EXISTS idx_files_library ON files(library);
-CREATE INDEX IF NOT EXISTS idx_files_library_sub ON files(library, library_sub);
-"""
+# Backward-compatible alias (tests / external imports).
+SCHEMA = SCHEMA_TABLES
 
 
 class KnowledgeDB:
@@ -105,15 +95,34 @@ class KnowledgeDB:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        # Migrate existing tables FIRST — CREATE INDEX on missing columns fails
-        # when opening an older DB that was created before library columns existed.
-        self._migrate_schema()
-        self._conn.executescript(SCHEMA)
-        self._conn.executescript(POST_MIGRATE_INDEXES)
+        # Order matters for legacy DBs:
+        # 1) ensure files table + library columns
+        # 2) create remaining tables
+        # 3) create indexes (including library indexes)
+        self._ensure_files_migrated()
+        self._conn.executescript(SCHEMA_TABLES)
+        self._ensure_files_migrated()  # again in case CREATE raced oddly
+        self._conn.executescript(SCHEMA_INDEXES)
         self._conn.commit()
 
-    def _migrate_schema(self) -> None:
-        # Ensure base files table exists before PRAGMA / ALTER.
+    def _table_columns(self, table: str) -> set[str]:
+        return {row[1] for row in self._conn.execute(f"PRAGMA table_info({table})")}
+
+    def _add_column_if_missing(self, table: str, column: str, col_type: str) -> None:
+        cols = self._table_columns(table)
+        if column in cols:
+            return
+        try:
+            self._conn.execute(
+                f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+            )
+        except sqlite3.OperationalError as exc:
+            # Concurrent / already-added
+            if "duplicate column" not in str(exc).lower():
+                raise
+
+    def _ensure_files_migrated(self) -> None:
+        """Create files table if needed and add library columns for old DBs."""
         self._conn.execute(
             """CREATE TABLE IF NOT EXISTS files (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,11 +137,20 @@ class KnowledgeDB:
                 analyzed_at REAL
             )"""
         )
-        cols = {row[1] for row in self._conn.execute("PRAGMA table_info(files)")}
-        if "library" not in cols:
-            self._conn.execute("ALTER TABLE files ADD COLUMN library TEXT")
-        if "library_sub" not in cols:
-            self._conn.execute("ALTER TABLE files ADD COLUMN library_sub TEXT")
+        self._add_column_if_missing("files", "library", "TEXT")
+        self._add_column_if_missing("files", "library_sub", "TEXT")
+        # Verify before any index on library is created.
+        cols = self._table_columns("files")
+        if "library" not in cols or "library_sub" not in cols:
+            raise RuntimeError(
+                f"DB migration failed (bootstrap v{SCHEMA_BOOTSTRAP_VERSION}): "
+                f"files columns={sorted(cols)}. "
+                "Delete data/music_brain.db or run: music-brain status"
+            )
+
+    # Keep old name for callers / clarity in diffs.
+    def _migrate_schema(self) -> None:
+        self._ensure_files_migrated()
 
     def close(self) -> None:
         self._conn.close()
