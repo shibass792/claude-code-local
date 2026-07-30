@@ -21,10 +21,27 @@ recommends basses / leads / FX chains that fit — even when the key differs.
 
 ## Quick start (Windows)
 
+**לחיצה כפולה (הכי פשוט):**
+
+```bat
+launchers\MusicBrain-Start.cmd
+```
+
+או העתק לשולחן העבודה:
+
+```bat
+launchers\MusicBrain-Desktop.cmd
+```
+
+זה יריץ: התקנה → סריקת `H:\` `D:\` `F:\` + הפרופיל → ניתוח → Brain → Cubase Bridge על `http://127.0.0.1:18766`.
+
+פקודות נוספות:
+
 ```bat
 launchers\Music-Brain.cmd setup
 launchers\Music-Brain.cmd pipeline
 launchers\Music-Brain.cmd serve
+launchers\Music-Brain.cmd search "באס כמו Astrix"
 ```
 
 Or from this folder:

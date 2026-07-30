@@ -36,9 +36,10 @@ exit /b 1
 
 :dispatch
 set "CMD=%~1"
-if "%CMD%"=="" set "CMD=status"
+if "%CMD%"=="" set "CMD=start"
 shift
 
+if /I "%CMD%"=="start" goto :start
 if /I "%CMD%"=="setup" goto :setup
 if /I "%CMD%"=="pipeline" goto :run
 if /I "%CMD%"=="scan" goto :run
@@ -52,8 +53,18 @@ if /I "%CMD%"=="status" goto :run
 if /I "%CMD%"=="test" goto :test
 
 echo Unknown command: %CMD%
-echo Commands: setup pipeline scan analyze match search learn dna serve status test
+echo Commands: start setup pipeline scan analyze match search learn dna serve status test
 exit /b 2
+
+:start
+set "AUTO=%REPO_ROOT%\scripts\music-brain\auto-start.ps1"
+if not exist "%AUTO%" (
+  echo ERROR: missing %AUTO%
+  pause
+  exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "%AUTO%" %*
+exit /b %ERRORLEVEL%
 
 :setup
 where python >nul 2>&1 || (
