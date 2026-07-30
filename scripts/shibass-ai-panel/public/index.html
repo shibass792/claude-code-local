@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>shibass AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <main class="shell">
+      <header class="brand">
+        <p class="brand-mark">shibass AI</p>
+        <h1>שאל את המודל המקומי</h1>
+        <p class="lede">
+          Ollama · <span id="modelName">myllama</span> · אינדקס כוננים בלי להעתיק
+          קבצים
+        </p>
+      </header>
+
+      <section class="status" id="statusBox" aria-live="polite">
+        <p>בודק סטטוס…</p>
+      </section>
+
+      <section class="composer">
+        <label for="question">שאלה</label>
+        <textarea
+          id="question"
+          rows="4"
+          placeholder="למשל: סכם את הפרויקט ב-H:\shibass-ai"
+        ></textarea>
+
+        <div class="mode-row">
+          <label class="mode">
+            <input type="radio" name="mode" value="knowledge" checked />
+            ידע מהכוננים (Ask + אינדקס)
+          </label>
+          <label class="mode">
+            <input type="radio" name="mode" value="chat" />
+            צ׳אט ישיר ל־Ollama
+          </label>
+          <label class="mode">
+            <input type="checkbox" id="waitIndex" />
+            חכה שהאינדקס ייפתח (wait-then-ask)
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="askBtn">שלח</button>
+          <button type="button" id="refreshBtn" class="ghost">רענן סטטוס</button>
+        </div>
+      </section>
+
+      <section class="answer" aria-live="polite">
+        <div class="answer-head">
+          <h2>תשובה</h2>
+          <span id="busy" class="busy" hidden>עובד…</span>
+        </div>
+        <pre id="answerOut" class="out">ממתין לשאלה.</pre>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

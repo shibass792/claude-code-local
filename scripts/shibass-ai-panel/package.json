@@ -1,0 +1,17 @@
+{
+  "name": "shibass-ai-panel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local control panel for Ollama myllama + drive knowledge index",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
