@@ -10,12 +10,20 @@ speaks Anthropic.
 
 Backends (all Anthropic-compatible):
   qwen     -> MLX server  :4000  (Qwen3-Coder 30B-A3B 8-bit)  DEFAULT / code / agentic
-  gemma    -> MLX server  :4000  (Gemma 4)                    quick / trivial
-  deepseek -> ds4 server  :8000  (DeepSeek V4 Flash 284B)     huge context / hard reasoning
+  gemma    -> MLX server  :4001  (Gemma 4 31B 4-bit)          quick / trivial
+  glm      -> MLX server  :4003  (GLM-4.5-Air 6-bit)          hard reasoning
+  deepseek -> ds4 server  :8000  (DeepSeek V4 Flash 284B)     huge context (>100k tok)
 
-Note: the MLX server holds ONE model at a time, so qwen<->gemma is a swap
-(restart). The decision is instant; switching the actually-loaded model costs a
-load. Default stays Qwen warm so the common path never pauses.
+Overrides in the last user message win over the heuristics:
+  /code -> qwen   ·   /fast -> gemma   ·   /glm -> glm   ·   /deep -> deepseek
+
+Note: qwen and gemma are a WARM POOL — both stay loaded on their own ports, so
+switching between them costs nothing. The giants (glm, deepseek) can't coexist
+with the pool, so reaching one unloads it and returning to the pool reloads it.
+
+MLX_MODELS also carries two entries with no routing lane of their own:
+"qwen-new" (80B Opus-4.6 reasoning distill, load by hand for hard problems) and
+"qwenvl" (vision — needs mlx-vlm, not this text server; see route()).
 """
 import json, os, re, subprocess, sys, time, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -269,8 +277,10 @@ if __name__ == "__main__":
         tests = [
             ("hi", "messages with a short greeting"),
             ("refactor this async function and fix the stack trace", "code"),
+            ("think hard about this schema", "hard reasoning"),
             ("/deep walk me through the proof", "deep override"),
             ("/fast what's 2+2", "fast override"),
+            ("/glm sanity-check the plan", "glm override"),
         ]
         for txt, label in tests:
             b, r = route({"messages": [{"role": "user", "content": txt}]})
@@ -279,5 +289,5 @@ if __name__ == "__main__":
         big = {"messages": [{"role": "user", "content": "x" * 500_000}]}
         b, r = route(big); print(f"  {'500k-char context':28s} -> {b:9s} ({r})")
         sys.exit(0)
-    print(f"ONE AI router on :{LISTEN_PORT}  (qwen default · gemma quick · deepseek deep)")
+    print(f"ONE AI router on :{LISTEN_PORT}  (qwen default · gemma quick · glm hard · deepseek deep)")
     ThreadingHTTPServer(("127.0.0.1", LISTEN_PORT), Handler).serve_forever()

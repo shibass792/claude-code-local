@@ -256,11 +256,12 @@ MLX_MODEL=divinetribe/Hermes-4-14B-abliterated-4bit-mlx \
 
 ## 🎮 The Modes
 
-Four ways to run the lineup. Each one is a double-clickable launcher in `launchers/`.
+Five ways to run the lineup. Each one is a double-clickable launcher in `launchers/`.
 
 | Mode | What it does | Launcher |
 |---|---|---|
 | 🤖 **Code** | Run Claude Code with a local model — same UX, no API key | `Claude Local.command`, `Gemma 4 Code.command`, `Llama 70B.command` |
+| 💻 **Small Mac** | Same thing on 16-32 GB unified memory — 14B model, 4-bit KV cache from token 0, tools on or chat-only | `Claude Agentico.command`, `Claude Chat.command` — see [MAC-BASE-SETUP.md](docs/MAC-BASE-SETUP.md) |
 | 🌐 **Browser** | Local AI controls real Brave browser via Chrome DevTools | `Browser Agent.command` |
 | 🎤 **Hands-Free Voice** | Speak in, hear replies in your cloned voice — full loop, 100% on-device | `Narrative Gemma.command` + NarrateClaude |
 | 📱 **Phone** | iMessage in → text/image/video out, full pipeline | `~/.claude/imessage-*.sh` |
@@ -866,17 +867,24 @@ bash ~/NarrateClaude/narrative-claude.sh
 ```
 📦 claude-code-local/
  ├── ⚡ proxy/
- │   └── server.py              ← MLX Native Anthropic Server with tool-call recovery (~1000 lines)
+ │   └── server.py              ← MLX Native Anthropic Server with tool-call recovery (~1,370 lines)
  ├── 🚀 launchers/
  │   ├── Claude Local.command    ← Default fighter — Claude Code + local model
  │   ├── Gemma 4 Code.command    ← 🟢 THE QUICK ONE
  │   ├── Llama 70B.command       ← 🟠 THE WISE ONE
+ │   ├── Claude Agentico.command ← 💻 16-32 GB Macs — Qwen 2.5 Coder 14B, tools on
+ │   ├── Claude Chat.command     ← 💬 16-32 GB Macs — same model, chat-only (no tools)
  │   ├── Browser Agent.command   ← 🌐 Autonomous Brave browser control
  │   ├── Narrative Gemma.command ← 🎭 Auto-narration mode
- │   └── lib/claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
+ │   ├── lib/claude-local-common.sh ← Shared: model-aware restart, local-cache resolver, health-wait
+ │   └── lib/local-settings.json    ← Shared: `apiKeyHelper` stub that silences the auth-conflict warning
+ ├── 🧠 smart-router/
+ │   ├── router.py              ← ONE AI — one endpoint, picks the local backend per request
+ │   └── warm_pool.sh           ← Keeps the two daily models loaded on separate ports
  ├── 🎭 NarrativeGemma/
  │   └── CLAUDE.md              ← Narration persona (sanitized, generic, opt-in)
  ├── 🛠️  scripts/
+ │   ├── doctor.sh              ← What can my Mac actually run? (`--bench` for tok/s)
  │   ├── download-and-import.sh ← Download a fighter (`gemma` / `llama` / `qwen`)
  │   ├── persistent-download.sh ← Auto-retry downloader for big models
  │   ├── start-mlx-server.sh    ← Server start helper
@@ -884,9 +892,12 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   └── upload-mlx-quant.sh    ← Publish your own MLX-quantized uploads to HF
  ├── 📊 docs/
  │   ├── BENCHMARKS.md          ← Detailed speed comparisons
+ │   ├── MAC-BASE-SETUP.md      ← 16 GB Mac base/Pro setup guide (PT-BR)
  │   └── TWITTER-THREAD.md      ← Social media content
  ├── 📱 IMESSAGE_MEDIA_PIPELINE.md ← Phone control + media sending docs
- └── setup.sh                    ← One-command installer
+ ├── setup.sh                    ← One-command installer
+ ├── uninstall.sh                ← Reverses setup.sh (`--keep-models` to keep weights)
+ └── LICENSE                     ← MIT
 ```
 
 ---

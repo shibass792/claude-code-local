@@ -1,11 +1,11 @@
 #!/bin/bash
 # Warm pool — keep the small models loaded simultaneously on separate ports so
 # the router switches between them with ZERO load/unload.
-#   Qwen 3 Coder  :4000   (default / code / agentic)
-#   Gemma 4 31B   :4001   (quick / trivial)
-#   Qwen3-VL 32B  :4002   (vision)
-# Total ~64 GB — fits in 128 GB with headroom. The 80 GB giants (GLM, DeepSeek)
+#   Qwen3-Coder 30B-A3B 8-bit  :4000   (default / code / agentic)
+#   Gemma 4 31B 4-bit          :4001   (quick / trivial)
+# Total ~46 GB — fits in 128 GB with headroom. The 80 GB giants (GLM, DeepSeek)
 # can't coexist with this pool, so they stay on-demand (router unloads the pool).
+# Vision (Qwen3-VL, :4002) is deliberately NOT here — see the NOTE under `start`.
 set -uo pipefail
 L="$HOME/Desktop/PROJECTS/Local AI Setup/launchers/lib/claude-local-common.sh"
 source "$L"
