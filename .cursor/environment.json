@@ -1,0 +1,5 @@
+{
+  "name": "claude-code-local",
+  "user": "ubuntu",
+  "install": "bash scripts/cloud-agent-install.sh"
+}
