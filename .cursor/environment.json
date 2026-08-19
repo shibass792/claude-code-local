@@ -1,0 +1,4 @@
+{
+  "name": "claude-code-local",
+  "install": "bash .cursor/install.sh"
+}
