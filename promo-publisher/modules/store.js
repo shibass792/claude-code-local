@@ -28,7 +28,12 @@ function resolveFromRoot(relativePath) {
   if (!relativePath || typeof relativePath !== 'string') {
     return null;
   }
-  return path.resolve(ROOT, relativePath);
+  const resolved = path.resolve(ROOT, relativePath);
+  const rootPrefix = ROOT.endsWith(path.sep) ? ROOT : `${ROOT}${path.sep}`;
+  if (resolved !== ROOT && !resolved.startsWith(rootPrefix)) {
+    return null;
+  }
+  return resolved;
 }
 
 module.exports = {

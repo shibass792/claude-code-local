@@ -125,5 +125,7 @@ test('HTTP studio API serves engines and music index', async () => {
   assert.equal(engines.engines.ffmpeg.available, true);
   const index = await fetch(`http://127.0.0.1:${port}/api/music/index`).then((res) => res.json());
   assert.ok(Array.isArray(index.tracks));
+  const escapeAttempt = await fetch(`http://127.0.0.1:${port}/api/file?path=${encodeURIComponent('../../../../etc/passwd')}`);
+  assert.equal(escapeAttempt.status, 404);
   await new Promise((resolve) => server.close(resolve));
 });
