@@ -18,13 +18,24 @@
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
         <button class="nav-btn" data-tab="create-tab">🎬 יצירת סרטון חדש</button>
+        <button class="nav-btn" data-tab="library-tab">🎵 ספריית מוזיקה</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
       </nav>
 
-      <div class="system-status" id="system-status">
-        <div class="status-indicator online"></div>
-        <span>מנוע מקומי מוכן</span>
+      <div class="engine-status" id="engine-status">
+        <div class="engine-row" data-engine="ai">
+          <span class="status-indicator"></span><span class="engine-name">AI (הוקים)</span>
+        </div>
+        <div class="engine-row" data-engine="renderer">
+          <span class="status-indicator"></span><span class="engine-name">FFmpeg (רינדור)</span>
+        </div>
+        <div class="engine-row" data-engine="radar">
+          <span class="status-indicator"></span><span class="engine-name">yt-dlp (רדאר)</span>
+        </div>
+        <div class="engine-row" data-engine="library">
+          <span class="status-indicator"></span><span class="engine-name">אינדקס מוזיקה</span>
+        </div>
       </div>
     </aside>
 
@@ -37,20 +48,21 @@
 
         <div id="approval-empty" class="empty-state hidden">
           <h3>אין סרטונים ממתינים לאישור</h3>
-          <p>גרור טראק חדש בטאב "יצירת סרטון" או הרץ רינדור מהמנוע המקומי</p>
+          <p>עבור לטאב "יצירת סרטון חדש" ורנדר קליפ מקובץ אודיו אמיתי</p>
         </div>
 
         <div class="approval-workspace" id="approval-workspace">
           <div class="video-preview-card">
             <div class="video-wrapper">
               <video id="main-player" controls preload="metadata" playsinline></video>
-              <div id="video-placeholder" class="video-placeholder">אין קובץ וידאו — מצב תצוגה מקדימה</div>
+              <div id="video-placeholder" class="video-placeholder">אין קובץ וידאו — רנדר סרטון קודם</div>
             </div>
             <div class="video-meta">
               <span id="video-title">שם הטראק</span>
               <span id="video-duration">00:00 | 9:16</span>
             </div>
             <p id="watch-hint" class="watch-hint">▶ לחץ Play כדי לאפשר פרסום</p>
+            <p id="render-meta" class="muted small"></p>
           </div>
 
           <div class="post-details-card">
@@ -67,6 +79,19 @@
             <div class="form-group">
               <label for="post-hashtags">האשטאגים</label>
               <input type="text" id="post-hashtags" dir="ltr">
+            </div>
+
+            <div class="hook-panel">
+              <div class="hook-panel-head">
+                <strong>🎯 הוקים מהמודל המקומי</strong>
+                <div class="hook-actions">
+                  <button class="btn btn-small btn-secondary" id="btn-gen-hooks" type="button">✨ הפק 3 הוקים</button>
+                  <button class="btn btn-small btn-secondary" id="btn-gen-captions" type="button">📝 כתוב כיתובים</button>
+                </div>
+              </div>
+              <div id="hook-list" class="hook-list">
+                <p class="muted small">לחץ "הפק 3 הוקים" — הבקשה נשלחת למודל המקומי בזמן אמת</p>
+              </div>
             </div>
 
             <div class="platforms-selector">
@@ -87,30 +112,85 @@
       <section id="radar-tab" class="tab-content">
         <header class="tab-header row-header">
           <div>
-            <h1>רדאר אמנים והשראה ויראלית (0$ תקציב)</h1>
-            <p>פוסטים עם חריגת חשיפה (Viral Outliers ≥ 2.5x) וניתוח מבנה ההצלחה</p>
+            <h1>רדאר אמנים והשראה ויראלית</h1>
+            <p>נתונים חיים דרך yt-dlp — חריגות חשיפה מחושבות מול החציון האמיתי של כל אמן</p>
           </div>
           <button class="btn btn-secondary" id="btn-scan-radar" type="button">🔄 סרוק מחדש</button>
         </header>
+        <div id="radar-source" class="source-banner hidden"></div>
         <div class="radar-grid" id="radar-list"></div>
       </section>
 
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
           <h1>הפקת סרטון חדש מהמחשב</h1>
-          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+          <p>בחר טראק — FFmpeg מרנדר וידאו אנכי 1080x1920 אמיתי עם ויזואליזציה מהאודיו</p>
         </header>
+
         <div class="drop-zone" id="drop-zone">
-          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
-          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
-          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3 / FLAC)</h3>
+          <p class="muted">או</p>
+          <button class="btn btn-secondary" id="btn-pick-audio" type="button">בחר קובץ מהדיסק</button>
+        </div>
+
+        <div id="probe-card" class="probe-card hidden">
+          <h3>נתוני הקובץ (ffprobe)</h3>
+          <div id="probe-details" class="probe-grid"></div>
+        </div>
+
+        <div class="render-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="render-style">סגנון ויזואליזציה</label>
+              <select id="render-style"></select>
+            </div>
+            <div class="form-group">
+              <label for="render-start">התחלה (שניות)</label>
+              <input type="number" id="render-start" value="0" min="0" step="1">
+            </div>
+            <div class="form-group">
+              <label for="render-duration">אורך (שניות)</label>
+              <input type="number" id="render-duration" value="15" min="3" max="180" step="1">
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn btn-primary" id="btn-render" type="button" disabled>🎬 רנדר סרטון אמיתי</button>
+          </div>
+
+          <div id="render-progress-wrap" class="progress-wrap hidden">
+            <div class="progress-bar"><div id="render-progress" class="progress-fill"></div></div>
+            <span id="render-progress-text" class="muted small">0%</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="library-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>ספריית מוזיקה</h1>
+            <p>סריקה אמיתית של התיקיות ב-MUSIC_ROOTS עם קריאת תגיות ב-ffprobe</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-scan-library" type="button">🔍 הרץ סריקה</button>
+        </header>
+        <div id="library-status" class="source-banner"></div>
+        <div class="form-group search-row">
+          <input type="text" id="library-search" placeholder="חפש לפי שם קובץ, אמן או תיקייה…">
+        </div>
+        <div class="history-table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr><th>שם</th><th>סוג</th><th>BPM</th><th>אורך</th><th>נתיב</th><th></th></tr>
+            </thead>
+            <tbody id="library-body"></tbody>
+          </table>
         </div>
       </section>
 
       <section id="history-tab" class="tab-content">
         <header class="tab-header">
           <h1>היסטוריית פרסומים</h1>
-          <p>תוצאות מ-publish_results.json</p>
+          <p>תוצאות אמיתיות מ-publish_results.json כולל קישורים שחזרו מה-API</p>
         </header>
         <div class="history-table-wrap">
           <table class="history-table" id="history-table">
@@ -120,6 +200,7 @@
                 <th>קמפיין</th>
                 <th>פלטפורמות</th>
                 <th>סטטוס</th>
+                <th>קישורים</th>
               </tr>
             </thead>
             <tbody id="history-body"></tbody>
@@ -128,14 +209,29 @@
       </section>
 
       <section id="connections-tab" class="tab-content">
-        <header class="tab-header">
-          <h1>חיבורי רשתות ו-API Health</h1>
-          <p>הגדר משתני סביבה בקובץ config/.env (העתק מ-.env.example)</p>
+        <header class="tab-header row-header">
+          <div>
+            <h1>חיבורי רשתות ו-API Health</h1>
+            <p>הגדר משתני סביבה בקובץ config/.env (העתק מ-.env.example)</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-verify-connections" type="button">🔌 בדוק חיבורים באמת</button>
         </header>
         <div class="connections-grid" id="connections-grid"></div>
       </section>
     </main>
   </div>
+
+  <footer class="log-dock" id="log-dock">
+    <div class="log-head">
+      <strong>📋 לוג מנוע חי</strong>
+      <span class="muted small">כל שורה כאן נכתבת מפעולה אמיתית שהרצה עכשיו — רינדור, קריאת מודל, סריקה או פרסום</span>
+      <div class="log-head-actions">
+        <button class="btn btn-small btn-secondary" id="btn-clear-log" type="button">נקה</button>
+        <button class="btn btn-small btn-secondary" id="btn-toggle-log" type="button">הסתר</button>
+      </div>
+    </div>
+    <pre id="log-body" class="log-body"></pre>
+  </footer>
 
   <div id="toast" class="toast hidden"></div>
   <script src="app.js"></script>
