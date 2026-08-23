@@ -12,6 +12,7 @@ const { renderVerticalReel } = require('./modules/render');
 const { generateViralHooks } = require('./modules/hooks');
 const instagram = require('./modules/instagram-engine');
 const music = require('./modules/music-library');
+const backgrounds = require('./modules/backgrounds');
 const career = require('./modules/career-ladder');
 const psyPack = require('./modules/psy-pack');
 
@@ -187,6 +188,12 @@ ipcMain.handle('career:epk', async (_event, payload) => {
     links: payload?.links ?? {},
   });
 });
+
+ipcMain.handle('backgrounds:scan', async (_event, payload) =>
+  backgrounds.scanBackgrounds(payload ?? {}),
+);
+
+ipcMain.handle('backgrounds:index', async () => backgrounds.getIndex());
 
 ipcMain.handle('pack:status', async () => psyPack.getPackStatus());
 

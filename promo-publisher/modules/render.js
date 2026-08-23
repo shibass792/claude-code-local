@@ -6,6 +6,7 @@ const { OUTPUT_DIR, MEDIA_DIR, ensureDir, resolveFromRoot } = require('./store')
 const { appendLog, snapshotState } = require('./creation-log');
 const { probeFfmpeg, runCommand } = require('./engines');
 const approval = require('./approval-publisher');
+const backgrounds = require('./backgrounds');
 
 const execFileAsync = promisify(execFile);
 
@@ -15,7 +16,7 @@ function sanitizeName(value) {
     .slice(0, 80) || 'track';
 }
 
-function resolveAudioPath(inputPath) {
+function resolveExistingPath(inputPath) {
   if (!inputPath || typeof inputPath !== 'string') {
     return null;
   }
@@ -27,6 +28,20 @@ function resolveAudioPath(inputPath) {
     return fromRoot;
   }
   return null;
+}
+
+function resolveAudioPath(inputPath) {
+  return resolveExistingPath(inputPath);
+}
+
+function resolveBackgroundInput({ backgroundPath, backgroundId } = {}) {
+  if (backgroundId) {
+    const item = backgrounds.getBackground(backgroundId);
+    if (item?.path && fs.existsSync(item.path)) {
+      return item.path;
+    }
+  }
+  return resolveExistingPath(backgroundPath);
 }
 
 async function probeAudio(audioPath) {
@@ -62,10 +77,30 @@ function buildDrawText(title) {
   return `drawtext=text='${escaped}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=220`;
 }
 
+function buildImageFilter(displayTitle) {
+  return [
+    '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[bg]',
+    '[1:a]showwaves=s=1080x260:mode=cline:rate=25:colors=0xA78BFA[wv]',
+    '[bg][wv]overlay=0:1580[base]',
+    `[base]${buildDrawText(displayTitle)}[v]`,
+  ].join(';');
+}
+
+function buildWaveFilter(displayTitle) {
+  return [
+    '[0:a]showwaves=s=1080x720:mode=cline:rate=25:colors=0xA78BFA[wv]',
+    'color=c=0x0c0e14:s=1080x1920:r=30[bg]',
+    '[bg][wv]overlay=0:600[base]',
+    `[base]${buildDrawText(displayTitle)}[v]`,
+  ].join(';');
+}
+
 async function renderVerticalReel({
   audioPath,
   title,
   hook,
+  backgroundPath,
+  backgroundId,
   durationSec = 30,
   fps = 30,
   enqueue = true,
@@ -93,46 +128,77 @@ async function renderVerticalReel({
   const outputPath = path.join(outDir, fileName);
   const displayTitle = title || path.parse(resolved).name;
   const hookText = hook || `🔥 ${displayTitle} - Out Now!`;
+  const resolvedBg = resolveBackgroundInput({ backgroundPath, backgroundId });
 
-  const filter = [
-    '[0:a]showwaves=s=1080x720:mode=cline:rate=25:colors=0xA78BFA[wv]',
-    'color=c=0x0c0e14:s=1080x1920:r=30[bg]',
-    '[bg][wv]overlay=0:600[base]',
-    `[base]${buildDrawText(displayTitle)}[v]`,
-  ].join(';');
-
-  const args = [
-    '-y',
-    '-i',
-    resolved,
-    '-filter_complex',
-    filter,
-    '-map',
-    '[v]',
-    '-map',
-    '0:a',
-    '-t',
-    String(clipSeconds),
-    '-c:v',
-    'libx264',
-    '-pix_fmt',
-    'yuv420p',
-    '-preset',
-    'veryfast',
-    '-c:a',
-    'aac',
-    '-b:a',
-    '192k',
-    '-shortest',
-    '-r',
-    String(fps),
-    outputPath,
-  ];
+  const args = resolvedBg
+    ? [
+        '-y',
+        '-loop',
+        '1',
+        '-framerate',
+        String(fps),
+        '-i',
+        resolvedBg,
+        '-i',
+        resolved,
+        '-filter_complex',
+        buildImageFilter(displayTitle),
+        '-map',
+        '[v]',
+        '-map',
+        '1:a',
+        '-t',
+        String(clipSeconds),
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-preset',
+        'veryfast',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+        '-shortest',
+        '-r',
+        String(fps),
+        outputPath,
+      ]
+    : [
+        '-y',
+        '-i',
+        resolved,
+        '-filter_complex',
+        buildWaveFilter(displayTitle),
+        '-map',
+        '[v]',
+        '-map',
+        '0:a',
+        '-t',
+        String(clipSeconds),
+        '-c:v',
+        'libx264',
+        '-pix_fmt',
+        'yuv420p',
+        '-preset',
+        'veryfast',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+        '-shortest',
+        '-r',
+        String(fps),
+        outputPath,
+      ];
 
   appendLog({
     source: 'render',
-    message: `Rendering 9:16 from ${path.basename(resolved)} (${clipSeconds}s)`,
+    message: resolvedBg
+      ? `Rendering 9:16 from ${path.basename(resolved)} + ${path.basename(resolvedBg)} (${clipSeconds}s)`
+      : `Rendering 9:16 from ${path.basename(resolved)} (${clipSeconds}s)`,
     audio: resolved,
+    background: resolvedBg,
     hook: hookText,
   });
 
@@ -186,11 +252,14 @@ async function renderVerticalReel({
     duration: `00:${String(Math.round(clipSeconds)).padStart(2, '0')}`,
     format: 'Reels / TikTok (9:16 1080x1920)',
     watched: false,
+    needsApproval: true,
+    source: resolvedBg ? 'background-reel' : 'waveform-reel',
     captionHe: hookText,
     captionEn: hookText,
     hashtags: '#Psytrance #ShiBass #ElectronicMusic',
     platforms: ['instagram', 'tiktok', 'facebook'],
     audioPath: resolved,
+    backgroundPath: resolvedBg,
   };
 
   if (enqueue) {
@@ -212,6 +281,8 @@ async function renderVerticalReel({
     hook: hookText,
     audio: resolved,
     campaignId: campaign.id,
+    background: resolvedBg,
+    needsApproval: true,
   };
 
   appendLog({
@@ -236,6 +307,7 @@ async function writeUploadedAudio(buffer, fileName) {
 
 module.exports = {
   resolveAudioPath,
+  resolveBackgroundInput,
   probeAudio,
   renderVerticalReel,
   writeUploadedAudio,

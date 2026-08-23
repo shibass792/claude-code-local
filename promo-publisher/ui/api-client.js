@@ -48,10 +48,24 @@
     writeEpk: (payload) => json('POST', '/api/career/epk', payload ?? {}),
     getPack: () => json('GET', '/api/pack'),
     generatePack: () => json('POST', '/api/pack/generate', {}),
-    uploadAndRender: async (file) => {
-      const res = await fetch('/api/render/upload', {
+    scanBackgrounds: (payload) => json('POST', '/api/backgrounds/scan', payload ?? {}),
+    getBackgrounds: () => json('GET', '/api/backgrounds'),
+    uploadBackground: async (file) => {
+      const res = await fetch('/api/backgrounds/upload', {
         method: 'POST',
         headers: { 'X-Filename': file.name },
+        body: file,
+      });
+      return res.json();
+    },
+    uploadAndRender: async (file, extra) => {
+      const headers = { 'X-Filename': file.name };
+      if (extra?.backgroundId) {
+        headers['X-Background-Id'] = extra.backgroundId;
+      }
+      const res = await fetch('/api/render/upload', {
+        method: 'POST',
+        headers,
         body: file,
       });
       return res.json();

@@ -13,6 +13,7 @@ const { renderVerticalReel, writeUploadedAudio } = require('./modules/render');
 const { generateViralHooks } = require('./modules/hooks');
 const instagram = require('./modules/instagram-engine');
 const music = require('./modules/music-library');
+const backgrounds = require('./modules/backgrounds');
 const { readLog, clearLog, formatLogText, readState } = require('./modules/creation-log');
 const { MEDIA_DIR, OUTPUT_DIR, ROOT, ensureDir, resolveFromRoot } = require('./modules/store');
 const { runCommand } = require('./modules/engines');
@@ -46,6 +47,11 @@ const MIME = {
   '.mid': 'audio/midi',
   '.midi': 'audio/midi',
   '.svg': 'image/svg+xml',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
 };
 
 function sendJson(res, status, payload) {
@@ -182,9 +188,9 @@ async function handleApi(req, res, url) {
     return;
   }
 
-  if (req.method === 'POST' && route === '/api/render') {
+  if (req.method === 'POST' && (route === '/api/render' || route === '/api/render/reel')) {
     const body = await readJsonBody(req);
-    sendJson(res, 200, await renderVerticalReel(body));
+    sendJson(res, 200, await renderVerticalReel({ ...body, enqueue: true }));
     return;
   }
 
@@ -193,7 +199,8 @@ async function handleApi(req, res, url) {
     const fileName = req.headers['x-filename'] || `upload_${Date.now()}.wav`;
     const audioPath = await writeUploadedAudio(buffer, String(fileName));
     const title = path.parse(String(fileName)).name;
-    sendJson(res, 200, await renderVerticalReel({ audioPath, title, enqueue: true }));
+    const backgroundId = req.headers['x-background-id'] || undefined;
+    sendJson(res, 200, await renderVerticalReel({ audioPath, title, backgroundId, enqueue: true }));
     return;
   }
 
@@ -220,6 +227,40 @@ async function handleApi(req, res, url) {
   if (req.method === 'POST' && route === '/api/music/scan') {
     const body = await readJsonBody(req).catch(() => ({}));
     sendJson(res, 200, await music.scanLibrary(body));
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/backgrounds') {
+    sendJson(res, 200, backgrounds.getIndex());
+    return;
+  }
+
+  if (req.method === 'POST' && route === '/api/backgrounds/scan') {
+    const body = await readJsonBody(req).catch(() => ({}));
+    sendJson(res, 200, await backgrounds.scanBackgrounds(body));
+    return;
+  }
+
+  if (req.method === 'POST' && route === '/api/backgrounds/upload') {
+    const buffer = await readBody(req);
+    const fileName = req.headers['x-filename'] || `upload_${Date.now()}.png`;
+    const dest = backgrounds.writeUploadedBackground(buffer, String(fileName));
+    const index = await backgrounds.scanBackgrounds({
+      roots: [...new Set([...(backgrounds.getIndex().roots ?? []), path.dirname(dest)])],
+    });
+    const image = index.images.find((item) => item.path === dest) ?? null;
+    sendJson(res, 200, { success: true, mock: false, path: dest, image, index });
+    return;
+  }
+
+  if (req.method === 'GET' && route.startsWith('/api/backgrounds/file/')) {
+    const id = route.slice('/api/backgrounds/file/'.length);
+    const image = backgrounds.getBackground(id);
+    if (!image) {
+      sendJson(res, 404, { success: false, error: 'Background not found' });
+      return;
+    }
+    serveFile(res, image.path);
     return;
   }
 
@@ -337,7 +378,7 @@ async function onRequest(req, res) {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,X-Filename',
+      'Access-Control-Allow-Headers': 'Content-Type,X-Filename,X-Background-Id',
     });
     res.end();
     return;

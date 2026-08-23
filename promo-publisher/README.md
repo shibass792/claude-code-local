@@ -78,7 +78,11 @@ npm run api
 | נתיב | מה הוא עושה באמת |
 |------|-------------------|
 | `GET /api/engines` | בודק FFmpeg, Ollama, yt-dlp, InstaPy, Meta |
-| `POST /api/render` | רינדור 9:16 עם FFmpeg לקובץ MP4 |
+| `POST /api/render` | רינדור 9:16 עם FFmpeg לקובץ MP4 (נכנס לתור אישור, לא מפרסם) |
+| `POST /api/render/reel` | אותו רינדור — רקע + טראק, תמיד לתור אישור |
+| `POST /api/backgrounds/scan` | סורק JPG/PNG/WEBP מ-`SHIBASS_BG_ROOTS`, Inbox, Downloads, Pictures |
+| `GET /api/backgrounds` | אינדקס רקעים אחרון |
+| `GET /api/backgrounds/file/:id` | תמונת ממוזערת / קובץ רקע |
 | `POST /api/hooks` | Ollama / OpenAI-compatible / metadata engine |
 | `POST /api/instagram/session` | Graph API (או InstaPy אם מותקן ו-`INSTAPY_ENABLED=1`) |
 | `POST /api/music/scan` | סורק WAV/MP3/MIDI וכותב `output/music_index.json` |

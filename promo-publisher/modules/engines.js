@@ -6,7 +6,7 @@ const fs = require('fs');
 const { appendLog, snapshotState } = require('./creation-log');
 const metaPublisher = require('./publishers/meta');
 const tiktokPublisher = require('./publishers/tiktok');
-const { MUSIC_INDEX, readJson } = require('./store');
+const { MUSIC_INDEX, BG_INDEX, readJson } = require('./store');
 
 const execFileAsync = promisify(execFile);
 
@@ -183,6 +183,19 @@ function probeMusicIndex() {
   };
 }
 
+function probeBackgrounds() {
+  const index = readJson(BG_INDEX, null);
+  const images = Array.isArray(index?.images) ? index.images : [];
+  return {
+    id: 'backgrounds',
+    label: 'Background / artwork library',
+    available: images.length > 0,
+    images: images.length,
+    scannedAt: index?.scannedAt ?? null,
+    error: images.length ? null : 'No background index — run a scan',
+  };
+}
+
 async function getEngineStatus({ log = false } = {}) {
   const [ffmpeg, ffprobe, ollama, openaiCompat, ytDlp, instapy, remotion] = await Promise.all([
     probeFfmpeg(),
@@ -195,6 +208,7 @@ async function getEngineStatus({ log = false } = {}) {
   ]);
 
   const music = probeMusicIndex();
+  const backgrounds = probeBackgrounds();
   const engines = {
     ffmpeg,
     ffprobe,
@@ -204,6 +218,7 @@ async function getEngineStatus({ log = false } = {}) {
     instapy,
     remotion,
     music,
+    backgrounds,
     meta: {
       id: 'meta',
       label: 'Meta Graph API',
@@ -273,4 +288,5 @@ module.exports = {
   getEngineStatus,
   resolvePython,
   resolveMediaRoots,
+  probeBackgrounds,
 };

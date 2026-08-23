@@ -5,6 +5,8 @@ media/*.wav
 media/*.mp3
 media/*.flac
 media/*.mp4
+backgrounds/*
+!backgrounds/.gitkeep
 config/tokens.enc
 config/.env
 *.log

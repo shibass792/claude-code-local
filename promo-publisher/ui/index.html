@@ -195,8 +195,8 @@
 
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
-          <h1>לוג יצירה, InstaPy ורינדור סרטונים</h1>
-          <p>כל כפתור כאן קורא ל-API אמיתי — FFmpeg, Ollama/ReelHook, Meta Graph / InstaPy</p>
+          <h1>לוג יצירה, רקעים ורינדור רילס</h1>
+          <p>FFmpeg 9:16 אמיתי מהטראק + רקע שהורדת. שום דבר לא עולה לרשת בלי צפייה + אשר ופרסם.</p>
         </header>
 
         <div class="engine-actions">
@@ -206,9 +206,42 @@
           <button class="btn btn-primary" id="btn-render-selected" type="button">רנדר 9:16</button>
         </div>
 
+        <section class="reel-builder" id="reel-builder">
+          <h2>רילס מחומר גלם</h2>
+          <p class="muted">סורק את התיקיות שהגדרת ב-<code>SHIBASS_BG_ROOTS</code>, Inbox, Downloads, Pictures, ותיקיות artwork / covers. בחר רקע + טראק. הריל נכנס לתור אישור בלבד.</p>
+          <div class="engine-actions">
+            <button class="btn btn-secondary" id="btn-scan-backgrounds" type="button">סרוק רקעים</button>
+            <label class="btn btn-secondary file-btn">
+              העלה רקע
+              <input id="bg-file" type="file" accept="image/jpeg,image/png,image/webp,image/bmp,.jpg,.jpeg,.png,.webp,.bmp" hidden>
+            </label>
+          </div>
+          <p class="muted" id="bg-index-status">אין אינדקס רקעים — לחץ סרוק רקעים</p>
+          <div class="bg-grid" id="bg-grid"></div>
+          <div class="reel-fields">
+            <label>טראק
+              <select id="reel-track-select">
+                <option value="">בחר טראק מהספרייה</option>
+              </select>
+            </label>
+            <label>כותרת
+              <input id="reel-title" type="text" maxlength="80" placeholder="שם הריל">
+            </label>
+            <label>הוק / כיתוב
+              <input id="reel-hook" type="text" maxlength="160" placeholder="הוק שיופיע בכיתוב לאישור">
+            </label>
+            <label>אורך (שניות)
+              <input id="reel-duration" type="number" min="3" max="59" value="30">
+            </label>
+          </div>
+          <div class="engine-actions">
+            <button class="btn btn-primary" id="btn-prepare-reel" type="button">הכן ריל לאישור</button>
+          </div>
+        </section>
+
         <div class="drop-zone" id="drop-zone">
           <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) לרינדור אמיתי</h3>
-          <p>FFmpeg 1080×1920 · הוקים מ-Ollama · תור אישור אחרי רינדור</p>
+          <p>FFmpeg 1080×1920 · אם נבחר רקע הוא ייכנס לריל · תור אישור אחרי רינדור</p>
           <input id="audio-file" type="file" accept="audio/*,.wav,.mp3,.flac,.mid,.midi">
         </div>
 

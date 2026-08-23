@@ -44,6 +44,8 @@ module.exports = {
   RADAR_DB: path.join(OUTPUT_DIR, 'radar_feed.json'),
   PUBLISH_RESULTS: path.join(OUTPUT_DIR, 'publish_results.json'),
   MUSIC_INDEX: path.join(OUTPUT_DIR, 'music_index.json'),
+  BG_INDEX: path.join(OUTPUT_DIR, 'backgrounds_index.json'),
+  BACKGROUNDS_DIR: path.join(ROOT, 'backgrounds'),
   CREATION_LOG: path.join(OUTPUT_DIR, 'creation_log.jsonl'),
   WATCHLIST: path.join(ROOT, 'config', 'watchlist.json'),
   ensureDir,

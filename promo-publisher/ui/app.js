@@ -33,6 +33,8 @@ function switchTab(tabId) {
   }
   if (tabId === 'create-tab') {
     refreshCreationLog();
+    loadBackgroundIndex();
+    fillReelTrackSelect();
   }
   if (tabId === 'player-tab') {
     loadMusicIndex();
@@ -337,21 +339,127 @@ function setupDropZone() {
   });
 }
 
+let selectedBackgroundId = null;
+let backgroundCatalog = [];
+
+function backgroundUrl(image) {
+  if (!image) {
+    return '';
+  }
+  if (location.protocol === 'file:') {
+    return `file://${String(image.path).replace(/\\/g, '/')}`;
+  }
+  return `/api/backgrounds/file/${image.id}`;
+}
+
+function renderBackgroundGrid() {
+  const grid = document.getElementById('bg-grid');
+  const status = document.getElementById('bg-index-status');
+  if (!grid) {
+    return;
+  }
+  grid.innerHTML = '';
+  if (status) {
+    status.textContent = backgroundCatalog.length
+      ? `${backgroundCatalog.length} רקעים באינדקס`
+      : 'אין אינדקס רקעים — לחץ סרוק רקעים';
+  }
+  backgroundCatalog.forEach((image) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = image.id === selectedBackgroundId ? 'bg-tile selected' : 'bg-tile';
+    tile.innerHTML = `<img alt="" src="${escapeHtml(backgroundUrl(image))}"><span>${escapeHtml(image.name)}</span>`;
+    tile.addEventListener('click', () => {
+      selectedBackgroundId = image.id;
+      renderBackgroundGrid();
+    });
+    grid.appendChild(tile);
+  });
+}
+
+function fillReelTrackSelect() {
+  const select = document.getElementById('reel-track-select');
+  if (!select) {
+    return;
+  }
+  const audioTracks = playlist.filter((track) => track.kind === 'audio');
+  const currentId = currentTrack()?.id || select.value;
+  select.innerHTML = '<option value="">בחר טראק מהספרייה</option>';
+  audioTracks.forEach((track) => {
+    const option = document.createElement('option');
+    option.value = track.id;
+    option.textContent = track.name;
+    select.appendChild(option);
+  });
+  if (currentId && audioTracks.some((track) => track.id === currentId)) {
+    select.value = currentId;
+  }
+}
+
+async function loadBackgroundIndex() {
+  if (!window.api?.getBackgrounds) {
+    return;
+  }
+  const index = await window.api.getBackgrounds();
+  backgroundCatalog = index.images ?? [];
+  renderBackgroundGrid();
+}
+
+function selectedReelTrack() {
+  const select = document.getElementById('reel-track-select');
+  const fromSelect = playlist.find((track) => track.id === select?.value);
+  return fromSelect || currentTrack() || playlist.find((item) => item.kind === 'audio') || null;
+}
+
+async function prepareApprovedReel() {
+  const track = selectedReelTrack();
+  if (!track || track.kind !== 'audio') {
+    showToast('בחר טראק אודיו או סרוק את הספרייה');
+    return;
+  }
+  const title = document.getElementById('reel-title')?.value.trim() || track.name;
+  const hook = document.getElementById('reel-hook')?.value.trim();
+  const durationSec = Number(document.getElementById('reel-duration')?.value) || 30;
+  showToast('מכין ריל לתור אישור...');
+  const result = await window.api.renderReel({
+    audioPath: track.path,
+    title,
+    hook: hook || undefined,
+    backgroundId: selectedBackgroundId || undefined,
+    durationSec,
+  });
+  await refreshCreationLog();
+  if (result?.success) {
+    showToast('הריל מוכן בתור אישור — צפה ואז אשר');
+    await loadApprovalQueue();
+    switchTab('approval-tab');
+    return;
+  }
+  showToast(result?.error ?? 'הרינדור נכשל');
+}
+
 async function renderDroppedFile(file) {
   showToast(`מרנדר ${file.name}...`);
   let result;
   if (file.path && window.api?.renderReel) {
-    result = await window.api.renderReel({ audioPath: file.path, title: file.name });
+    result = await window.api.renderReel({
+      audioPath: file.path,
+      title: file.name,
+      backgroundId: selectedBackgroundId || undefined,
+    });
   } else if (window.api?.uploadAndRender) {
-    result = await window.api.uploadAndRender(file);
+    result = await window.api.uploadAndRender(file, {
+      backgroundId: selectedBackgroundId || undefined,
+    });
   } else {
     showToast('API רינדור לא זמין');
     return;
   }
   await refreshCreationLog();
   if (result?.success) {
-    showToast(`רונדר ${result.relativePath}`);
+    showToast('הריל מוכן בתור אישור — צפה ואז אשר');
     await loadApprovalQueue();
+    switchTab('approval-tab');
   } else {
     showToast(result?.error ?? 'הרינדור נכשל');
   }
@@ -471,6 +579,7 @@ function setupPlayerControls() {
     showToast('סורק ספריית מוזיקה...');
     await window.api.scanMusic({});
     await loadMusicIndex();
+    fillReelTrackSelect();
     await refreshCreationLog();
     showToast('הסריקה הושלמה');
   });
@@ -799,13 +908,38 @@ function setupStudioActions() {
     const result = await window.api.renderReel({
       audioPath: track.path,
       title: track.name,
+      backgroundId: selectedBackgroundId || undefined,
     });
     await refreshCreationLog();
     if (result.success) {
-      showToast(`רונדר ${result.relativePath}`);
+      showToast('הריל מוכן בתור אישור — צפה ואז אשר');
       await loadApprovalQueue();
+      switchTab('approval-tab');
     } else {
       showToast(result.error ?? 'הרינדור נכשל');
+    }
+  });
+  document.getElementById('btn-scan-backgrounds')?.addEventListener('click', async () => {
+    showToast('סורק רקעים מהמחשב...');
+    await window.api.scanBackgrounds({});
+    await loadBackgroundIndex();
+    await refreshCreationLog();
+    showToast(backgroundCatalog.length ? `${backgroundCatalog.length} רקעים נמצאו` : 'לא נמצאו רקעים בתיקיות הידועות');
+  });
+  document.getElementById('btn-prepare-reel')?.addEventListener('click', () => prepareApprovedReel());
+  document.getElementById('bg-file')?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !window.api?.uploadBackground) {
+      return;
+    }
+    const result = await window.api.uploadBackground(file);
+    await loadBackgroundIndex();
+    if (result?.success && result.image?.id) {
+      selectedBackgroundId = result.image.id;
+      renderBackgroundGrid();
+      showToast('הרקע נשמר — עדיין לא פורסם כלום');
+    } else {
+      showToast(result?.error ?? 'העלאת הרקע נכשלה');
     }
   });
 }
@@ -821,5 +955,6 @@ window.addEventListener('DOMContentLoaded', () => {
   loadApprovalQueue();
   refreshSystemStatus();
   refreshCreationLog();
-  loadMusicIndex();
+  loadMusicIndex().then(() => fillReelTrackSelect());
+  loadBackgroundIndex();
 });

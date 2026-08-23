@@ -25,4 +25,6 @@ contextBridge.exposeInMainWorld('api', {
   writeEpk: (payload) => ipcRenderer.invoke('career:epk', payload ?? {}),
   getPack: () => ipcRenderer.invoke('pack:status'),
   generatePack: () => ipcRenderer.invoke('pack:generate'),
+  scanBackgrounds: (payload) => ipcRenderer.invoke('backgrounds:scan', payload ?? {}),
+  getBackgrounds: () => ipcRenderer.invoke('backgrounds:index'),
 });
