@@ -5,6 +5,12 @@ const path = require('path');
 const fs = require('fs');
 const radar = require('./modules/radar');
 const approvalEngine = require('./modules/approval-publisher');
+const videoEngine = require('./modules/video-engine');
+const reelhook = require('./modules/reelhook');
+const musicLibrary = require('./modules/music-library');
+const instagramEngine = require('./modules/instagram-engine');
+const { collectHealth, createCampaignFromAudio } = require('./modules/api-router');
+const { startServer } = require('./api-server');
 const { resolveFromRoot } = require('./modules/store');
 
 function configureElectronStorage() {
@@ -43,6 +49,7 @@ if (!gotSingleInstanceLock) {
 }
 
 let mainWindow;
+let apiHandle = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -73,7 +80,14 @@ app.on('second-instance', () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    apiHandle = await startServer();
+    console.log(`[shibass-api] ${apiHandle.url}`);
+  } catch (error) {
+    console.error('[shibass-api] failed to bind', error);
+  }
+
   createWindow();
 
   app.on('activate', () => {
@@ -84,6 +98,9 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  if (apiHandle?.server) {
+    apiHandle.server.close();
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -109,7 +126,25 @@ ipcMain.handle('approval:mark-watched', async (_event, campaignId) =>
 
 ipcMain.handle('approval:get-history', async () => approvalEngine.getPublishHistory());
 
-ipcMain.handle('connections:get-health', async () => approvalEngine.getConnectionHealth());
+ipcMain.handle('connections:get-health', async () => collectHealth());
+
+ipcMain.handle('studio:render', async (_event, payload) =>
+  videoEngine.renderVerticalReel(payload),
+);
+
+ipcMain.handle('studio:hooks', async (_event, payload) => reelhook.generateHooks(payload));
+
+ipcMain.handle('studio:instagram-health', async () => instagramEngine.probeGraphApi());
+
+ipcMain.handle('studio:scan-library', async (_event, payload) =>
+  musicLibrary.scanLibrary(payload ?? {}),
+);
+
+ipcMain.handle('studio:music-index', async () => musicLibrary.getIndex());
+
+ipcMain.handle('studio:create-campaign', async (_event, payload) =>
+  createCampaignFromAudio(payload.audioPath, payload.hook),
+);
 
 ipcMain.handle('media:resolve-path', async (_event, relativePath) => {
   const absolute = resolveFromRoot(relativePath);

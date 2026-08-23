@@ -60,18 +60,38 @@ promo-publisher/
 ## הגדרת API
 
 1. העתק `config/.env.example` ל-`config/.env`
-2. מלא `META_ACCESS_TOKEN`, `META_PAGE_ID`, `META_IG_USER_ID`
+2. מלא `META_ACCESS_TOKEN`, `META_PAGE_ID`, `META_IG_USER_ID` לפרסום Reels אמיתי דרך Instagram Graph API
 3. מלא `TIKTOK_CLIENT_KEY`, `TIKTOK_ACCESS_TOKEN`
 4. (אופציונלי) `CLOUDFLARE_TUNNEL_TOKEN` או התקן `cloudflared`
+5. (אופציונלי) `OLLAMA_HOST` / `OLLAMA_MODEL` להוקים חיים. בלי Ollama נוצרים הוקים מקומיים לפי שם הטראק וה-BPM
+6. `SHIBASS_MUSIC_ROOTS` לסריקת הנגן
 
-ללא טוקנים — המערכת רצה במצב **סימולציה** (mock publish) לבדיקת זרימת האישור.
+ללא טוקני Meta/TikTok — **אין פרסום מדומה**. הכפתורים קוראים ל-API אמיתי ומחזירים שגיאה חיה.
+
+## API מקומי אמיתי
+
+```bash
+cd promo-publisher
+npm run api
+# http://127.0.0.1:4050
+```
+
+| Method | Path | מה באמת קורה |
+|--------|------|----------------|
+| GET | `/api/health` | בודק FFmpeg, Ollama, Instagram Graph, TikTok, אינדקס נגן |
+| POST | `/api/render` | FFmpeg מייצר MP4 9:16 1080x1920 |
+| POST | `/api/hooks` | קורא ל-Ollama; אם נפל — fallback מקומי לפי מטא-דאטה |
+| GET | `/api/instagram/health` | `GET graph.facebook.com/v21.0/me` |
+| POST | `/api/player/scan` | סורק תיקיות אודיו/MIDI וכותב `output/music_index.json` |
+| GET | `/api/player/file?id=` | סטרים אמיתי של הקובץ שנסרק |
+| POST | `/api/create-campaign` | רינדור + הוקים + כניסה לתור אישור |
+
+Instagram משתמש ב-**Graph API הרשמי** לפרסום Reels. אין Selenium / InstaPy scraping.
 
 ## שלבים הבאים
 
-1. חיבור מנוע FFmpeg / NVENC הקיים לרינדור תבניות
-2. אינטגרציית yt-dlp לסריקת רדאר חיה
-3. Ollama לכתיבת הוקים אוטומטית
-4. Telegram bot לאישור מהסמארטפון (אופציונלי)
+1. yt-dlp לסריקת רדאר חיה (כרגע מסומן `source: sample` אם אין סריקה)
+2. Telegram bot לאישור מהסמארטפון (אופציונלי)
 
 ## רישיון
 

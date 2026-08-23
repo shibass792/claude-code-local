@@ -106,12 +106,71 @@ async function publishToPlatforms(campaign, publicVideoUrl) {
   return results;
 }
 
-function mockPublishUrls(campaignId) {
-  return {
-    instagram: `https://instagram.com/p/mock_${campaignId}`,
-    facebook: `https://facebook.com/watch/mock_${campaignId}`,
-    tiktok: `https://tiktok.com/@shibass/video/mock_${campaignId}`,
+function allowMockPublish() {
+  return process.env.SHIBASS_ALLOW_MOCK_PUBLISH === '1';
+}
+
+function collectPublishUrls(campaignId, platformResults) {
+  const urls = {};
+  for (const result of platformResults) {
+    if (result.success && result.id) {
+      if (result.platform === 'instagram') {
+        urls.instagram = `https://www.instagram.com/reel/${result.id}/`;
+      }
+      if (result.platform === 'facebook') {
+        urls.facebook = `https://www.facebook.com/watch/?v=${result.id}`;
+      }
+    }
+    if (result.success && result.publishId && result.platform === 'tiktok') {
+      urls.tiktok = `tiktok:publish:${result.publishId}`;
+    }
+  }
+  if (allowMockPublish() && Object.keys(urls).length === 0) {
+    return {
+      instagram: `https://instagram.com/p/mock_${campaignId}`,
+      facebook: `https://facebook.com/watch/mock_${campaignId}`,
+      tiktok: `https://tiktok.com/@shibass/video/mock_${campaignId}`,
+    };
+  }
+  return urls;
+}
+
+function formatDuration(durationSec) {
+  const total = Math.max(0, Math.round(Number(durationSec) || 0));
+  const minutes = String(Math.floor(total / 60)).padStart(2, '0');
+  const seconds = String(total % 60).padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+function enqueueRenderedCampaign({
+  title,
+  videoPath,
+  durationSec,
+  hook,
+  hooks,
+  audioPath,
+}) {
+  const campaign = {
+    id: `camp_${Date.now()}`,
+    title: title || 'Untitled reel',
+    videoPath,
+    audioPath: audioPath || null,
+    duration: formatDuration(durationSec),
+    format: 'Reels / TikTok (9:16)',
+    templateId: null,
+    watched: false,
+    captionHe: hook || (hooks && hooks[0]) || '',
+    captionEn: (hooks && hooks[1]) || hook || '',
+    hashtags: '#Psytrance #ShiBass #ElectronicMusic',
+    platforms: ['instagram', 'tiktok', 'facebook'],
+    hooks: hooks ?? [],
+    createdAt: new Date().toISOString(),
   };
+
+  const queue = getPendingQueue();
+  queue.unshift(campaign);
+  savePendingQueue(queue);
+  return campaign;
 }
 
 async function publishCampaign(campaignData) {
@@ -122,12 +181,21 @@ async function publishCampaign(campaignData) {
   if (!campaignData.watched) {
     return {
       success: false,
+      mock: false,
       error: 'יש לצפות בסרטון לפחות פעם אחת לפני פרסום',
     };
   }
 
   const videoPath = resolveFromRoot(campaignData.videoPath);
   const hasVideo = Boolean(videoPath && fs.existsSync(videoPath));
+
+  if (!hasVideo && !allowMockPublish()) {
+    return {
+      success: false,
+      mock: false,
+      error: 'קובץ הווידאו חסר — הרץ רינדור אמיתי לפני פרסום',
+    };
+  }
 
   let tunnelHandle = null;
   let publicVideoUrl = null;
@@ -138,7 +206,6 @@ async function publishCampaign(campaignData) {
   }
 
   let platformResults = [];
-  let urls = mockPublishUrls(campaignData.id);
 
   try {
     if (hasVideo && publicVideoUrl) {
@@ -146,17 +213,18 @@ async function publishCampaign(campaignData) {
     } else {
       platformResults = (campaignData.platforms ?? []).map((platform) => ({
         platform,
-        success: true,
-        mock: true,
-        error: 'Video file missing — mock publish only',
+        success: false,
+        mock: allowMockPublish(),
+        error: 'Video file missing',
       }));
     }
 
     const allMock =
       platformResults.length > 0 && platformResults.every((item) => item.mock);
     const anyFailed = platformResults.some((item) => item.success === false);
+    const urls = collectPublishUrls(campaignData.id, platformResults);
 
-    if (!anyFailed || allMock) {
+    if (!anyFailed) {
       rejectCampaign(campaignData.id);
     }
 
@@ -174,7 +242,7 @@ async function publishCampaign(campaignData) {
     appendPublishResult(entry);
 
     return {
-      success: !anyFailed || allMock,
+      success: !anyFailed,
       mock: allMock,
       publishedAt: entry.publishedAt,
       campaignId: campaignData.id,
@@ -216,6 +284,7 @@ module.exports = {
   savePendingQueue,
   rejectCampaign,
   markWatched,
+  enqueueRenderedCampaign,
   publishCampaign,
   getPublishHistory,
   getConnectionHealth,

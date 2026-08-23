@@ -98,13 +98,50 @@
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
           <h1>הפקת סרטון חדש מהמחשב</h1>
-          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+          <p>כל כפתור כאן קורא ל-API אמיתי — אין לוג תבנית</p>
         </header>
         <div class="drop-zone" id="drop-zone">
-          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
-          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
-          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או בחר טראק מהנגן</h3>
+          <p>FFmpeg 9:16 · Ollama ReelHook · Instagram Graph API</p>
+          <input id="audio-file-input" type="file" accept="audio/*,.wav,.mp3,.flac,.aiff,.mid,.midi" hidden>
+          <label class="path-label" for="audio-path-input">נתיב קובץ מלא</label>
+          <input id="audio-path-input" class="path-input" type="text" dir="ltr" placeholder="C:\Users\shibass\Documents\track.wav">
+          <div class="create-actions">
+            <button class="btn btn-secondary" id="btn-pick-audio" type="button">בחר קובץ</button>
+            <button class="btn btn-secondary" id="btn-render" type="button">🎬 רינדור 9:16</button>
+            <button class="btn btn-secondary" id="btn-hooks" type="button">🧠 צור הוקים</button>
+            <button class="btn btn-secondary" id="btn-ig-health" type="button">📸 בדוק Instagram API</button>
+            <button class="btn btn-primary" id="btn-create-campaign" type="button">➕ רינדור + תור אישור</button>
+          </div>
         </div>
+
+        <section class="engine-log-card" aria-label="Creation log">
+          <header class="row-header">
+            <h2>📋 לוג יצירה, Instagram ורינדור סרטונים</h2>
+            <button class="btn btn-secondary" id="btn-refresh-health" type="button">רענן סטטוס</button>
+          </header>
+          <pre id="engine-log" class="engine-log" dir="ltr"></pre>
+        </section>
+
+        <section class="player-card" aria-label="ShiBass Universal Player">
+          <header class="row-header">
+            <h2>⚡ ShiBass Universal Player</h2>
+            <button class="btn btn-secondary" id="btn-scan-library" type="button">סרוק ספרייה</button>
+          </header>
+          <p id="player-track-name" class="player-track">אין אינדקס מוזיקה — הרץ סריקה</p>
+          <audio id="universal-audio" preload="metadata"></audio>
+          <div class="player-controls">
+            <button class="btn btn-secondary" id="btn-prev" type="button">⏮️</button>
+            <button class="btn btn-primary" id="btn-play" type="button">▶ נגן</button>
+            <button class="btn btn-secondary" id="btn-stop" type="button">■ עצור</button>
+            <button class="btn btn-secondary" id="btn-plus5" type="button">⏩ +5s</button>
+            <button class="btn btn-secondary" id="btn-next" type="button">⏭️</button>
+            <label class="player-loop"><input type="checkbox" id="chk-loop" checked> 🔁 ברצף</label>
+            <label class="player-vol">🔊 <input type="range" id="vol-slider" min="0" max="100" value="75"> <span id="vol-label">75%</span></label>
+            <span id="player-time" class="player-time">00:00</span>
+          </div>
+          <select id="player-track-list" size="6" dir="ltr"></select>
+        </section>
       </section>
 
       <section id="history-tab" class="tab-content">
