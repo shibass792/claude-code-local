@@ -11,7 +11,8 @@
 #>
 param(
   [string]$Root = "H:\shibass-ai",
-  [int]$PollSeconds = 5
+  [int]$PollSeconds = 5,
+  [switch]$RunOnce
 )
 
 $ErrorActionPreference = "Continue"
@@ -112,6 +113,11 @@ while ($true) {
     } else {
       Write-Host ("[!] " + $f.Name + ": demucs failed (exit " + $LASTEXITCODE + ")") -ForegroundColor Red
     }
+  }
+
+  if ($RunOnce -or $env:SHIBASS_DEMUCS_RUN_ONCE -eq "1") {
+    Write-Host "RunOnce complete." -ForegroundColor Cyan
+    break
   }
 
   Start-Sleep -Seconds $PollSeconds

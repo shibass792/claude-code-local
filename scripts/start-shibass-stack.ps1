@@ -11,6 +11,7 @@ param(
   [string]$Root = "H:\shibass-ai",
   [string]$PanelDir = "H:\shibass-ai-panel",
   [switch]$IncludeIndexMemory,
+  [switch]$IncludeDemucsWatcher,
   [switch]$SkipMainIde,
   [switch]$SkipPanel,
   [switch]$SkipMemory
@@ -77,7 +78,20 @@ if ($IncludeIndexMemory) {
   }
 }
 
+if ($IncludeDemucsWatcher) {
+  $demucsScript = Join-Path $Root "scripts\start-demucs-pipeline.ps1"
+  if (Test-Path $demucsScript) {
+    Start-Process -FilePath "powershell" -ArgumentList @(
+      "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $demucsScript, "-Root", $Root, "-SkipWire"
+    ) -WorkingDirectory $Root -WindowStyle Minimized | Out-Null
+    Write-Host "Demucs watcher started (MIDI_EXPORT)" -ForegroundColor Green
+  } else {
+    Write-Host "SKIP Demucs — missing $demucsScript" -ForegroundColor Yellow
+  }
+}
+
 Write-Host ""
 Write-Host "Doctor: scripts\shibass-doctor.ps1" -ForegroundColor DarkCyan
+Write-Host "Demucs: docs\DEMUCS_QUICKSTART_HE.md" -ForegroundColor DarkCyan
 Write-Host "Topology: docs\SHIBASS_LIVE_TOPOLOGY.md" -ForegroundColor DarkCyan
 Write-Host ""

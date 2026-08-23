@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 param(
   [string]$TargetRoot = "H:\shibass-ai",
   [string]$ZipPath = "",
@@ -74,7 +74,13 @@ if (Test-Path $cfgSrc) {
 
 Ensure-Dir (Join-Path $TargetRoot "10_OUTPUTS\social")
 
-foreach ($f in @("INSTALL-SHIBASS-UPDATES.ps1", "INSTALL-SHIBASS-UPDATES.cmd", "INSTALL-FROM-DOWNLOADS.ps1", "START-SOCIAL-STUDIO.cmd")) {
+foreach ($f in @(
+    "INSTALL-SHIBASS-UPDATES.ps1",
+    "INSTALL-SHIBASS-UPDATES.cmd",
+    "INSTALL-FROM-DOWNLOADS.ps1",
+    "START-SOCIAL-STUDIO.cmd",
+    "START-MIDI-FORGE-DEMUCS.cmd"
+  )) {
   $sf = Join-Path $repoRoot.FullName $f
   if (Test-Path $sf) {
     Copy-Item $sf (Join-Path $TargetRoot $f) -Force
@@ -96,4 +102,6 @@ if (-not $SkipNpmInstall) {
 Write-Host ""
 Write-Host "Done!" -ForegroundColor Green
 Write-Host ("Social: cd " + $TargetRoot + "\promo-publisher; npm start")
+Write-Host ("Demucs: powershell -ExecutionPolicy Bypass -File " + $TargetRoot + "\scripts\start-demucs-pipeline.ps1")
+Write-Host ("Guide:  " + $TargetRoot + "\docs\DEMUCS_QUICKSTART_HE.md")
 Write-Host ""
