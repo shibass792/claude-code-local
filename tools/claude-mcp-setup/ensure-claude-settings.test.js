@@ -28,10 +28,37 @@ test('Windows installer creates .claude before writing settings.json', () => {
   assert.ok(createAt >= 0 && writeAt > createAt);
 });
 
+test('replaces a file sitting where .claude should be', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-file-'));
+  const claudeHome = path.join(home, '.claude');
+  fs.writeFileSync(claudeHome, 'not a directory');
+  const written = ensureClaudeSettings(claudeHome);
+  assert.equal(fs.statSync(claudeHome).isDirectory(), true);
+  assert.equal(fs.existsSync(written), true);
+});
+
+test('replaces a broken symlink at .claude', () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-link-'));
+  const claudeHome = path.join(home, '.claude');
+  fs.symlinkSync(path.join(home, 'missing-target'), claudeHome);
+  const written = ensureClaudeSettings(claudeHome);
+  assert.equal(fs.statSync(claudeHome).isDirectory(), true);
+  assert.equal(fs.existsSync(written), true);
+});
+
+test('Windows installer repairs file or broken junction before writing', () => {
+  const installer = fs.readFileSync(path.join(__dirname, '..', '..', 'INSTALL-CLAUDE-MCP.ps1'), 'utf8');
+  assert.match(installer, /FileAttributes\]::ReparsePoint/);
+  assert.match(installer, /Directory\]::CreateDirectory/);
+  assert.match(installer, /WriteAllText/);
+  assert.equal(installer.includes('Set-Content -LiteralPath $settingsPath'), false);
+});
+
 test('Windows installer scripts are ASCII so PowerShell 5.1 does not eat quotes', () => {
   const files = [
     path.join(__dirname, '..', '..', 'INSTALL-CLAUDE-MCP.ps1'),
     path.join(__dirname, 'Setup-ShiBass-Claude-MCP.ps1'),
+    path.join(__dirname, 'Repair-ClaudeHome.ps1'),
   ];
   for (const filePath of files) {
     const bytes = fs.readFileSync(filePath);

@@ -16,8 +16,25 @@ function Write-Ok([string]$Message) { Write-Host "[OK] $Message" -ForegroundColo
 function Write-Warn([string]$Message) { Write-Host "[!] $Message" -ForegroundColor Yellow }
 
 function Ensure-Directory([string]$Path) {
-  if (-not (Test-Path -LiteralPath $Path)) {
-    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+  $parent = Split-Path -Parent $Path
+  if ($parent -and -not [System.IO.Directory]::Exists($parent)) {
+    [void][System.IO.Directory]::CreateDirectory($parent)
+  }
+  $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+  if ($item) {
+    $isReparse = [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
+    $realDir = [System.IO.Directory]::Exists($item.FullName)
+    if (-not $item.PSIsContainer) {
+      Rename-Item -LiteralPath $Path -NewName ((Split-Path -Leaf $Path) + ".bak-file")
+    } elseif ($isReparse -and -not $realDir) {
+      & cmd.exe /c rmdir "$Path"
+    } elseif (-not $realDir) {
+      Remove-Item -LiteralPath $Path -Force
+    }
+  }
+  [void][System.IO.Directory]::CreateDirectory($Path)
+  if (-not [System.IO.Directory]::Exists($Path)) {
+    throw "Failed to create a real folder at $Path"
   }
 }
 
@@ -89,13 +106,15 @@ if (-not $wroteJson -and (Test-Path -LiteralPath $jsDest) -and (Get-Command node
 
 if (-not $wroteJson) {
   $settingsPath = Join-Path $claudeHome "settings.json"
+  Ensure-Directory $claudeHome
   $payload = @{
     permissions = @{
       allow = @("Bash(claude mcp *)", "Bash(claude mcp add *)")
     }
   } | ConvertTo-Json -Depth 8
-  Set-Content -LiteralPath $settingsPath -Value $payload -Encoding UTF8
-  $wroteJson = $true
+  $utf8 = New-Object System.Text.UTF8Encoding $false
+  [System.IO.File]::WriteAllText($settingsPath, $payload, $utf8)
+  $wroteJson = [System.IO.File]::Exists($settingsPath)
   Write-Ok "Wrote $settingsPath with a built-in fallback"
 }
 

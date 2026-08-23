@@ -7,7 +7,8 @@
   The previous crash:
     Set-Content : Could not find a part of the path
     'C:\Users\shibass\.claude\settings.json'
-  happened because .claude did not exist yet.
+  happened when .claude was missing, a FILE, or a broken junction.
+  Test-Path can return True in those cases, so New-Item is skipped.
 #>
 [CmdletBinding()]
 param(
@@ -41,11 +42,25 @@ function Ensure-Directory {
   if (-not $Path) {
     throw "Ensure-Directory requires a path"
   }
-  if (-not (Test-Path -LiteralPath $Path)) {
-    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+  $parent = Split-Path -Parent $Path
+  if ($parent -and -not [System.IO.Directory]::Exists($parent)) {
+    [void][System.IO.Directory]::CreateDirectory($parent)
   }
-  if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
-    throw "Path exists but is not a directory: $Path"
+  $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+  if ($item) {
+    $isReparse = [bool]($item.Attributes -band [IO.FileAttributes]::ReparsePoint)
+    $realDir = [System.IO.Directory]::Exists($item.FullName)
+    if (-not $item.PSIsContainer) {
+      Rename-Item -LiteralPath $Path -NewName ((Split-Path -Leaf $Path) + ".bak-file")
+    } elseif ($isReparse -and -not $realDir) {
+      & cmd.exe /c rmdir "$Path"
+    } elseif (-not $realDir) {
+      Remove-Item -LiteralPath $Path -Force
+    }
+  }
+  [void][System.IO.Directory]::CreateDirectory($Path)
+  if (-not [System.IO.Directory]::Exists($Path)) {
+    throw "Failed to create a real folder at $Path"
   }
   return (Resolve-Path -LiteralPath $Path).Path
 }
@@ -140,7 +155,8 @@ function Merge-ClaudeMcpPermission {
   $settings.permissions | Add-Member -NotePropertyName allow -NotePropertyValue $allow -Force
 
   $json = $settings | ConvertTo-Json -Depth 20
-  Set-Content -LiteralPath $SettingsPath -Value $json -Encoding UTF8
+  $utf8 = New-Object System.Text.UTF8Encoding $false
+  [System.IO.File]::WriteAllText($SettingsPath, $json, $utf8)
   return $SettingsPath
 }
 
