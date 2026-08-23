@@ -611,7 +611,12 @@ function setupActions() {
       return;
     }
     renderHookList(result.hooks);
-    showToast(`הופקו ${result.hooks.length} הוקים מ-${result.model}`);
+    const short = result.requested && result.hooks.length < result.requested;
+    showToast(
+      short
+        ? `המודל החזיר ${result.hooks.length} מתוך ${result.requested} הוקים (${result.model})`
+        : `הופקו ${result.hooks.length} הוקים מ-${result.model}`,
+    );
   });
 
   document.getElementById('btn-gen-captions').addEventListener('click', async () => {

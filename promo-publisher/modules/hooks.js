@@ -109,32 +109,79 @@ function normalizeHooks(payload, count) {
   return hooks.slice(0, count);
 }
 
-/**
- * Generate `count` hooks for a track. Throws when the engine is down.
- */
-async function generateHooks({ track = {}, trends = [], count = DEFAULT_HOOK_COUNT } = {}) {
-  const safeCount = Math.max(1, Math.min(Number(count) || DEFAULT_HOOK_COUNT, 6));
-
-  const prompt = [
-    `Write ${safeCount} different opening hooks for a 9:16 vertical video.`,
+function buildHooksPrompt({ track, trends, count }) {
+  return [
+    `Write ${count} different opening hooks for a 9:16 vertical video.`,
     '',
     describeTrack(track),
     describeTrends(trends),
     '',
-    'Return exactly this JSON shape:',
+    `Return exactly ${count} entries in this JSON shape:`,
     '{"hooks":[{"he":"Hebrew hook","en":"English hook","why":"one short line on why it stops the scroll"}]}',
   ]
     .filter((line) => line !== null)
     .join('\n');
+}
 
-  const { data, model, provider } = await ai.chatJson({
-    system: SYSTEM_PROMPT,
-    prompt,
-    temperature: 0.95,
-  });
+/**
+ * Generate `count` hooks for a track. Throws when the engine is down.
+ *
+ * Smaller models often return fewer entries than asked for, so top up with
+ * bounded extra requests rather than silently handing back one hook for a
+ * button that promises three. Duplicates are dropped.
+ */
+async function generateHooks({
+  track = {},
+  trends = [],
+  count = DEFAULT_HOOK_COUNT,
+  attempts = Number(process.env.AI_HOOK_ATTEMPTS ?? 2),
+} = {}) {
+  const safeCount = Math.max(1, Math.min(Number(count) || DEFAULT_HOOK_COUNT, 6));
+  const maxAttempts = Math.max(1, Math.min(Number(attempts) || 1, 4));
+
+  const collected = [];
+  const seen = new Set();
+  let model = null;
+  let provider = null;
+  let lastError = null;
+
+  for (let attempt = 0; attempt < maxAttempts && collected.length < safeCount; attempt += 1) {
+    const remaining = safeCount - collected.length;
+    const prompt = buildHooksPrompt({
+      track,
+      trends,
+      count: attempt === 0 ? safeCount : remaining,
+    });
+
+    try {
+      const result = await ai.chatJson({ system: SYSTEM_PROMPT, prompt, temperature: 0.95 });
+      model = result.model;
+      provider = result.provider;
+
+      for (const hook of normalizeHooks(result.data, safeCount)) {
+        const key = (hook.he || hook.en).toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          collected.push(hook);
+        }
+      }
+    } catch (error) {
+      lastError = error;
+      // A later attempt failing is tolerable once we already have hooks.
+      if (!collected.length) {
+        throw error;
+      }
+      break;
+    }
+  }
+
+  if (!collected.length) {
+    throw lastError ?? new Error('AI returned no hooks');
+  }
 
   return {
-    hooks: normalizeHooks(data, safeCount),
+    hooks: collected.slice(0, safeCount),
+    requested: safeCount,
     model,
     provider,
     generatedAt: new Date().toISOString(),
@@ -219,6 +266,7 @@ module.exports = {
   describeTrack,
   describeTrends,
   normalizeHooks,
+  buildHooksPrompt,
   generateHooks,
   generateCaptions,
   remixHook,

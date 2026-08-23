@@ -49,6 +49,21 @@ function withEnv(vars, fn) {
   })();
 }
 
+// This file loads config/.env through approval-publisher, so the AI variables
+// are pinned explicitly — otherwise a developer's real model name leaks in and
+// the stub is never asked which model it has.
+function withStubAi(baseUrl, fn) {
+  return withEnv(
+    {
+      OLLAMA_HOST: baseUrl,
+      OLLAMA_MODEL: undefined,
+      AI_BASE_URL: undefined,
+      AI_MODEL: undefined,
+    },
+    fn,
+  );
+}
+
 function startOllamaStub() {
   const server = http.createServer((req, res) => {
     let body = '';
@@ -239,7 +254,7 @@ test('createCampaignFromAudio renders a real video and writes real AI captions',
   const stub = await startOllamaStub();
 
   try {
-    await withEnv({ OLLAMA_HOST: stub.url, AI_BASE_URL: undefined }, async () => {
+    await withStubAi(stub.url, async () => {
       const stages = [];
       const { campaign, render, aiError } = await approval.createCampaignFromAudio({
         audioPath: audio,
@@ -285,7 +300,7 @@ test('createCampaignFromAudio still renders when the model is offline', async (t
 
   writeJson(PENDING_DB, []);
 
-  await withEnv({ OLLAMA_HOST: 'http://127.0.0.1:1', AI_BASE_URL: undefined }, async () => {
+  await withStubAi('http://127.0.0.1:1', async () => {
     const { campaign, render, aiError } = await approval.createCampaignFromAudio({
       audioPath: audio,
       durationSec: 2,

@@ -114,6 +114,75 @@ test('generateHooks returns model output and passes track context in the prompt'
   }
 });
 
+test('generateHooks tops up when a small model returns fewer hooks than asked', async () => {
+  let calls = 0;
+  const stub = await startOllamaStub(() => {
+    calls += 1;
+    return JSON.stringify({ hooks: [{ he: `הוק ${calls}`, en: `hook ${calls}` }] });
+  });
+
+  process.env.OLLAMA_HOST = stub.url;
+  try {
+    const result = await hooks.generateHooks({ count: 3, attempts: 3 });
+    assert.equal(result.hooks.length, 3, 'topped up to the requested count');
+    assert.equal(result.requested, 3);
+    assert.deepEqual(
+      result.hooks.map((hook) => hook.he),
+      ['הוק 1', 'הוק 2', 'הוק 3'],
+    );
+    assert.equal(calls, 3);
+  } finally {
+    await stub.close();
+    delete process.env.OLLAMA_HOST;
+  }
+});
+
+test('generateHooks drops duplicates instead of padding the list', async () => {
+  const stub = await startOllamaStub(() =>
+    JSON.stringify({ hooks: [{ he: 'אותו הוק', en: 'same hook' }] }),
+  );
+
+  process.env.OLLAMA_HOST = stub.url;
+  try {
+    const result = await hooks.generateHooks({ count: 3, attempts: 3 });
+    assert.equal(result.hooks.length, 1, 'a repeated hook is only reported once');
+    assert.equal(result.requested, 3);
+  } finally {
+    await stub.close();
+    delete process.env.OLLAMA_HOST;
+  }
+});
+
+test('generateHooks keeps what it has when a top-up attempt fails', async () => {
+  let calls = 0;
+  const stub = await startOllamaStub(() => {
+    calls += 1;
+    return calls === 1 ? JSON.stringify({ hooks: [{ he: 'ראשון' }] }) : 'not json';
+  });
+
+  process.env.OLLAMA_HOST = stub.url;
+  try {
+    const result = await hooks.generateHooks({ count: 3, attempts: 3 });
+    assert.equal(result.hooks.length, 1);
+    assert.equal(result.hooks[0].he, 'ראשון');
+  } finally {
+    await stub.close();
+    delete process.env.OLLAMA_HOST;
+  }
+});
+
+test('generateHooks still throws when the very first attempt fails', async () => {
+  const stub = await startOllamaStub(() => 'not json at all');
+
+  process.env.OLLAMA_HOST = stub.url;
+  try {
+    await assert.rejects(() => hooks.generateHooks({ count: 3, attempts: 3 }), /not valid JSON/);
+  } finally {
+    await stub.close();
+    delete process.env.OLLAMA_HOST;
+  }
+});
+
 test('generateHooks caps the requested count', async () => {
   const stub = await startOllamaStub(() =>
     JSON.stringify({ hooks: Array.from({ length: 10 }, (_, i) => ({ he: `h${i}` })) }),
