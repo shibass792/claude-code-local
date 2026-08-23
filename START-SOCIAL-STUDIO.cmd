@@ -6,4 +6,6 @@ if not exist "H:\shibass-ai\promo-publisher\main.js" (
   pause
   exit /b 1
 )
-call START-DESKTOP.cmd
+REM Launch in a new console so a closing PowerShell / pipeline cannot
+REM take stdout with it and trigger EPIPE in the Electron main process.
+start "ShiBass Social Studio Desktop" /D "H:\shibass-ai\promo-publisher" cmd /c START-DESKTOP.cmd

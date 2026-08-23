@@ -1,3 +1,6 @@
+const { installProcessGuards } = require('./modules/safe-stdio');
+installProcessGuards();
+
 require('dotenv').config({ path: require('path').join(__dirname, 'config/.env') });
 
 const { app, BrowserWindow, ipcMain, Notification, shell, dialog } = require('electron');
@@ -32,13 +35,6 @@ app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-gpu-compositing');
 app.commandLine.appendSwitch('no-sandbox');
-
-process.on('uncaughtException', (err) => {
-  console.error('[fatal]', err);
-});
-process.on('unhandledRejection', (err) => {
-  console.error('[unhandled]', err);
-});
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
