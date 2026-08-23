@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 param(
   [string]$TargetRoot = "H:\shibass-ai",
-  [string]$Branch = "cursor/shibass-social-studio-c044",
+  [string]$Branch = "cursor/real-studio-apis-0b72",
   [string]$RepoUrl = "https://github.com/shibass792/claude-code-local.git",
   [switch]$SkipNpmInstall
 )
@@ -103,7 +103,15 @@ function Copy-RepoToTarget {
 
   Ensure-Dir (Join-Path $TargetRoot "10_OUTPUTS\social")
 
-  $files = @("INSTALL-SHIBASS-UPDATES.ps1", "INSTALL-SHIBASS-UPDATES.cmd", "START-SOCIAL-STUDIO.cmd")
+  $files = @(
+    "INSTALL-SHIBASS-UPDATES.ps1",
+    "INSTALL-SHIBASS-UPDATES.cmd",
+    "INSTALL-CLAUDE-MCP.ps1",
+    "INSTALL-CLAUDE-MCP.cmd",
+    "START-SOCIAL-STUDIO.cmd",
+    "START-STUDIO-API.cmd",
+    "START-CLAUDE-MCP-SETUP.cmd"
+  )
   foreach ($f in $files) {
     $srcFile = Join-Path $SourceRoot $f
     if (Test-Path $srcFile) {
@@ -135,11 +143,27 @@ if (-not $SkipNpmInstall) {
   }
 }
 
+$mcpInstaller = Join-Path $TargetRoot "INSTALL-CLAUDE-MCP.ps1"
+if (Test-Path $mcpInstaller) {
+  Write-Step "Installing Claude MCP on this PC..."
+  $mcpOk = $true
+  $prevErr = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $mcpInstaller
+  if ($LASTEXITCODE -ne 0) { $mcpOk = $false }
+  $ErrorActionPreference = $prevErr
+  if (-not $mcpOk) {
+    Write-Host "Claude MCP install reported an error — .claude folder + settings may still have been written." -ForegroundColor Yellow
+  }
+}
+
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "Done!" -ForegroundColor Green
 Write-Host ("Doctor: " + $TargetRoot + "\scripts\shibass-doctor.ps1")
 Write-Host ("Social: " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
+Write-Host ("Studio API: " + $TargetRoot + "\START-STUDIO-API.cmd")
+Write-Host ("Claude MCP: " + $TargetRoot + "\INSTALL-CLAUDE-MCP.cmd")
 Write-Host ("Demucs: " + $TargetRoot + "\scripts\wire-demucs-for-midi-forge.ps1")
 Write-Host ""

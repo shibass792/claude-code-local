@@ -20,6 +20,14 @@ test('creates missing .claude folder before writing settings.json', () => {
   }
 });
 
+test('Windows installer creates .claude before writing settings.json', () => {
+  const installer = fs.readFileSync(path.join(__dirname, '..', '..', 'INSTALL-CLAUDE-MCP.ps1'), 'utf8');
+  assert.match(installer, /Creating \$claudeHome \(this is the folder that was missing\)/);
+  const createAt = installer.indexOf('Ensure-Directory $claudeHome');
+  const writeAt = installer.indexOf('Writing ~/.claude/settings.json');
+  assert.ok(createAt >= 0 && writeAt > createAt);
+});
+
 test('merges into existing settings without dropping other allows', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-settings-'));
   const settingsPath = path.join(dir, 'settings.json');
