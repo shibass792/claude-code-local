@@ -3,12 +3,6 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
-// Isolate approval DB under a temp output dir by monkey-patching module paths via cwd copy.
-// The modules write under ../output relative to modules/, so we use a disposable fixture
-// by working against the real module but restoring files after.
 
 const approval = require('../modules/approval-publisher');
 const factory = require('../modules/campaign-factory');
@@ -16,7 +10,7 @@ const factory = require('../modules/campaign-factory');
 const OUTPUT = approval.OUTPUT_DIR;
 const PENDING = approval.PENDING_DB;
 const RESULTS = approval.RESULTS_DB;
-const HISTORY = approval.HISTORY_DB || path.join(OUTPUT, 'publish_history.json');
+const HISTORY = approval.HISTORY_DB;
 
 let backup = null;
 
