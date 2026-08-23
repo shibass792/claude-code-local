@@ -8,7 +8,8 @@
 #>
 param(
   [string]$Root = "H:\shibass-ai",
-  [string]$Device = "cuda"
+  [ValidateSet("auto", "cpu", "cuda")]
+  [string]$Device = "auto"
 )
 
 $ErrorActionPreference = "Stop"
@@ -53,6 +54,12 @@ if (Test-Path $venvPy) {
 $legacyDemucs = Join-Path $Root "sb-demucs.py"
 if (Test-Path $legacyDemucs) {
   Write-Host ("Found legacy sb-demucs.py (hook still uses venv demucs module)") -ForegroundColor DarkGray
+}
+
+if ($Device -eq "auto") {
+  $detected = & $venvPy -c "import torch; print('cuda' if torch.cuda.is_available() else 'cpu')"
+  $Device = $detected.Trim()
+  Write-Host ("Auto-detected Demucs device: " + $Device) -ForegroundColor Green
 }
 
 $envLines = @(

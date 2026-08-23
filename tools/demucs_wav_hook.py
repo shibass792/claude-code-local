@@ -9,7 +9,7 @@ Env (optional):
   SHIBASS_DEMUCS_VENV   default {root}\\.venv-demucs
   SHIBASS_STEMS_OUTPUT  default {root}\\10_OUTPUTS\\stems
   SHIBASS_DEMUCS_MODEL  default htdemucs
-  SHIBASS_DEMUCS_DEVICE default cuda (falls back to cpu)
+  SHIBASS_DEMUCS_DEVICE default auto (cuda if available, else cpu)
 """
 from __future__ import annotations
 
@@ -17,6 +17,35 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
+
+def cuda_available(py: Path) -> bool:
+    code = "import torch; print('1' if torch.cuda.is_available() else '0')"
+    try:
+        proc = subprocess.run(
+            [str(py), "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return False
+    return proc.returncode == 0 and proc.stdout.strip() == "1"
+
+
+def resolve_device(py: Path, requested: str) -> str:
+    choice = requested.lower().strip()
+    if choice not in ("cuda", "cpu", "auto"):
+        choice = "auto"
+    if choice == "auto":
+        return "cuda" if cuda_available(py) else "cpu"
+    if choice == "cuda" and not cuda_available(py):
+        print(
+            "[demucs] cuda requested but torch has no CUDA; using cpu",
+            file=sys.stderr,
+        )
+        return "cpu"
+    return choice
 
 
 def main() -> int:
@@ -33,7 +62,7 @@ def main() -> int:
     venv = Path(os.environ.get("SHIBASS_DEMUCS_VENV", root / ".venv-demucs"))
     out_dir = Path(os.environ.get("SHIBASS_STEMS_OUTPUT", root / r"10_OUTPUTS\stems"))
     model = os.environ.get("SHIBASS_DEMUCS_MODEL", "htdemucs")
-    device = os.environ.get("SHIBASS_DEMUCS_DEVICE", "cuda")
+    requested_device = os.environ.get("SHIBASS_DEMUCS_DEVICE", "auto")
 
     if sys.platform == "win32":
         py = venv / "Scripts" / "python.exe"
@@ -44,6 +73,10 @@ def main() -> int:
         print(f"Demucs venv missing: {py}", file=sys.stderr)
         print("Run: scripts\\wire-demucs-for-midi-forge.ps1", file=sys.stderr)
         return 1
+
+    device = resolve_device(py, requested_device)
+    if device != requested_device.lower().strip():
+        print(f"[demucs] device={device}", file=sys.stderr)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     job_dir = out_dir / audio.stem
@@ -70,8 +103,9 @@ def main() -> int:
         return 1
 
     if proc.returncode != 0 and device == "cuda":
-        print("[demucs] cuda failed, retrying on cpu...", file=sys.stderr)
+        print("[demucs] cuda run failed, retrying on cpu...", file=sys.stderr)
         cmd[-2] = "cpu"
+        device = "cpu"
         proc = subprocess.run(cmd, check=False)
 
     if proc.returncode != 0:

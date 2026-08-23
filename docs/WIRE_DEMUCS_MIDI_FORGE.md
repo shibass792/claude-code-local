@@ -18,6 +18,15 @@ cd H:\shibass-ai
 powershell -ExecutionPolicy Bypass -File .\scripts\wire-demucs-for-midi-forge.ps1
 ```
 
+Default device is **auto**: uses CUDA only when the venv’s PyTorch was built with CUDA.
+The stock `pip install torch` on Windows is CPU-only, so you will usually get `cpu` without the old CUDA error.
+
+Force CPU (skip CUDA probe):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\wire-demucs-for-midi-forge.ps1 -Device cpu
+```
+
 This creates:
 
 | Path | Purpose |
