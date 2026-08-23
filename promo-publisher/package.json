@@ -1,15 +1,16 @@
 {
   "name": "shibass-social-studio",
-  "version": "2.0.0",
-  "description": "ShiBass Standalone Social Media Desktop Studio — radar, approval hub, and multi-platform publishing",
+  "version": "2.1.0",
+  "description": "ShiBass Standalone Social Media Desktop Studio — live FFmpeg/Ollama/Meta APIs + Universal Player",
   "main": "main.js",
   "scripts": {
     "start": "electron . --disable-gpu --disable-gpu-sandbox --no-sandbox",
     "start:win": "electron . --disable-gpu-shader-disk-cache",
+    "api": "node api-server.js",
     "radar:scan": "node modules/radar.js --scan",
     "import:social": "node scripts/import-social-inbox.js",
     "test": "node --test tests/*.test.js",
-    "lint": "node --check main.js preload.js modules/*.js modules/publishers/*.js ui/app.js"
+    "lint": "node --check main.js preload.js api-server.js modules/*.js modules/publishers/*.js ui/app.js web/studio.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

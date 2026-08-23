@@ -18,6 +18,7 @@
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
         <button class="nav-btn" data-tab="create-tab">🎬 יצירת סרטון חדש</button>
+        <button class="nav-btn" data-tab="player-tab">⚡ Universal Player</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
       </nav>
@@ -97,14 +98,45 @@
 
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
-          <h1>הפקת סרטון חדש מהמחשב</h1>
-          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+          <h1>הפקת סרטון · API חי</h1>
+          <p>FFmpeg 9:16 + ReelHook (Ollama) + Meta Graph — בלי תבניות סימולטור</p>
         </header>
-        <div class="drop-zone" id="drop-zone">
-          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
-          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
-          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+        <div class="create-live">
+          <div class="form-group">
+            <label for="create-track">שם טראק</label>
+            <input id="create-track" type="text" value="ShiBass - Dextamine" />
+          </div>
+          <div class="form-group">
+            <label for="create-hook">Hook על הסרטון</label>
+            <input id="create-hook" type="text" value="🔥 ShiBass Progressive Psytrance 142 BPM - Out Now!" />
+          </div>
+          <div class="form-group">
+            <label for="create-audio">נתיב אודיו (מהאינדקס / fixtures)</label>
+            <input id="create-audio" type="text" dir="ltr" placeholder="סרוק ב-Player ואז בחר, או הדבק path" />
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary" id="btn-engine-status" type="button">בדיקת מנועים</button>
+            <button class="btn btn-secondary" id="btn-gen-hooks" type="button">הפק הוקים</button>
+            <button class="btn btn-primary" id="btn-render-live" type="button">רנדר 9:16</button>
+            <button class="btn btn-primary" id="btn-create-campaign" type="button">צור והוסף לתור</button>
+          </div>
+          <pre id="create-log" class="live-log" aria-live="polite">[SYSTEM] מוכן ל-API חי</pre>
         </div>
+      </section>
+
+      <section id="player-tab" class="tab-content">
+        <header class="tab-header">
+          <h1>⚡ ShiBass Universal Player</h1>
+          <p id="player-index-status">⚠️ אין אינדקס מוזיקה — הרץ סריקה</p>
+        </header>
+        <div class="action-buttons">
+          <button class="btn btn-primary" id="btn-media-scan" type="button">סרוק מדיה</button>
+          <button class="btn btn-secondary" id="btn-media-play" type="button">▶ נגן</button>
+          <button class="btn btn-secondary" id="btn-media-stop" type="button">■ עצור</button>
+        </div>
+        <div id="player-now" class="watch-hint">—</div>
+        <ul id="player-list" class="player-list"></ul>
+        <audio id="library-audio" preload="metadata"></audio>
       </section>
 
       <section id="history-tab" class="tab-content">

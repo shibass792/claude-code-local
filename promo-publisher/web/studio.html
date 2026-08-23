@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ShiBass Studio API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/studio.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <header class="top">
+    <div>
+      <p class="kicker">LIVE APIs · NO SIMULATOR</p>
+      <h1>SHIBASS STUDIO</h1>
+    </div>
+    <div id="engine-pills" class="pills"></div>
+  </header>
+
+  <main class="grid">
+    <section class="panel">
+      <h2>לוג יצירה · רינדור · Meta Graph</h2>
+      <p class="sub">כל שורה מגיעה מ־API חי (FFmpeg / Ollama / Meta). אין תבניות סטטיות בלחיצה.</p>
+      <div class="actions">
+        <button type="button" id="btn-status" class="btn">בדיקת מנועים</button>
+        <button type="button" id="btn-hooks" class="btn">הפק הוקים</button>
+        <button type="button" id="btn-render" class="btn primary">רנדר 9:16</button>
+        <button type="button" id="btn-campaign" class="btn primary">צור לתור אישור</button>
+      </div>
+      <label class="field">
+        <span>Hook / כותרת על הסרטון</span>
+        <input id="hook-input" type="text" value="🔥 ShiBass Progressive Psytrance 142 BPM - Out Now!" />
+      </label>
+      <label class="field">
+        <span>Track</span>
+        <input id="track-input" type="text" value="ShiBass - Dextamine" />
+      </label>
+      <pre id="live-log" class="log" aria-live="polite">[SYSTEM] ממתין לפעולה…</pre>
+    </section>
+
+    <section class="panel player-panel">
+      <h2>⚡ ShiBass Universal Player</h2>
+      <p id="index-status" class="sub">⚠️ אין אינדקס מוזיקה — הרץ סריקה</p>
+      <div class="actions">
+        <button type="button" id="btn-scan" class="btn primary">סרוק מדיה</button>
+        <button type="button" id="btn-prev" class="btn">⏮️</button>
+        <button type="button" id="btn-play" class="btn primary">▶ נגן</button>
+        <button type="button" id="btn-stop" class="btn">■ עצור</button>
+        <button type="button" id="btn-fwd" class="btn">⏩ +5s</button>
+        <button type="button" id="btn-next" class="btn">⏭️</button>
+        <button type="button" id="btn-seq" class="btn" data-on="1">🔁 ברצף: פעיל</button>
+      </div>
+      <div class="volume-row">
+        <span>🔊</span>
+        <input id="volume" type="range" min="0" max="100" value="75" />
+        <span id="vol-label">75%</span>
+        <span id="time-label">00:00</span>
+      </div>
+      <div id="now-playing" class="now">—</div>
+      <ul id="track-list" class="track-list"></ul>
+      <audio id="audio" preload="metadata"></audio>
+    </section>
+  </main>
+
+  <script src="/studio.js"></script>
+</body>
+</html>

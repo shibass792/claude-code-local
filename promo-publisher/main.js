@@ -5,6 +5,11 @@ const path = require('path');
 const fs = require('fs');
 const radar = require('./modules/radar');
 const approvalEngine = require('./modules/approval-publisher');
+const mediaLibrary = require('./modules/media-library');
+const renderEngine = require('./modules/render-engine');
+const hookGenerator = require('./modules/hook-generator');
+const engines = require('./modules/engines');
+const { createCampaignFromRender } = require('./modules/campaign-factory');
 const { resolveFromRoot } = require('./modules/store');
 
 function configureElectronStorage() {
@@ -139,3 +144,18 @@ ipcMain.handle('shell:open-external', async (_event, url) => {
   await shell.openExternal(url);
   return true;
 });
+
+ipcMain.handle('engines:status', async () => {
+  const status = await engines.getEnginesStatus();
+  return { ...status, log: engines.formatStatusLog(status) };
+});
+
+ipcMain.handle('media:scan', async (_event, options) => mediaLibrary.scanMediaLibrary(options || {}));
+
+ipcMain.handle('media:library', async (_event, query) => mediaLibrary.getLibrary(query || {}));
+
+ipcMain.handle('hooks:generate', async (_event, options) => hookGenerator.generateHooks(options || {}));
+
+ipcMain.handle('render:reel', async (_event, options) => renderEngine.renderReel(options || {}));
+
+ipcMain.handle('create:campaign', async (_event, options) => createCampaignFromRender(options || {}));

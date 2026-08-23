@@ -1,78 +1,72 @@
-# ShiBass Social Studio v2.0
+# ShiBass Social Studio v2.1 — Live APIs
 
-תוכנת דסקטופ עצמאית (Electron) לניהול תוכן, רדאר מתחרים, ואישור לפני פרסום ל-Instagram / TikTok / Facebook.
+תוכנת דסקטופ (Electron) + **HTTP API** לניהול תוכן, רינדור 9:16, Universal Player, ואישור לפני פרסום.
 
-## תכונות
+## מה חדש (בלי סימולטור)
 
-- **שער אישור (Human-in-the-Loop)** — כפתור הפרסום נעול עד צפייה בסרטון
-- **רדאר אמנים** — זיהוי Viral Outliers (≥2.5x ממוצע צפיות)
-- **פרסום רב-ערוצי** — Meta Graph API + TikTok Content Posting API
-- **מנהרת HTTPS זמנית** — Cloudflare Tunnel / שרת מקומי לסרטונים
-- **Dark UI** — ממשק RTL בעברית
+| כפתור / זרימה | API אמיתי |
+|----------------|-----------|
+| בדיקת מנועים | `GET /api/health` — FFmpeg / Ollama / Meta / TikTok / Media Index |
+| הפקת הוקים | `POST /api/hooks/generate` — Ollama חי, או תבניות מקומיות **מסומנות** |
+| רנדר 9:16 | `POST /api/render/reel` — FFmpeg אמיתי → `output/reels/*.mp4` |
+| סריקת מדיה | `POST /api/media/scan` + Universal Player stream |
+| יצירה לתור | `POST /api/create/campaign` |
+| Instagram | **Meta Graph API בלבד** (InstaPy/Selenium חסומים במדיניות) |
 
-## דרישות
-
-- Node.js 18+
-- Windows (מומלץ) או macOS / Linux
-- FFmpeg + NVENC (לשלב הרינדור — חיבור עתידי)
-- `cloudflared` (אופציונלי, לפרסום Meta מהמחשב)
-
-## התקנה והפעלה
+## הפעלה מהירה (API + UI בדפדפן)
 
 ```bash
 cd promo-publisher
 npm install
-cp config/.env.example config/.env
-# ערוך config/.env עם טוקנים של Meta / TikTok
+npm run api
+# http://127.0.0.1:4051/
+```
+
+Windows: `START-API.cmd`
+
+## דסקטופ Electron
+
+```bash
 npm start
 ```
 
-Windows: לחיצה כפולה על `START-DESKTOP.cmd`
+או `START-DESKTOP.cmd`
+
+## משתני סביבה
+
+העתק `config/.env.example` → `config/.env`:
+
+- `META_ACCESS_TOKEN`, `META_IG_USER_ID`, `META_PAGE_ID` — פרסום Instagram/Facebook אמיתי
+- `TIKTOK_ACCESS_TOKEN` — TikTok Content Posting API
+- `OLLAMA_URL`, `OLLAMA_MODEL` — ReelHook AI
+- `SHIBASS_MEDIA_ROOTS` — שורשי סריקה (מופרדים ב-`;` ב-Windows / `:` ב-Unix)
+- `SHIBASS_API_PORT` — ברירת מחדל `4051`
+
+ללא טוקני Meta/TikTok — **פרסום** נשאר dry-run/mock (מודע). רינדור, סריקה והוקים הם חיים גם בלי טוקנים.
+
+## מדיניות Instagram
+
+InstaPy / Selenium botting **לא נתמך** (ToS). הפרסום עובר רק דרך Meta Content Publishing API עם טוקנים ב-`.env`.
+
+## בדיקות
+
+```bash
+npm test
+npm run lint
+```
 
 ## מבנה
 
 ```
 promo-publisher/
-├── main.js                 # Electron main process
-├── preload.js              # IPC bridge
+├── api-server.js           # HTTP API + web/studio UI
+├── web/studio.html         # Universal Player + live creation log
 ├── modules/
-│   ├── radar.js            # Artist watchlist + outlier scoring
-│   ├── approval-publisher.js
-│   ├── tunnel.js           # Temporary public URL for Meta
-│   └── publishers/
-│       ├── meta.js
-│       └── tiktok.js
-├── ui/                     # Desktop UI
-├── config/
-│   ├── watchlist.json
-│   └── .env.example
-└── output/                 # pending_campaigns.json, publish_results.json
+│   ├── media-library.js
+│   ├── render-engine.js
+│   ├── hook-generator.js
+│   ├── engines.js
+│   ├── campaign-factory.js
+│   └── publishers/meta.js  # Graph API
+└── fixtures/media/         # WAV/MIDI לבדיקות
 ```
-
-## פקודות
-
-| פקודה | תיאור |
-|--------|--------|
-| `npm start` | פתיחת אפליקציית הדסקטופ |
-| `npm run radar:scan` | סריקת רדאר (CLI) |
-| `npm test` | בדיקות מודולים |
-
-## הגדרת API
-
-1. העתק `config/.env.example` ל-`config/.env`
-2. מלא `META_ACCESS_TOKEN`, `META_PAGE_ID`, `META_IG_USER_ID`
-3. מלא `TIKTOK_CLIENT_KEY`, `TIKTOK_ACCESS_TOKEN`
-4. (אופציונלי) `CLOUDFLARE_TUNNEL_TOKEN` או התקן `cloudflared`
-
-ללא טוקנים — המערכת רצה במצב **סימולציה** (mock publish) לבדיקת זרימת האישור.
-
-## שלבים הבאים
-
-1. חיבור מנוע FFmpeg / NVENC הקיים לרינדור תבניות
-2. אינטגרציית yt-dlp לסריקת רדאר חיה
-3. Ollama לכתיבת הוקים אוטומטית
-4. Telegram bot לאישור מהסמארטפון (אופציונלי)
-
-## רישיון
-
-MIT — חלק מפרויקט ShiBass / claude-code-local

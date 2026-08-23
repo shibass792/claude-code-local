@@ -389,6 +389,47 @@ input[type='text'] {
   color: var(--danger);
 }
 
+.live-log {
+  margin-top: 14px;
+  min-height: 180px;
+  max-height: 320px;
+  overflow: auto;
+  background: #0a0f16;
+  border: 1px solid var(--border);
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  direction: ltr;
+  text-align: left;
+  color: #cde7ff;
+}
+
+.create-live .form-group {
+  margin-bottom: 12px;
+}
+
+.player-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  max-height: 420px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+}
+
+.player-list li {
+  padding: 10px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.player-list li:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
 .connection-card h3 {
   font-size: 1rem;
 }

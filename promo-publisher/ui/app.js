@@ -31,6 +31,12 @@ function switchTab(tabId) {
   if (tabId === 'connections-tab') {
     loadConnections();
   }
+  if (tabId === 'player-tab') {
+    refreshPlayerLibrary();
+  }
+  if (tabId === 'create-tab') {
+    // keep log
+  }
 }
 
 function updatePublishButtonState() {
@@ -279,21 +285,126 @@ function setupActions() {
 }
 
 function setupDropZone() {
-  const zone = document.getElementById('drop-zone');
-  ['dragenter', 'dragover'].forEach((eventName) => {
-    zone.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      zone.classList.add('dragover');
+  // legacy drop zone removed — create tab uses live APIs
+}
+
+function appendCreateLog(text) {
+  const el = document.getElementById('create-log');
+  if (!el) return;
+  const stamp = new Date().toISOString().slice(11, 19);
+  el.textContent = `[${stamp}]\n${text}\n\n${el.textContent}`.slice(0, 12000);
+}
+
+const playerState = { items: [], index: -1 };
+
+async function refreshPlayerLibrary() {
+  if (!window.api?.getLibrary) return;
+  const data = await window.api.getLibrary({ limit: 400 });
+  playerState.items = data.items || [];
+  const status = document.getElementById('player-index-status');
+  if (status) {
+    status.textContent = data.hasIndex
+      ? `אינדקס · ${data.counts?.total || 0} קבצים · ${data.scannedAt}`
+      : '⚠️ אין אינדקס מוזיקה — הרץ סריקה';
+  }
+  const list = document.getElementById('player-list');
+  if (!list) return;
+  list.innerHTML = '';
+  playerState.items.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${item.name} · ${item.kind}`;
+    li.addEventListener('click', () => {
+      playerState.index = i;
+      document.getElementById('create-audio').value = item.path;
+      document.getElementById('player-now').textContent = item.name;
+      if (item.kind === 'audio') {
+        const audio = document.getElementById('library-audio');
+        audio.src = `file://${item.path.replace(/\\/g, '/')}`;
+        audio.play().catch(() => {});
+      }
     });
+    list.appendChild(li);
   });
-  ['dragleave', 'drop'].forEach((eventName) => {
-    zone.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      zone.classList.remove('dragover');
+}
+
+function setupLiveApis() {
+  document.getElementById('btn-engine-status')?.addEventListener('click', async () => {
+    const status = await window.api.getEnginesStatus();
+    appendCreateLog(status.log || JSON.stringify(status, null, 2));
+  });
+
+  document.getElementById('btn-gen-hooks')?.addEventListener('click', async () => {
+    const data = await window.api.generateHooks({
+      track: document.getElementById('create-track').value,
+      bpm: 142,
+      genre: 'Psytrance',
     });
+    const lines = (data.hooks || []).map((h, i) => `${i + 1}. "${h.text}"`).join('\n');
+    appendCreateLog(`[REELHOOK] source=${data.source}\n${lines}`);
+    if (data.hooks?.[0]?.text) {
+      document.getElementById('create-hook').value = data.hooks[0].text;
+    }
   });
-  zone.addEventListener('drop', () => {
-    showToast('שלב הבא: חיבור למנוע FFmpeg לרינדור אוטומטי');
+
+  document.getElementById('btn-render-live')?.addEventListener('click', async () => {
+    const audioPath = document.getElementById('create-audio').value.trim();
+    if (!audioPath) {
+      appendCreateLog('[RENDER] בחר קובץ אודיו ב-Player או הדבק path');
+      return;
+    }
+    appendCreateLog(`[RENDER] FFmpeg starting…\n${audioPath}`);
+    const data = await window.api.renderReel({
+      audioPath,
+      hook: document.getElementById('create-hook').value,
+      durationSec: 8,
+      fps: 30,
+    });
+    appendCreateLog(
+      data.success
+        ? `[SUCCESS] ${data.relativePath} ${data.width}x${data.height}`
+        : `[ERROR] ${data.error}\n${data.detail || ''}`,
+    );
+  });
+
+  document.getElementById('btn-create-campaign')?.addEventListener('click', async () => {
+    const data = await window.api.createCampaign({
+      track: document.getElementById('create-track').value,
+      audioPath: document.getElementById('create-audio').value.trim(),
+      hook: document.getElementById('create-hook').value,
+      bpm: 142,
+      genre: 'Psytrance',
+      durationSec: 8,
+      fps: 30,
+    });
+    appendCreateLog(data.log || JSON.stringify(data, null, 2));
+    if (data.success) {
+      showToast('נוסף לתור אישור');
+      await loadApprovalQueue();
+    }
+  });
+
+  document.getElementById('btn-media-scan')?.addEventListener('click', async () => {
+    await window.api.scanMedia({});
+    await refreshPlayerLibrary();
+    showToast('סריקת מדיה הושלמה');
+  });
+
+  document.getElementById('btn-media-play')?.addEventListener('click', () => {
+    const audio = document.getElementById('library-audio');
+    if (!audio.src && playerState.items.length) {
+      const audioItem = playerState.items.find((x) => x.kind === 'audio');
+      if (audioItem) {
+        document.getElementById('create-audio').value = audioItem.path;
+        audio.src = `file://${audioItem.path.replace(/\\/g, '/')}`;
+      }
+    }
+    audio.play().catch(() => showToast('אין אודיו לנגן'));
+  });
+
+  document.getElementById('btn-media-stop')?.addEventListener('click', () => {
+    const audio = document.getElementById('library-audio');
+    audio.pause();
+    audio.currentTime = 0;
   });
 }
 
@@ -302,5 +413,6 @@ window.addEventListener('DOMContentLoaded', () => {
   setupActions();
   setupPlayerWatchGate();
   setupDropZone();
+  setupLiveApis();
   loadApprovalQueue();
 });
