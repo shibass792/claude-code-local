@@ -73,6 +73,10 @@ $paths = @(
   $Root,
   "$Root\shibass.db",
   "$Root\10_OUTPUTS\MIDI_EXPORT",
+  "$Root\10_OUTPUTS\stems",
+  "$Root\.venv-demucs\Scripts\python.exe",
+  "$Root\config\demucs.env",
+  "$Root\tools\demucs_wav_hook.py",
   "$Root\10_OUTPUTS\social",
   "$Root\SHIBASS_BRAIN",
   "$Root\SHIBASS_SHARED_MEMORY",
@@ -140,5 +144,6 @@ Write-Host "== Tips ==" -ForegroundColor Magenta
 Write-Host "  - 4050 = Promo Publisher (NOT stem-groove)"
 Write-Host "  - 8765 = Master Server — do NOT bind MIDI stub there (use 8877)"
 Write-Host "  - Check 07_LOGS\port_status.json before ports 8788-8859"
-Write-Host "  - See docs/SHIBASS_LIVE_TOPOLOGY.md"
+Write-Host "  - Demucs: scripts\wire-demucs-for-midi-forge.ps1 then START-MIDI-FORGE-DEMUCS.cmd"
+Write-Host "  - See docs/WIRE_DEMUCS_MIDI_FORGE.md"
 Write-Host ""

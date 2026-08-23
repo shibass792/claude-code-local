@@ -141,4 +141,5 @@ Write-Host ""
 Write-Host "Done!" -ForegroundColor Green
 Write-Host ("Doctor: " + $TargetRoot + "\scripts\shibass-doctor.ps1")
 Write-Host ("Social: " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
+Write-Host ("Demucs: " + $TargetRoot + "\scripts\wire-demucs-for-midi-forge.ps1")
 Write-Host ""
