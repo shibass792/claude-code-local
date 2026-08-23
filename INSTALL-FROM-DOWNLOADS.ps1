@@ -8,6 +8,27 @@ param(
 $ErrorActionPreference = "Stop"
 $folders = @("promo-publisher", "scripts", "docs", "tools")
 
+$FreshZipUrl = "https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/shibass-social-studio-c044.zip"
+$RequiredInZip = @(
+  "scripts\wire-demucs-for-midi-forge.ps1",
+  "scripts\start-demucs-pipeline.ps1",
+  "scripts\watch-midi-export-demucs.ps1",
+  "tools\demucs_wav_hook.py",
+  "tools\script_fix_paths.ps1",
+  "promo-publisher\main.js"
+)
+
+function Test-ShibassZipSource {
+  param([string]$SourceRoot)
+  $missing = @()
+  foreach ($rel in $RequiredInZip) {
+    if (-not (Test-Path (Join-Path $SourceRoot $rel))) {
+      $missing += $rel
+    }
+  }
+  return $missing
+}
+
 function Ensure-Dir {
   param([string]$Path)
   if (-not (Test-Path $Path)) {
@@ -32,6 +53,8 @@ if (-not $ZipPath -or -not (Test-Path $ZipPath)) {
 }
 
 Write-Host "ZIP: $ZipPath" -ForegroundColor Cyan
+$zipInfo = Get-Item $ZipPath
+Write-Host ("      modified " + $zipInfo.LastWriteTime) -ForegroundColor DarkGray
 Write-Host "Target: $TargetRoot" -ForegroundColor Cyan
 
 $staging = Join-Path $env:TEMP ("shibass-zip-" + [Guid]::NewGuid().ToString("N").Substring(0, 8))
@@ -41,13 +64,40 @@ Ensure-Dir $TargetRoot
 Write-Host "Extracting..." -ForegroundColor Yellow
 Expand-Archive -Path $ZipPath -DestinationPath $staging -Force
 
-$repoRoot = Get-ChildItem $staging -Directory | Select-Object -First 1
-if (-not $repoRoot) {
-  Write-Host "Bad ZIP - no folder inside." -ForegroundColor Red
-  exit 1
+$repoRootFull = $null
+foreach ($dir in (Get-ChildItem $staging -Directory -ErrorAction SilentlyContinue)) {
+  $resolveInZip = Join-Path $dir.FullName "scripts\Resolve-ShibassZipSource.ps1"
+  if (Test-Path $resolveInZip) {
+    $repoRootFull = & $resolveInZip -StagingDir $staging
+    break
+  }
+}
+if (-not $repoRootFull) {
+  $first = Get-ChildItem $staging -Directory | Select-Object -First 1
+  if (-not $first) {
+    Write-Host "Bad ZIP - no folder inside." -ForegroundColor Red
+    exit 1
+  }
+  $repoRootFull = $first.FullName
 }
 
-Write-Host ("Source: " + $repoRoot.FullName) -ForegroundColor DarkGray
+Write-Host ("Source: " + $repoRootFull) -ForegroundColor DarkGray
+
+$missingInZip = Test-ShibassZipSource -SourceRoot $repoRootFull
+if ($missingInZip.Count -gt 0) {
+  Write-Host ""
+  Write-Host "STALE or wrong ZIP — required files missing:" -ForegroundColor Red
+  foreach ($m in $missingInZip) {
+    Write-Host ("  - " + $m) -ForegroundColor Red
+  }
+  Write-Host ""
+  Write-Host "Re-download:" -ForegroundColor Yellow
+  Write-Host $FreshZipUrl
+  Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
+  exit 2
+}
+
+$repoRoot = Get-Item $repoRootFull
 
 foreach ($name in $folders) {
   $src = Join-Path $repoRoot.FullName $name
@@ -90,6 +140,27 @@ foreach ($f in @(
 }
 
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
+
+$verify = @(
+  (Join-Path $TargetRoot "scripts\wire-demucs-for-midi-forge.ps1"),
+  (Join-Path $TargetRoot "scripts\start-demucs-pipeline.ps1"),
+  (Join-Path $TargetRoot "tools\demucs_wav_hook.py")
+)
+$verifyFailed = $false
+Write-Host ""
+Write-Host "Verify:" -ForegroundColor White
+foreach ($c in $verify) {
+  if (Test-Path $c) {
+    Write-Host ("  OK   " + $c) -ForegroundColor Green
+  } else {
+    Write-Host ("  MISS " + $c) -ForegroundColor Red
+    $verifyFailed = $true
+  }
+}
+if ($verifyFailed) {
+  Write-Host "Verification failed after copy." -ForegroundColor Red
+  exit 3
+}
 
 if (-not $SkipNpmInstall) {
   $pp = Join-Path $TargetRoot "promo-publisher"

@@ -1,13 +1,77 @@
 # העתקת עדכונים מ-ZIP — הוראות קצרות
 
-## הבעיה שלך
+## הבעיה שלך (עכשיו)
 
-העתקת רק `main.js` + `package.json`.  
-קבצי Demucs (`scripts\`, `tools\`) **לא הועתקו** — לכן PowerShell אמר "does not exist".
+ראית `OK scripts` אבל:
+
+```powershell
+Test-Path "H:\shibass-ai\scripts\wire-demucs-for-midi-forge.ps1"   # False
+Test-Path "H:\shibass-ai\tools\demucs_wav_hook.py"                # True
+```
+
+**משמעות:** ה-ZIP ב-Downloads **ישן** — יש בו `tools\demucs_wav_hook.py` אבל **אין** את קבצי `scripts\` של Demucs. העתקה "הצליחה" אבל לא הביאה את מה שחסר.
 
 **אל תדביק טקסט/markdown ל-PowerShell** — רק פקודות.
 
-## פתרון — הדבק בלוק אחד ב-PowerShell
+---
+
+## פתרון מומלץ (שלב אחד)
+
+### 1) הורד ZIP מחדש
+
+שמור בשם:
+
+`%USERPROFILE%\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip`
+
+קישור:
+
+`https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/shibass-social-studio-c044.zip`
+
+### 2) הרץ את המתקין (בודק את ה-ZIP לפני העתקה)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File H:\shibass-ai\COPY-ALL-FROM-ZIP.ps1
+```
+
+אם ה-ZIP עדיין ישן, תראה `STALE or wrong ZIP` ורשימת קבצים חסרים — **לא** יעתיק כלום.
+
+### 3) אימות
+
+```powershell
+Test-Path "H:\shibass-ai\scripts\wire-demucs-for-midi-forge.ps1"
+Test-Path "H:\shibass-ai\scripts\start-demucs-pipeline.ps1"
+Test-Path "H:\shibass-ai\tools\demucs_wav_hook.py"
+```
+
+שלושתם חייבים להיות `True`.
+
+### 4) Demucs
+
+```powershell
+powershell -ExecutionPolicy Bypass -File H:\shibass-ai\scripts\start-demucs-pipeline.ps1
+```
+
+---
+
+## בדיקת ZIP לפני העתקה (ידני)
+
+```powershell
+$ZipPath = "$env:USERPROFILE\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip"
+$staging = "$env:TEMP\shibass-zip-check"
+Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
+Expand-Archive -Path $ZipPath -DestinationPath $staging -Force
+$src = (Get-ChildItem $staging -Directory | Select-Object -First 1).FullName
+Write-Host "ZIP source folder:" $src
+Test-Path (Join-Path $src "scripts\wire-demucs-for-midi-forge.ps1")
+Test-Path (Join-Path $src "scripts\start-demucs-pipeline.ps1")
+Remove-Item $staging -Recurse -Force
+```
+
+אם כאן `False` — ה-ZIP לא מעודכן; הורד מחדש מהקישור למעלה.
+
+---
+
+## העתקה ידנית (רק אם COPY-ALL-FROM-ZIP.ps1 לא קיים)
 
 ```powershell
 $ZipPath = "$env:USERPROFILE\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip"
@@ -16,6 +80,10 @@ $staging = "$env:TEMP\shibass-full-copy"
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive -Path $ZipPath -DestinationPath $staging -Force
 $src = (Get-ChildItem $staging -Directory | Select-Object -First 1).FullName
+if (-not (Test-Path (Join-Path $src "scripts\wire-demucs-for-midi-forge.ps1"))) {
+  Write-Host "STOP: ZIP missing Demucs scripts. Re-download branch ZIP." -ForegroundColor Red
+  exit 1
+}
 foreach ($name in @("scripts","tools","docs","promo-publisher")) {
   $from = Join-Path $src $name
   $to = Join-Path $TargetRoot $name
