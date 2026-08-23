@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <title>דוגמה — הטמעת נגן Music Brain</title>
+  <link rel="stylesheet" href="/assets/css/panel.css"/>
+</head>
+<body>
+  <h1>הטמעה בדף HTML חיצוני</h1>
+  <p class="sub">כלול את הסקריפטים המשותפים — הנגן וה-API עובדים מכל דף באותו שרת</p>
+  <pre>&lt;link rel="stylesheet" href="http://127.0.0.1:8787/assets/css/panel.css"/&gt;
+&lt;script src="http://127.0.0.1:8787/assets/js/utils.js"&gt;&lt;/script&gt;
+&lt;script src="http://127.0.0.1:8787/assets/js/api.js"&gt;&lt;/script&gt;
+&lt;script src="http://127.0.0.1:8787/assets/js/player.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  MB.Player.init();
+  MB.API.browse('samples', 'kick', 0, 20).then(d =&gt; {
+    MB.Player.setQueue(d.items);
+    MB.Player.playAt(0);
+  });
+&lt;/script&gt;</pre>
+  <div id="demo-list"></div>
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/boot.js"></script>
+  <script>
+    MB.Player.init();
+    MB.API.browse("samples", null, 0, 10).then(d => {
+      const el = document.getElementById("demo-list");
+      el.innerHTML = d.items.map((r,i) =>
+        `<button type="button" class="play-btn" onclick="MB.Player.playAt(${i})">${MB.esc(MB.basename(r.path))}</button>`
+      ).join(" ");
+      MB.Player.setQueue(d.items);
+    });
+  </script>
+</body>
+</html>

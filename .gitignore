@@ -9,3 +9,6 @@ __pycache__/
 .claude/
 *.key
 orchestrator.key
+*.db
+.music-brain/
+music-brain-root/

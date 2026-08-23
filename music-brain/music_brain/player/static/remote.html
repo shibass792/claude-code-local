@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>SHIBASS Remote</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/remote.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">SHIBASS</div>
+    <div class="sub">ROKID REMOTE</div>
+    <div id="status" class="status">connecting...</div>
+  </header>
+
+  <section class="now">
+    <div id="title">No track</div>
+    <div id="meta">Connect to PC panel on same Wi-Fi</div>
+  </section>
+
+  <section class="pad">
+    <button class="big" data-cmd="prev">PREV</button>
+    <button class="big play" data-cmd="toggle" id="btnToggle">PLAY</button>
+    <button class="big" data-cmd="next">NEXT</button>
+  </section>
+
+  <section class="vol">
+    <button data-cmd="volume" data-delta="-0.1">VOL -</button>
+    <button data-cmd="volume" data-delta="0.1">VOL +</button>
+    <button data-cmd="stop">STOP</button>
+  </section>
+
+  <section class="search">
+    <input id="q" type="search" placeholder="Search bass / kick / MIDI..." />
+    <button id="btnSearch">GO</button>
+  </section>
+  <ul id="results"></ul>
+
+  <footer>
+    <a href="/">Open full panel</a>
+    <span id="host"></span>
+  </footer>
+
+  <script src="/static/js/remote.js"></script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Music Brain — פאנל</title>
+  <link rel="stylesheet" href="/assets/css/panel.css"/>
+</head>
+<body>
+  <h1>🧠 Music Brain</h1>
+  <p class="sub">פאנל שליטה — כל המוזיקה והסמפלים שלך</p>
+  <nav class="panel-nav" id="panel-nav"></nav>
+
+  <div class="hub-grid" id="hub-cards"></div>
+
+  <div class="card" id="library-card">
+    <strong>ספריות — תצוגה מהירה</strong>
+    <p class="sub" id="lib-summary">טוען...</p>
+    <div class="lib-tabs" id="lib-tabs"></div>
+    <div class="sub-tabs" id="sub-tabs" style="display:none"></div>
+    <div id="browse-results" style="margin-top:1rem"></div>
+    <button type="button" onclick="MB.Libraries.loadMore()" id="btn-more" style="display:none">טען עוד</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="card">
+      <strong>סטטוס מערכת</strong>
+      <div id="status-box" class="sub" style="margin-top:0.5rem">טוען...</div>
+    </div>
+    <div class="card">
+      <strong>קיצורי דרך</strong>
+      <div style="margin-top:0.5rem">
+        <p><a href="/music" style="color:#b8a8ff">🎵 כל השירים</a></p>
+        <p><a href="/samples" style="color:#b8a8ff">🥁 כל הסמפלים לפי סוג</a></p>
+        <p><a href="/search" style="color:#b8a8ff">🔍 חיפוש AI</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/boot.js"></script>
+  <script src="/assets/js/libraries.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    MB.Nav.render("/");
+    const hubs = [
+      { href: "/music", title: "מוזיקה / שירים", desc: "כל המוזיקה על המחשב", lib: "music" },
+      { href: "/samples", title: "סמפלים", desc: "באס, קיק, ליד, FX...", lib: "samples" },
+      { href: "/loops", title: "לופים", desc: "Drum loops ולופים", lib: "loops" },
+      { href: "/search", title: "חיפוש AI", desc: "באס כמו Astrix, kick 145", lib: null },
+    ];
+    MB.API.libraries().then(data => {
+      const box = document.getElementById("hub-cards");
+      box.innerHTML = hubs.map(h => {
+        const count = h.lib ? (data.libraries.find(l => l.id === h.lib)?.total || 0) : data.total;
+        return `<a class="hub-card" href="${h.href}"><strong>${h.title}</strong><span>${count.toLocaleString()} קבצים — ${h.desc}</span></a>`;
+      }).join("");
+    });
+    MB.Libraries.init({ defaultLibrary: "music" });
+    MB.API.status().then(s => {
+      const el = document.getElementById("status-box");
+      const total = Object.values(s.files || {}).reduce((a,b)=>a+b,0);
+      el.innerHTML = `קבצים באינדקס: <span class="tag">${total}</span><br>
+        ממתינים לניתוח: <span class="tag">${s.unanalyzed}</span><br>
+        פרויקטים: <span class="tag">${s.projects?.total_projects || 0}</span>`;
+    });
+  </script>
+</body>
+</html>

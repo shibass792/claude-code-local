@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Music Brain — סמפלים</title>
+  <link rel="stylesheet" href="/assets/css/panel.css"/>
+</head>
+<body>
+  <h1>🥁 הסמפלים שלי</h1>
+  <p class="sub">מחולק לפי סוג — באס, קיק, ליד, פד, FX ועוד</p>
+  <nav class="panel-nav" id="panel-nav"></nav>
+
+  <div class="card">
+    <strong>ספריית סמפלים</strong>
+    <p class="sub" id="lib-summary">טוען...</p>
+    <div class="lib-tabs" id="lib-tabs"></div>
+    <div class="sub-tabs" id="sub-tabs"></div>
+    <div id="browse-results" style="margin-top:1rem"></div>
+    <button type="button" onclick="MB.Libraries.loadMore()" id="btn-more" style="display:none">טען עוד</button>
+  </div>
+
+  <script src="/assets/js/utils.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/player.js"></script>
+  <script src="/assets/js/boot.js"></script>
+  <script src="/assets/js/libraries.js"></script>
+  <script src="/assets/js/nav.js"></script>
+  <script>
+    MB.Nav.render("/samples");
+    MB.Libraries.init({
+      defaultLibrary: "samples",
+      librariesFilter: ["samples"],
+    });
+  </script>
+</body>
+</html>

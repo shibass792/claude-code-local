@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="he" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SHIBASS S1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/shibass.css" />
+</head>
+<body>
+  <div class="studio-bg" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">SHIBASS</span>
+        <span class="brand-sub">MEDIA BRAIN</span>
+      </div>
+      <div class="edition" aria-hidden="true">S1</div>
+      <nav class="nav">
+        <button class="nav-btn active" data-panel="library">LIBRARY</button>
+        <button class="nav-btn" data-panel="playlist">PLAYLIST</button>
+        <button class="nav-btn" data-panel="eq">EQ</button>
+        <button class="nav-btn" data-panel="fx">FX</button>
+        <button class="nav-btn forge-nav" data-panel="forge">MIDI FORGE</button>
+      </nav>
+    </header>
+
+    <main class="deck">
+      <!-- LEFT -->
+      <section class="col left">
+        <div class="module waveform-mod">
+          <div class="mod-label">WAVEFORM</div>
+          <canvas id="waveform" width="420" height="110"></canvas>
+        </div>
+
+        <div class="module row-controls">
+          <label class="select-wrap">
+            <span>FILE TYPE</span>
+            <select id="fileType">
+              <option value="all">MP3 / WAV / FLAC / MIDI</option>
+              <option value="music">MP3 / Music</option>
+              <option value="wav">WAV / AIFF / FLAC</option>
+              <option value="samples">Samples</option>
+              <option value="midi">MIDI</option>
+            </select>
+          </label>
+          <div class="knobs">
+            <div class="knob" data-param="gain">
+              <canvas class="knob-canvas" width="72" height="72"></canvas>
+              <span>GAIN</span>
+            </div>
+            <div class="knob" data-param="balance">
+              <canvas class="knob-canvas" width="72" height="72"></canvas>
+              <span>BALANCE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="module playlist-mod">
+          <div class="mod-label">PLAYLIST</div>
+          <ul id="playlist" class="list"></ul>
+          <div class="list-actions">
+            <button id="btnAdd" type="button">ADD</button>
+            <button id="btnRemove" type="button">REMOVE</button>
+            <button id="btnClear" type="button">CLEAR</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CENTER -->
+      <section class="col center">
+        <div class="transport">
+          <div class="orbit">
+            <button class="orbit-knob" data-orbit="progress" title="Progress"><span>PROGRESS</span></button>
+            <button class="orbit-knob" data-orbit="volume" title="Volume"><span>VOLUME</span></button>
+            <button class="orbit-knob" data-orbit="prev" title="Previous"><span>PREV</span></button>
+            <button class="orbit-knob" data-orbit="loop" title="Loop"><span>LOOP</span></button>
+            <button class="orbit-knob" data-orbit="shuffle" title="Shuffle"><span>SHUFFLE</span></button>
+            <button class="orbit-knob" data-orbit="speed" title="Speed"><span>SPEED</span></button>
+          </div>
+          <button id="btnPlay" class="play-btn" aria-label="Play / Pause">
+            <svg id="iconPlay" viewBox="0 0 64 64" width="42" height="42"><polygon points="22,14 50,32 22,50" fill="currentColor"/></svg>
+            <svg id="iconPause" class="hidden" viewBox="0 0 64 64" width="42" height="42"><rect x="18" y="14" width="10" height="36" fill="currentColor"/><rect x="36" y="14" width="10" height="36" fill="currentColor"/></svg>
+          </button>
+        </div>
+
+        <div class="now-playing">
+          <div class="mod-label">NOW PLAYING</div>
+          <div class="np-title" id="npTitle">—</div>
+          <div class="np-artist" id="npMeta">Select a track from your library</div>
+          <div class="progress-row">
+            <div class="progress-track" id="progressTrack">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <span class="time-left" id="timeLeft">- 00:00</span>
+          </div>
+        </div>
+
+        <div class="ai-strip" id="aiStrip">
+          <span id="aiMsg">Music Brain ready · scanning library…</span>
+        </div>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="col right">
+        <div class="module spectrum-mod">
+          <div class="mod-label">SPECTRUM</div>
+          <canvas id="spectrum" width="420" height="110"></canvas>
+        </div>
+
+        <div class="module eq-mod">
+          <div class="knobs eq-knobs">
+            <div class="knob" data-param="bass">
+              <canvas class="knob-canvas" width="72" height="72"></canvas>
+              <span>BASS</span>
+            </div>
+            <div class="knob" data-param="mid">
+              <canvas class="knob-canvas" width="72" height="72"></canvas>
+              <span>MID</span>
+            </div>
+            <div class="knob" data-param="treble">
+              <canvas class="knob-canvas" width="72" height="72"></canvas>
+              <span>TREBLE</span>
+            </div>
+          </div>
+          <label class="select-wrap">
+            <span>OUTPUT DEVICE</span>
+            <select id="outputDevice">
+              <option>Default Output</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="module browser-mod">
+          <div class="mod-label">BROWSER</div>
+          <div class="search-row">
+            <input id="searchInput" type="search" placeholder="Search MIDI, WAV, Music, Samples…" />
+            <button id="btnSearch" type="button" aria-label="Search">⌕</button>
+            <button id="btnScan" type="button" title="Index media now">SCAN</button>
+          </div>
+          <div class="browser-cats" id="browserCats">
+            <button type="button" data-cat="midi" class="cat active">MIDI</button>
+            <button type="button" data-cat="wav" class="cat">WAV</button>
+            <button type="button" data-cat="music" class="cat">Music</button>
+            <button type="button" data-cat="samples" class="cat">Samples</button>
+          </div>
+          <ul id="browserList" class="list browser-list"></ul>
+        </div>
+      </section>
+    </main>
+
+    <section id="learningContext" dir="rtl" style="margin:14px 0;padding:12px 16px;border:1px solid #3de7ff66;border-radius:10px;background:#07131ce8;color:#e8fbff;text-align:right;font-family:Arial,sans-serif">
+      <b style="color:#3de7ff">🧠 סביבת למידה ומוזיקה</b><br>
+      <span id="learningContextText">טוען הקשר לימודי מאומת…</span>
+      <details style="margin-top:7px"><summary style="cursor:pointer;color:#8de9a8">הצג שיעורי Learn → Prepare → Do</summary><div id="learningLessons" style="margin-top:8px"></div></details>
+    </section>
+
+    <footer class="keys-bar">
+      <div class="wheels">
+        <div class="wheel" id="pitchWheel" title="Pitch">
+          <div class="wheel-fill"></div>
+          <span>PITCH</span>
+        </div>
+        <div class="wheel" id="modWheel" title="Mod">
+          <div class="wheel-fill mid"></div>
+          <span>MOD</span>
+        </div>
+      </div>
+      <div class="keyboard" id="keyboard" aria-label="MIDI keyboard"></div>
+      <div class="status-pills">
+        <span id="pillCount">0 files</span>
+        <span id="pillBpm">— BPM</span>
+        <span id="pillKey">— Key</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/static/js/audio-engine.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/midiforge.js"></script>
+  <script>
+    (async () => {
+      const text = document.getElementById('learningContextText'), lessons = document.getElementById('learningLessons');
+      const safe = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      try {
+        const r = await fetch('http://127.0.0.1:4010/api/learning-workspace/context'); const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error('API unavailable');
+        const l=d.learning||{}, m=d.music||{}, s=d.scans||{}, lib=s.library||{};
+        text.innerHTML = `<b>${l.ready||0}</b> שיעורים מוכנים, <b>${l.partial||0}</b> חלקיים · <b>${m.generationCount||0}</b> יצירות · ${safe(m.bpm||'לא דווח')} BPM / ${safe(m.key||'לא דווח')} · סריקת פרויקטים: ${s.lastProjectScanCount??'לא בוצעה'} קבצים`;
+        lessons.innerHTML = (l.lessons||[]).map((x,i)=>`<div style="border-top:1px solid #27424d;padding:6px 0"><b>${i+1}. ${safe(x.title)}</b><br><small>למד: ${safe(x.learn||'לא תועד')}<br>הכן: ${safe(x.prepare||'לא תועד')}<br>בצע: ${safe(x.do||'לא תועד')}</small></div>`).join('') || 'אין שיעורים מוכנים.';
+      } catch (_) { text.textContent = 'הקשר הלמידה אינו זמין כרגע; הנגן ממשיך לעבוד עם הספרייה המקומית.'; }
+    })();
+  </script>
+
+  <!-- ===== MIDI FORGE ===== -->
+  <div class="forge-modal" id="forgeModal">
+    <div class="forge-sheet">
+      <div class="forge-head">
+        <div>
+          <div class="forge-title">MIDI FORGE</div>
+          <div class="forge-sub">TRANSFORMATION &amp; SONG EXPANSION</div>
+        </div>
+        <div id="forgeFile">—</div>
+        <button id="forgeClose" type="button">CLOSE</button>
+      </div>
+
+      <div class="forge-grid">
+        <div class="forge-card">
+          <h4>SOURCE DNA</h4>
+          <div id="forgeAnalysis"><em style="color:#7eb8c8">Pick a .mid in the BROWSER, then hit ANALYZE.</em></div>
+        </div>
+
+        <div class="forge-card">
+          <h4>TRANSFORMATIONS</h4>
+          <div class="forge-checks" id="forgeTransforms">
+            <label><input type="checkbox" value="lead" checked> Enhance Lead</label>
+            <label><input type="checkbox" value="pad" checked> Atmospheric Pad</label>
+            <label><input type="checkbox" value="arp" checked> Mutate Arp</label>
+            <label><input type="checkbox" value="counter" checked> Counter-Melody</label>
+            <label><input type="checkbox" value="bass" checked> Bass Root-Sync</label>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="forge-row">
+            <label>Complexity</label>
+            <input type="range" id="forgeComplexity" min="0" max="100" value="50">
+            <output id="forgeComplexityVal">50%</output>
+          </div>
+          <div class="forge-row">
+            <label>Mutation</label>
+            <input type="range" id="forgeMutation" min="0" max="100" value="35">
+            <output id="forgeMutationVal">35%</output>
+          </div>
+          <div class="forge-row">
+            <label>Bass style</label>
+            <select id="forgeBassStyle">
+              <option value="rolling">Rolling 16ths</option>
+              <option value="offbeat">Offbeat 8ths</option>
+            </select>
+            <label style="min-width:auto">Bars</label>
+            <input type="number" id="forgeBars" min="1" max="256" value="8" style="width:74px">
+          </div>
+          <div class="forge-row">
+            <label>Arrangement</label>
+            <select id="forgeTemplate">
+              <option value="club">Club (192 bars)</option>
+              <option value="short">Short (120 bars)</option>
+            </select>
+            <label style="min-width:auto">Seed</label>
+            <input type="number" id="forgeSeed" value="0" style="width:74px">
+          </div>
+
+          <div class="forge-checks">
+            <label><input type="checkbox" id="forgeScaleLock" checked> Scale lock</label>
+            <label><input type="checkbox" id="forgeOctave"> Octave double</label>
+            <label><input type="checkbox" id="forgeInvert"> Invert melody</label>
+            <label><input type="checkbox" id="forgePadRhythmic"> Rhythmic pad</label>
+          </div>
+
+          <div class="forge-row" style="margin-top:12px">
+            <label>Preview layer</label>
+            <select id="forgePreviewLayer">
+              <option value="pad">Atmospheric Pad</option>
+              <option value="arp">Arp Variation B</option>
+              <option value="counter">Counter-Melody</option>
+              <option value="bass">Bass Root-Sync</option>
+              <option value="lead">Lead Enhanced</option>
+            </select>
+          </div>
+
+          <div class="forge-actions">
+            <button id="forgeAnalyze" type="button">ANALYZE</button>
+            <button id="forgePreviewOrig" type="button">A · ORIGINAL</button>
+            <button id="forgePreviewGen" type="button">B · GENERATED</button>
+            <button id="forgeStop" type="button">STOP</button>
+            <button id="forgeExport" type="button" class="primary">EXPORT TO CUBASE</button>
+          </div>
+
+          <div id="forgeLayers"></div>
+          <div class="forge-status" id="forgeStatus">Ready.</div>
+          <div id="forgeResult"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
