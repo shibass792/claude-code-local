@@ -27,6 +27,24 @@ Force CPU (skip CUDA probe):
 powershell -ExecutionPolicy Bypass -File .\scripts\wire-demucs-for-midi-forge.ps1 -Device cpu
 ```
 
+## TorchCodec / save_audio error
+
+If separation reaches 100% then fails with:
+
+```text
+ImportError: TorchCodec is required for save_with_torchcodec
+```
+
+Your venv has **torchaudio 2.9+** without **torchcodec**. ShiBass pins an older CPU stack in `config\demucs-requirements.txt` to avoid that on Windows.
+
+Repair (reinstall pinned deps, rewrite `demucs.env`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File H:\shibass-ai\scripts\repair-demucs-venv.ps1
+```
+
+Then re-run failed WAVs (delete their entry from `config\demucs-processed.json` or touch the file).
+
 This creates:
 
 | Path | Purpose |

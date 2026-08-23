@@ -112,6 +112,7 @@ while ($true) {
       Save-ProcessedMap $processed
     } else {
       Write-Host ("[!] " + $f.Name + ": demucs failed (exit " + $LASTEXITCODE + ")") -ForegroundColor Red
+      Write-Host "    If save failed with TorchCodec, run: scripts\repair-demucs-venv.ps1" -ForegroundColor DarkYellow
     }
   }
 

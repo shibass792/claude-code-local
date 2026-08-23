@@ -9,8 +9,10 @@ $ErrorActionPreference = "Stop"
 $FreshZipUrl = "https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/shibass-social-studio-c044.zip"
 $RequiredInZip = @(
   "scripts\wire-demucs-for-midi-forge.ps1",
+  "scripts\repair-demucs-venv.ps1",
   "scripts\start-demucs-pipeline.ps1",
   "scripts\watch-midi-export-demucs.ps1",
+  "config\demucs-requirements.txt",
   "tools\demucs_wav_hook.py",
   "tools\script_fix_paths.ps1",
   "promo-publisher\main.js"

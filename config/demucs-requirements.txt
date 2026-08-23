@@ -1,0 +1,8 @@
+# Pinned stack for ShiBass Demucs on Windows CPU.
+# torchaudio >= 2.9 routes save() through torchcodec (extra FFmpeg setup on Windows).
+# This set avoids TorchCodec and matches demucs 4.x.
+--extra-index-url https://download.pytorch.org/whl/cpu
+demucs>=4.0.0,<5
+torch==2.5.1
+torchaudio==2.5.1
+soundfile>=0.12.1
