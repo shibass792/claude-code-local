@@ -97,6 +97,15 @@ if ($missingInZip.Count -gt 0) {
   exit 2
 }
 
+$fixPathsInZip = Join-Path $repoRootFull "tools\script_fix_paths.ps1"
+if ((Get-Content -LiteralPath $fixPathsInZip -Raw) -match '\$\.PSIsContainer') {
+  Write-Host ""
+  Write-Host "STALE ZIP — tools\script_fix_paths.ps1 has broken `$.PSIsContainer (use fresh branch ZIP)." -ForegroundColor Red
+  Write-Host $FreshZipUrl -ForegroundColor Yellow
+  Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
+  exit 2
+}
+
 $repoRoot = Get-Item $repoRootFull
 
 foreach ($name in $folders) {

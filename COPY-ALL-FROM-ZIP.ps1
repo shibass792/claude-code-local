@@ -81,6 +81,15 @@ if ($missingInZip.Count -gt 0) {
   exit 2
 }
 
+$fixPathsInZip = Join-Path $src "tools\script_fix_paths.ps1"
+if ((Get-Content -LiteralPath $fixPathsInZip -Raw) -match '\$\.PSIsContainer') {
+  Write-Host ""
+  Write-Host "STALE ZIP — tools\script_fix_paths.ps1 has broken `$.PSIsContainer (use fresh branch ZIP)." -ForegroundColor Red
+  Write-Host $FreshZipUrl -ForegroundColor Yellow
+  Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
+  exit 2
+}
+
 foreach ($name in @("scripts", "tools", "docs", "promo-publisher")) {
   $from = Join-Path $src $name
   $to = Join-Path $TargetRoot $name
@@ -138,6 +147,14 @@ foreach ($c in $checks) {
     Write-Host ("  MISS " + $c) -ForegroundColor Red
     $verifyFailed = $true
   }
+}
+
+$fixPathsOnDisk = Join-Path $TargetRoot "tools\script_fix_paths.ps1"
+if ((Test-Path $fixPathsOnDisk) -and ((Get-Content -LiteralPath $fixPathsOnDisk -Raw) -match '\$\.PSIsContainer')) {
+  Write-Host ""
+  Write-Host "  BROKEN tools\script_fix_paths.ps1 still has `$.PSIsContainer after copy." -ForegroundColor Red
+  Write-Host "  Run: powershell -ExecutionPolicy Bypass -File $TargetRoot\scripts\repair-script-fix-paths.ps1" -ForegroundColor Yellow
+  $verifyFailed = $true
 }
 
 if ($verifyFailed) {
