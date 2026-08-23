@@ -1,21 +1,57 @@
 {
-  "services": {
-    "ollama": { "port": 11434, "url": "http://127.0.0.1:11434", "health": "/api/tags" },
-    "ai_panel": { "port": 8787, "url": "http://127.0.0.1:8787", "health": "/api/status" },
+  "_generated_from": "sb-service-status + sb-port-map + service-registry uploads (2026-08-23)",
+  "reserved_ranges": [
+    { "from": 8788, "to": 8859, "owner": "Synth Studio / VST Host / Port Keeper — check 07_LOGS/port_status.json before binding" }
+  ],
+  "tier1_always_on": {
+    "main_ide": { "port": 4000, "url": "http://127.0.0.1:4000", "health": "/api/ops/health", "name": "ShiBass AI IDE" },
+    "promo_publisher_web": { "port": 4050, "url": "http://127.0.0.1:4050", "health": "/", "name": "Promo Publisher (web)" },
+    "promo_publisher_proxy": { "port": 5100, "url": "http://127.0.0.1:5100", "health": "/", "name": "Promo Publisher proxy" },
+    "control_panel": { "port": 7777, "url": "http://127.0.0.1:7777", "health": "/", "name": "Control Panel" },
+    "static_panels": { "port": 8000, "url": "http://127.0.0.1:8000", "health": "/", "name": "Static HTML panels" },
+    "audio_worker": { "port": 8015, "url": "http://127.0.0.1:8015", "health": "/", "name": "Full Audio Worker (Demucs)" },
+    "ace_step": { "port": 8016, "url": "http://127.0.0.1:8016", "health": "/", "name": "ACE-Step" },
+    "master_server": { "port": 8765, "url": "http://127.0.0.1:8765", "health": "/", "name": "ShiBass Master Server" },
+    "sound_dna_portal": { "port": 4781, "url": "http://127.0.0.1:4781", "health": "/", "name": "All-Connected Brain / portal" },
+    "sound_dna_worker": { "port": 4786, "url": "http://127.0.0.1:4786", "health": "/", "name": "Sound-DNA worker" },
+    "producer_brain_db": { "port": 4296, "url": "http://127.0.0.1:4296", "health": "/", "name": "Producer Brain DB" },
+    "local_ai_gate": { "port": 5200, "url": "http://127.0.0.1:5200", "health": "/", "name": "Local-AI Gate" },
+    "ollama": { "port": 11434, "url": "http://127.0.0.1:11434", "health": "/api/tags" }
+  },
+  "tier2_panel_managed": {
+    "ai_panel": { "port": 8787, "url": "http://127.0.0.1:8787", "health": "/api/status", "note": "shibass-ai-panel branch" },
+    "synth_studio": { "port": 8788, "url": "http://127.0.0.1:8788", "health": "/", "name": "Synth Studio FastAPI" },
+    "music_brain": { "port": 8791, "url": "http://127.0.0.1:8791", "health": "/" },
     "memory_api": { "port": 8792, "url": "http://127.0.0.1:8792", "health": "/" },
-    "stem_groove": { "port": 4050, "url": "http://127.0.0.1:4050", "health": "/" },
-    "media_tunnel": { "port": 17890, "url": "http://127.0.0.1:17890", "note": "temporary, on publish only" },
-    "midi_server": { "port": 8765, "url": "http://127.0.0.1:8765", "health": "/health" }
+    "index_memory_engine": { "port": 4495, "url": "http://127.0.0.1:4495", "health": "/docs" },
+    "intelligence_hub": { "port": 4192, "url": "http://127.0.0.1:4192", "health": "/" },
+    "n8n": { "port": 5678, "url": "http://127.0.0.1:5678", "health": "/" },
+    "dsh": { "port": 3080, "url": "http://127.0.0.1:3080", "health": "/" }
+  },
+  "cubase": {
+    "midi_remote": { "port": 48120, "note": "requires Cubase running" },
+    "control": { "port": 48131, "note": "Cubase Control" }
+  },
+  "social_studio_electron": {
+    "note": "repo promo-publisher — desktop app, not a fixed port",
+    "media_tunnel": { "port": 17890, "url": "http://127.0.0.1:17890", "note": "temporary on Meta publish" }
+  },
+  "dev_only": {
+    "synths_midi_stub": { "port": 8877, "url": "http://127.0.0.1:8877", "health": "/health", "note": "tools/synths_midi_server.py — NOT 8765" }
   },
   "paths": {
     "root": "H:\\shibass-ai",
+    "db": "H:\\shibass-ai\\shibass.db",
     "midi_export": "H:\\shibass-ai\\10_OUTPUTS\\MIDI_EXPORT",
+    "social_inbox": "H:\\shibass-ai\\10_OUTPUTS\\social",
     "brain": "H:\\shibass-ai\\SHIBASS_BRAIN",
     "shared_memory": "H:\\shibass-ai\\SHIBASS_SHARED_MEMORY",
-    "panel": "H:\\shibass-ai-panel",
-    "promo_publisher": "H:\\shibass-ai\\promo-publisher",
-    "stem_groove": "H:\\shibass-ai\\stem-groove",
-    "social_inbox": "H:\\shibass-ai\\10_OUTPUTS\\social",
-    "midi_server_script": "H:\\shibass-ai\\tools\\synths_midi_server.py"
+    "index_memory": "H:\\shibass-ai\\SHIBASS_INDEX_MEMORY_ENGINE",
+    "panel_independent": "H:\\shibass-ai-panel",
+    "promo_publisher_web": "H:\\shibass-ai",
+    "promo_publisher_electron": "H:\\shibass-ai\\promo-publisher",
+    "cubase_templates": "H:\\ShiBass_Cubase_Projects\\Audix_Templates",
+    "port_status_live": "H:\\shibass-ai\\07_LOGS\\port_status.json",
+    "synths_midi_script": "H:\\shibass-ai\\tools\\synths_midi_server.py"
   }
 }

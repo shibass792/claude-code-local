@@ -3,7 +3,8 @@
 
 Replace or extend with your real synth/MIDI routing logic.
 Run: python tools/synths_midi_server.py
-Default port: 8765 (override with SHIBASS_MIDI_PORT).
+Default port: 8877 — 8765 is ShiBass Master Server on your machine.
+Override with SHIBASS_MIDI_PORT.
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
 HOST = os.environ.get("SHIBASS_MIDI_HOST", "127.0.0.1")
-PORT = int(os.environ.get("SHIBASS_MIDI_PORT", "8765"))
+PORT = int(os.environ.get("SHIBASS_MIDI_PORT", "8877"))
 
 
 class Handler(BaseHTTPRequestHandler):

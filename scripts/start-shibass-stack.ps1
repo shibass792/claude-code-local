@@ -1,16 +1,17 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Start core ShiBass services from one place (Ollama check, Panel, Memory API).
+  Start core ShiBass services (Main IDE 4000, Panel 8787, Memory APIs).
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File H:\shibass-ai\scripts\start-shibass-stack.ps1
-  powershell -ExecutionPolicy Bypass -File H:\shibass-ai\scripts\start-shibass-stack.ps1 -IncludeStemGroove
+  powershell -ExecutionPolicy Bypass -File H:\shibass-ai\scripts\start-shibass-stack.ps1 -IncludeIndexMemory
 #>
 param(
   [string]$Root = "H:\shibass-ai",
   [string]$PanelDir = "H:\shibass-ai-panel",
-  [switch]$IncludeStemGroove,
+  [switch]$IncludeIndexMemory,
+  [switch]$SkipMainIde,
   [switch]$SkipPanel,
   [switch]$SkipMemory
 )
@@ -33,13 +34,21 @@ function Start-Detached([string]$Title, [string]$FilePath, [string[]]$Args, [str
 Write-Host ""
 Write-Host "ShiBass Stack Launcher" -ForegroundColor Cyan
 Write-Host "Root: $Root"
+Write-Host "NOTE: 4050 Promo Publisher and 8765 Master Server are usually already running — not started here."
 Write-Host ""
 
-# Ollama — usually installed as a service; only warn if down
 if (-not (Test-Listening 11434)) {
   Write-Host "Ollama (11434) not listening — start Ollama app or: ollama serve" -ForegroundColor Yellow
 } else {
   Write-Host "Ollama (11434) OK" -ForegroundColor Green
+}
+
+if (-not $SkipMainIde) {
+  if (Test-Listening 4000) {
+    Write-Host "Main IDE (4000) already running" -ForegroundColor DarkGray
+  } else {
+    Start-Detached "Main IDE :4000" "node" @("server.js") $Root
+  }
 }
 
 if (-not $SkipPanel) {
@@ -59,16 +68,16 @@ if (-not $SkipMemory) {
   }
 }
 
-if ($IncludeStemGroove) {
-  $stemServer = Join-Path $Root "stem-groove\app\server.js"
-  if (Test-Listening 4050) {
-    Write-Host "Stem Groove (4050) already running" -ForegroundColor DarkGray
+if ($IncludeIndexMemory) {
+  $indexScript = Join-Path $Root "SHIBASS_INDEX_MEMORY_ENGINE\api\memory_server.py"
+  if (Test-Listening 4495) {
+    Write-Host "Index Memory (4495) already running" -ForegroundColor DarkGray
   } else {
-    Start-Detached "Stem Groove :4050" "node" @("app\server.js") (Join-Path $Root "stem-groove")
+    Start-Detached "Index Memory :4495" "python" @("api\memory_server.py") (Join-Path $Root "SHIBASS_INDEX_MEMORY_ENGINE")
   }
 }
 
 Write-Host ""
-Write-Host "Run doctor: scripts\shibass-doctor.ps1" -ForegroundColor DarkCyan
-Write-Host "Social Studio: cd promo-publisher && npm start" -ForegroundColor DarkCyan
+Write-Host "Doctor: scripts\shibass-doctor.ps1" -ForegroundColor DarkCyan
+Write-Host "Topology: docs\SHIBASS_LIVE_TOPOLOGY.md" -ForegroundColor DarkCyan
 Write-Host ""

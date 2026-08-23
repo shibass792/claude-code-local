@@ -1,0 +1,122 @@
+{
+  "_comment": "Panel start commands — synced from uploaded service-registry.json (2026-08-23). Services without startCommand are status-only.",
+  "services": [
+    {
+      "id": "main-server",
+      "name": "ShiBass Main Server",
+      "nameHe": "השרת הראשי",
+      "group": "ליבה",
+      "port": 4000,
+      "startCommand": "node server.js",
+      "cwd": "H:\\shibass-ai",
+      "healthPath": "/api/ops/health",
+      "startTimeoutMs": 120000,
+      "note": "מגיש את הפאנלים הגדולים ואת ה-API. עלייה ראשונה ~30 שניות."
+    },
+    {
+      "id": "promo-publisher",
+      "name": "Promo Publisher",
+      "nameHe": "מפרסם פרומו",
+      "group": "פרסום",
+      "port": 4050,
+      "url": "http://127.0.0.1:4050/",
+      "note": "כבר רץ אצלך — לא Stem Groove. Social Studio Electron הוא שכבה נוספת."
+    },
+    {
+      "id": "dsh-web",
+      "name": "DSH — DeepSeek Harness",
+      "nameHe": "DSH — סוכן קוד + חנות פלוגינים",
+      "group": "סוכני AI",
+      "port": 3080,
+      "startCommand": "\"C:\\Users\\shibass\\dsh-runtime\\node_modules\\.bin\\dsh.cmd\" web",
+      "cwd": "C:\\Users\\shibass\\dsh-runtime",
+      "startTimeoutMs": 60000
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama Local AI",
+      "nameHe": "Ollama — מודלים מקומיים",
+      "group": "סוכני AI",
+      "port": 11434,
+      "startCommand": "ollama serve",
+      "cwd": "H:\\shibass-ai",
+      "healthPath": "/api/tags",
+      "startTimeoutMs": 30000
+    },
+    {
+      "id": "intelligence-hub",
+      "name": "SB Intelligence Hub",
+      "nameHe": "מרכז אינטליגנציה",
+      "group": "מנועים",
+      "port": 4192,
+      "startCommand": "node server.js",
+      "cwd": "H:\\shibass-ai\\sb-intelligence-hub",
+      "startTimeoutMs": 45000
+    },
+    {
+      "id": "memory-engine",
+      "name": "Index Memory Engine",
+      "nameHe": "מנוע הזיכרון",
+      "group": "מנועים",
+      "port": 4495,
+      "startCommand": "python api\\memory_server.py",
+      "cwd": "H:\\shibass-ai\\SHIBASS_INDEX_MEMORY_ENGINE",
+      "url": "http://127.0.0.1:4495/docs",
+      "note": "שורש / מחזיר 404 — health ב-/docs"
+    },
+    {
+      "id": "shared-memory-api",
+      "name": "Shared Memory API",
+      "nameHe": "Memory API (facts)",
+      "group": "מנועים",
+      "port": 8792,
+      "startCommand": "python shibass_memory_api.py",
+      "cwd": "H:\\shibass-ai\\SHIBASS_SHARED_MEMORY\\tools",
+      "note": "WinError 10053 = לקוח ניתק — בדרך כלל תקין"
+    },
+    {
+      "id": "sound-dna",
+      "name": "Sound-DNA Detector",
+      "nameHe": "מנוע Sound-DNA",
+      "group": "מנועים",
+      "port": 4786,
+      "startCommand": "python music-engine\\sound_dna_server.py --port 4786",
+      "cwd": "H:\\shibass-ai",
+      "note": "4781 שמור לפורטל ShiBass_Studio.exe — לא להחזיר ל-4781"
+    },
+    {
+      "id": "master-server",
+      "name": "ShiBass Master Server",
+      "nameHe": "שרת מאסטר",
+      "group": "ליבה",
+      "port": 8765,
+      "url": "http://127.0.0.1:8765/",
+      "note": "תפוס — אל תשים כאן synths_midi stub"
+    },
+    {
+      "id": "audio-worker",
+      "name": "Full Audio Worker",
+      "nameHe": "Demucs / אודיו",
+      "group": "מנועים",
+      "port": 8015,
+      "url": "http://127.0.0.1:8015/"
+    },
+    {
+      "id": "ace-step",
+      "name": "ACE-Step",
+      "group": "מנועים",
+      "port": 8016,
+      "url": "http://127.0.0.1:8016/"
+    },
+    {
+      "id": "n8n",
+      "name": "n8n Automation",
+      "nameHe": "n8n — אוטומציה",
+      "group": "אוטומציה",
+      "port": 5678,
+      "startCommand": "n8n start",
+      "cwd": "H:\\shibass-ai",
+      "startTimeoutMs": 240000
+    }
+  ]
+}

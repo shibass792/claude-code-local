@@ -8,7 +8,10 @@
 |------|----------------|------|--------|
 | **AI Panel** | `H:\shibass-ai-panel` → `server.js` | **8787** | עובד (Ollama + Brain) |
 | **Memory API** | `SHIBASS_SHARED_MEMORY\tools\shibass_memory_api.py` | **8792** | רץ; WinError 10053 = לקוח ניתק (רעש) |
-| **Stem Groove** | `node app/server.js` (מתוך stem-groove) | **4050** | קיים; הרבה עותקים ב-`.install-staging` |
+| **Stem Groove** | `node app/server.js` (מתוך stem-groove) | **4050** | ⚠️ **4050 אצלך = Promo Publisher** — לא Stem Groove |
+| **Promo Publisher (web)** | `H:\shibass-ai` server | **4050** | HTTP 200 — כבר רץ |
+| **ShiBass Master Server** | master stack | **8765** | HTTP 200 — **אל תשים MIDI stub כאן** |
+| **Main AI IDE** | `node server.js` @ root | **4000** | 142+ HTML panels |
 | **Audio worker + Demucs** | מנטר `10_OUTPUTS\MIDI_EXPORT` | — | עובד `[cuda] test30.wav` |
 | **ShiBass Brain** | `SHIBASS_BRAIN\` + `H:\models\shibass-brain\` | — | Phase 1 |
 | **Ollama** | `http://127.0.0.1:11434` | **11434** | בסיס ל-AI |
@@ -89,9 +92,16 @@ H:\shibass-ai\
 | 11434 | Ollama | `curl http://127.0.0.1:11434/api/tags` |
 | 8787 | AI Panel | `http://127.0.0.1:8787/api/status` |
 | 8792 | Memory API | `http://127.0.0.1:8792/` |
-| 4050 | Stem Groove | `http://127.0.0.1:4050/` |
+| 4000 | ShiBass AI IDE | `curl http://127.0.0.1:4000/api/ops/health` |
+| 4050 | Promo Publisher (web) | `http://127.0.0.1:4050/` |
+| 4495 | Index Memory Engine | `http://127.0.0.1:4495/docs` |
+| 4781 | Sound-DNA portal | `http://127.0.0.1:4781/` |
+| 4786 | Sound-DNA worker | `http://127.0.0.1:4786/` |
+| 8015 | Audio Worker (Demucs) | `http://127.0.0.1:8015/` |
+| 8765 | Master Server | `http://127.0.0.1:8765/` |
 | 17890 | מנהרת מדיה (זמני) | רק בעת פרסום Meta |
-| 8765 | MIDI server (stub) | `http://127.0.0.1:8765/health` |
+| 8765 | Master Server (לא MIDI!) | `http://127.0.0.1:8765/` |
+| 8877 | MIDI stub (dev only) | `http://127.0.0.1:8877/health` |
 
 ---
 
@@ -127,7 +137,7 @@ npm run radar:scan
 
 ---
 
-## Branch ב-GitHub
+ראה גם **`docs/SHIBASS_LIVE_TOPOLOGY.md`** — מסונכרן מהקבצים שהעלית (sb-port-map, service-status).
 
 | Branch | תוכן |
 |--------|------|
