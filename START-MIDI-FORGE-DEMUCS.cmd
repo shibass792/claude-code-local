@@ -28,5 +28,6 @@ echo.
 echo 1. Restart MIDI Forge / music_brain on port 8791 from THIS window if needed.
 echo 2. Drop WAV into MIDI_EXPORT - watcher runs Demucs automatically.
 echo 3. Optional: keep Full Audio Worker on 8015 running in parallel.
+echo 4. If save fails with TorchCodec, run FIX-DEMUCS-TORCHCODEC.ps1 once.
 echo.
 cmd /k
