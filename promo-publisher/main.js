@@ -6,6 +6,12 @@ const fs = require('fs');
 const radar = require('./modules/radar');
 const approvalEngine = require('./modules/approval-publisher');
 const { resolveFromRoot } = require('./modules/store');
+const { getEngineStatus } = require('./modules/engines');
+const { readLog, formatLogText, readState } = require('./modules/creation-log');
+const { renderVerticalReel } = require('./modules/render');
+const { generateViralHooks } = require('./modules/hooks');
+const instagram = require('./modules/instagram-engine');
+const music = require('./modules/music-library');
 
 function configureElectronStorage() {
   const userDataPath = path.join(__dirname, '.electron-user-data');
@@ -139,3 +145,24 @@ ipcMain.handle('shell:open-external', async (_event, url) => {
   await shell.openExternal(url);
   return true;
 });
+
+ipcMain.handle('engines:status', async () => getEngineStatus({ log: true }));
+
+ipcMain.handle('log:get', async () => {
+  const entries = readLog(160);
+  return { mock: false, entries, text: formatLogText(entries), state: readState() };
+});
+
+ipcMain.handle('render:reel', async (_event, payload) => renderVerticalReel(payload ?? {}));
+
+ipcMain.handle('hooks:generate', async (_event, payload) => generateViralHooks(payload ?? {}));
+
+ipcMain.handle('instagram:session', async () => instagram.startSession());
+
+ipcMain.handle('music:scan', async (_event, payload) => music.scanLibrary(payload ?? {}));
+
+ipcMain.handle('music:index', async () => music.getIndex());
+
+ipcMain.handle('render:upload-meta', async (_event, payload) =>
+  renderVerticalReel(payload ?? {}),
+);

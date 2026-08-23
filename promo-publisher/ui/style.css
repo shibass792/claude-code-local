@@ -412,6 +412,73 @@ input[type='text'] {
   z-index: 1000;
 }
 
+.engine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.creation-log {
+  margin-top: 18px;
+  background: #07080c;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 220px;
+  max-height: 360px;
+  overflow: auto;
+  color: #d1d5db;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.player-transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.loop-toggle,
+.volume-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.now-playing {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.track-list {
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.track-list li {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.track-list li:hover,
+.track-list li.active {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+#audio-file {
+  margin-top: 16px;
+}
+
 @media (max-width: 1100px) {
   .approval-workspace {
     grid-template-columns: 1fr;

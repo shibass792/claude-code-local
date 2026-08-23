@@ -8,8 +8,9 @@
     "start:win": "electron . --disable-gpu-shader-disk-cache",
     "radar:scan": "node modules/radar.js --scan",
     "import:social": "node scripts/import-social-inbox.js",
+    "api": "node studio-api.js",
     "test": "node --test tests/*.test.js",
-    "lint": "node --check main.js preload.js modules/*.js modules/publishers/*.js ui/app.js"
+    "lint": "node --check main.js preload.js studio-api.js modules/*.js modules/publishers/*.js ui/app.js ui/api-client.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

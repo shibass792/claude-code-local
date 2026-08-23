@@ -86,36 +86,90 @@ function getSampleFeed(watchlist) {
   );
 }
 
+function normalizeHandle(handle) {
+  return String(handle ?? '')
+    .trim()
+    .replace(/^@/, '');
+}
+
 async function tryYtDlpScan(handle) {
+  const user = normalizeHandle(handle);
+  if (!user) {
+    return [];
+  }
+
   try {
     await execFileAsync('yt-dlp', ['--version']);
   } catch {
-    return null;
+    return { error: 'yt-dlp is not installed', posts: [] };
   }
 
-  // Placeholder: real scraping would pull recent shorts/reels metadata.
-  return null;
+  const targets = [
+    `https://www.instagram.com/${user}/reels/`,
+    `https://www.tiktok.com/@${user}`,
+  ];
+
+  let lastScanError = null;
+
+  for (const url of targets) {
+    try {
+      const { stdout } = await execFileAsync(
+        'yt-dlp',
+        ['--flat-playlist', '--dump-single-json', '--playlist-end', '8', url],
+        { timeout: 45000 },
+      );
+      const parsed = JSON.parse(stdout);
+      const entries = Array.isArray(parsed.entries) ? parsed.entries : [];
+      const posts = entries
+        .map((entry, index) => ({
+          id: String(entry.id ?? `${user}_${index}`),
+          platform: url.includes('tiktok') ? 'tiktok' : 'instagram',
+          views: Number(entry.view_count ?? entry.play_count ?? 0),
+          hookText: entry.title ?? entry.description ?? '',
+          style: url.includes('tiktok') ? 'TikTok live scan' : 'Instagram Reels live scan',
+          captionSnippet: (entry.description ?? entry.title ?? '').slice(0, 180),
+          keyStrategy: 'Live yt-dlp metadata — views vs watchlist baseline',
+          collectedAt: new Date().toISOString(),
+        }))
+        .filter((post) => post.hookText || post.views > 0);
+      if (posts.length) {
+        return { error: null, posts };
+      }
+    } catch (error) {
+      lastScanError = error.message;
+    }
+  }
+
+  return { error: lastScanError || `No public posts found for @${user}`, posts: [] };
 }
 
 async function scanWatchlist() {
   const watchlist = loadWatchlist();
   const collected = [];
+  const errors = [];
 
   for (const artist of watchlist) {
     const scraped = await tryYtDlpScan(artist.handle);
-    if (scraped?.length) {
-      collected.push(...scraped.map((post) => analyzePost(artist, post)));
+    const posts = Array.isArray(scraped) ? scraped : scraped?.posts ?? [];
+    if (scraped && !Array.isArray(scraped) && scraped.error) {
+      errors.push(`${artist.handle}: ${scraped.error}`);
+    }
+    if (posts.length) {
+      collected.push(...posts.map((post) => analyzePost(artist, post)));
     }
   }
 
-  const feed = collected.length > 0 ? collected : getSampleFeed(watchlist);
+  const allowSample = process.env.RADAR_ALLOW_SAMPLE === '1';
+  const feed = collected.length > 0 ? collected : allowSample ? getSampleFeed(watchlist) : [];
   const viralOnly = feed
     .filter((item) => item.isViral)
     .sort((a, b) => b.outlierScore - a.outlierScore);
 
   const payload = {
     scannedAt: new Date().toISOString(),
-    source: collected.length > 0 ? 'live' : 'sample',
+    source: collected.length > 0 ? 'live' : allowSample ? 'sample' : 'empty',
+    mock: false,
+    errors,
     items: feed,
     viral: viralOnly,
   };
@@ -157,6 +211,8 @@ module.exports = {
   computeOutlierScore,
   analyzePost,
   scanWatchlist,
+  tryYtDlpScan,
+  normalizeHandle,
   getTopTrendingContent,
   getTemplateById,
 };

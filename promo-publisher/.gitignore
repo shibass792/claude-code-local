@@ -1,6 +1,10 @@
 node_modules/
 .electron-user-data/
 output/
+media/*.wav
+media/*.mp3
+media/*.flac
+media/*.mp4
 config/tokens.enc
 config/.env
 *.log

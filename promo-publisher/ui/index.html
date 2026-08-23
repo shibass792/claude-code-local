@@ -16,8 +16,9 @@
 
       <nav class="nav-menu" id="nav-menu">
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
+        <button class="nav-btn" data-tab="create-tab">🎬 יצירה ורינדור</button>
+        <button class="nav-btn" data-tab="player-tab">⚡ נגן אוניברסלי</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
-        <button class="nav-btn" data-tab="create-tab">🎬 יצירת סרטון חדש</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
       </nav>
@@ -97,14 +98,47 @@
 
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
-          <h1>הפקת סרטון חדש מהמחשב</h1>
-          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+          <h1>לוג יצירה, InstaPy ורינדור סרטונים</h1>
+          <p>כל כפתור כאן קורא ל-API אמיתי — FFmpeg, Ollama/ReelHook, Meta Graph / InstaPy</p>
         </header>
-        <div class="drop-zone" id="drop-zone">
-          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
-          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
-          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+
+        <div class="engine-actions">
+          <button class="btn btn-secondary" id="btn-probe-engines" type="button">בדוק מנועים</button>
+          <button class="btn btn-secondary" id="btn-ig-session" type="button">Instagram Session</button>
+          <button class="btn btn-secondary" id="btn-generate-hooks" type="button">ReelHook AI</button>
+          <button class="btn btn-primary" id="btn-render-selected" type="button">רנדר 9:16</button>
         </div>
+
+        <div class="drop-zone" id="drop-zone">
+          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) לרינדור אמיתי</h3>
+          <p>FFmpeg 1080×1920 · הוקים מ-Ollama · תור אישור אחרי רינדור</p>
+          <input id="audio-file" type="file" accept="audio/*,.wav,.mp3,.flac,.mid,.midi">
+        </div>
+
+        <pre class="creation-log" id="creation-log" dir="ltr"></pre>
+      </section>
+
+      <section id="player-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>⚡ ShiBass Universal Player</h1>
+            <p id="player-index-status">אין אינדקס מוזיקה — הרץ סריקה</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-scan-music" type="button">סרוק ספרייה</button>
+        </header>
+        <p class="now-playing" id="now-playing">לא נבחר טראק</p>
+        <div class="player-transport" dir="ltr">
+          <button class="btn btn-secondary" id="btn-prev" type="button">⏮️</button>
+          <button class="btn btn-primary" id="btn-play" type="button">▶ נגן</button>
+          <button class="btn btn-secondary" id="btn-stop" type="button">■ עצור</button>
+          <button class="btn btn-secondary" id="btn-fwd" type="button">⏩ +5s</button>
+          <button class="btn btn-secondary" id="btn-next" type="button">⏭️</button>
+          <label class="loop-toggle"><input type="checkbox" id="chk-loop" checked> 🔁 ברצף</label>
+          <label class="volume-wrap">🔊 <input type="range" id="volume" min="0" max="100" value="75"> <span id="volume-label">75%</span></label>
+          <span id="player-clock">00:00</span>
+        </div>
+        <audio id="universal-audio" preload="metadata"></audio>
+        <ul class="track-list" id="track-list"></ul>
       </section>
 
       <section id="history-tab" class="tab-content">
@@ -138,6 +172,7 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
+  <script src="api-client.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

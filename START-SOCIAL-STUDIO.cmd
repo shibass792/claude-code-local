@@ -6,4 +6,9 @@ if not exist "H:\shibass-ai\promo-publisher\main.js" (
   pause
   exit /b 1
 )
-call START-DESKTOP.cmd
+if exist "START-DESKTOP.cmd" call START-DESKTOP.cmd
+if not exist "START-DESKTOP.cmd" (
+  echo Starting Studio HTTP API on port 4052
+  set STUDIO_API_PORT=4052
+  node studio-api.js
+)

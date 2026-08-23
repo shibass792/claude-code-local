@@ -34,9 +34,12 @@ function resolveFromRoot(relativePath) {
 module.exports = {
   ROOT,
   OUTPUT_DIR,
+  MEDIA_DIR: path.join(ROOT, 'media'),
   PENDING_DB: path.join(OUTPUT_DIR, 'pending_campaigns.json'),
   RADAR_DB: path.join(OUTPUT_DIR, 'radar_feed.json'),
   PUBLISH_RESULTS: path.join(OUTPUT_DIR, 'publish_results.json'),
+  MUSIC_INDEX: path.join(OUTPUT_DIR, 'music_index.json'),
+  CREATION_LOG: path.join(OUTPUT_DIR, 'creation_log.jsonl'),
   WATCHLIST: path.join(ROOT, 'config', 'watchlist.json'),
   ensureDir,
   readJson,

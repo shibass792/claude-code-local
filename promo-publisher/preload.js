@@ -13,4 +13,12 @@ contextBridge.exposeInMainWorld('api', {
   approveAndPublish: (campaignData) =>
     ipcRenderer.invoke('approval:approve-and-publish', campaignData),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  getEngines: () => ipcRenderer.invoke('engines:status'),
+  getLog: () => ipcRenderer.invoke('log:get'),
+  renderReel: (payload) => ipcRenderer.invoke('render:reel', payload),
+  generateHooks: (payload) => ipcRenderer.invoke('hooks:generate', payload),
+  instagramSession: () => ipcRenderer.invoke('instagram:session'),
+  scanMusic: (payload) => ipcRenderer.invoke('music:scan', payload),
+  getMusicIndex: () => ipcRenderer.invoke('music:index'),
+  uploadAndRender: (payload) => ipcRenderer.invoke('render:upload-meta', payload),
 });

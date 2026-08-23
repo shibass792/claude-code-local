@@ -24,11 +24,13 @@ test('analyzePost flags viral outliers', () => {
 });
 
 test('scanWatchlist writes radar feed', async () => {
+  process.env.RADAR_ALLOW_SAMPLE = '1';
   if (fs.existsSync(RADAR_DB)) {
     fs.unlinkSync(RADAR_DB);
   }
   const result = await radar.scanWatchlist();
   assert.ok(result.viral.length >= 1);
+  assert.equal(result.mock, false);
   assert.ok(fs.existsSync(RADAR_DB));
 });
 

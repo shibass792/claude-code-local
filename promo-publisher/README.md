@@ -14,7 +14,7 @@
 
 - Node.js 18+
 - Windows (מומלץ) או macOS / Linux
-- FFmpeg + NVENC (לשלב הרינדור — חיבור עתידי)
+- FFmpeg (רינדור 9:16 אמיתי)
 - `cloudflared` (אופציונלי, לפרסום Meta מהמחשב)
 
 ## התקנה והפעלה
@@ -54,8 +54,9 @@ promo-publisher/
 | פקודה | תיאור |
 |--------|--------|
 | `npm start` | פתיחת אפליקציית הדסקטופ |
-| `npm run radar:scan` | סריקת רדאר (CLI) |
-| `npm test` | בדיקות מודולים |
+| `npm run api` | שרת HTTP אמיתי על פורט 4052 |
+| `npm run radar:scan` | סריקת רדאר (CLI, yt-dlp אם מותקן) |
+| `npm test` | בדיקות מודולים + רינדור FFmpeg |
 
 ## הגדרת API
 
@@ -64,13 +65,33 @@ promo-publisher/
 3. מלא `TIKTOK_CLIENT_KEY`, `TIKTOK_ACCESS_TOKEN`
 4. (אופציונלי) `CLOUDFLARE_TUNNEL_TOKEN` או התקן `cloudflared`
 
-ללא טוקנים — המערכת רצה במצב **סימולציה** (mock publish) לבדיקת זרימת האישור.
+ללא טוקנים — **פרסום נכשל בגלוי**. אין יותר לוג סימולציה שמצליח בלחיצה.
+
+## Studio HTTP API (אמיתי)
+
+```bash
+cd promo-publisher
+npm run api
+# http://127.0.0.1:4052
+```
+
+| נתיב | מה הוא עושה באמת |
+|------|-------------------|
+| `GET /api/engines` | בודק FFmpeg, Ollama, yt-dlp, InstaPy, Meta |
+| `POST /api/render` | רינדור 9:16 עם FFmpeg לקובץ MP4 |
+| `POST /api/hooks` | Ollama / OpenAI-compatible / metadata engine |
+| `POST /api/instagram/session` | Graph API (או InstaPy אם מותקן ו-`INSTAPY_ENABLED=1`) |
+| `POST /api/music/scan` | סורק WAV/MP3/MIDI וכותב `output/music_index.json` |
+| `GET /api/music/stream/:id` | סטרימינג אמיתי לנגן |
+| `GET /api/log` | לוג יצירה מקריאות אמיתיות, לא תבנית |
+
+Windows: `START-STUDIO-API.cmd` משורש הריפו.
 
 ## שלבים הבאים
 
-1. חיבור מנוע FFmpeg / NVENC הקיים לרינדור תבניות
-2. אינטגרציית yt-dlp לסריקת רדאר חיה
-3. Ollama לכתיבת הוקים אוטומטית
+1. מלא `config/.env` בטוקני Meta / TikTok לפרסום חי
+2. התקן `yt-dlp` לסריקת רדאר חיה
+3. הרץ Ollama עם `OLLAMA_MODEL` להוקים
 4. Telegram bot לאישור מהסמארטפון (אופציונלי)
 
 ## רישיון

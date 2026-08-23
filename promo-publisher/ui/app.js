@@ -31,6 +31,12 @@ function switchTab(tabId) {
   if (tabId === 'connections-tab') {
     loadConnections();
   }
+  if (tabId === 'create-tab') {
+    refreshCreationLog();
+  }
+  if (tabId === 'player-tab') {
+    loadMusicIndex();
+  }
 }
 
 function updatePublishButtonState() {
@@ -177,8 +183,11 @@ async function loadConnections() {
   const grid = document.getElementById('connections-grid');
   grid.innerHTML = '';
 
-  Object.entries(health).forEach(([key, item]) => {
-    const configured = item.configured ?? item.cloudflared;
+  Object.entries(health).forEach(([_key, item]) => {
+    if (!item || typeof item !== 'object' || !item.label) {
+      return;
+    }
+    const configured = item.configured ?? item.cloudflared ?? item.available;
     const card = document.createElement('div');
     card.className = 'connection-card';
     card.innerHTML = `
@@ -271,10 +280,20 @@ function setupActions() {
       showToast('סריקת רדאר הושלמה');
     }
   });
-  document.getElementById('btn-remix-hook').addEventListener('click', () => {
-    const en = document.getElementById('caption-en').value;
-    document.getElementById('caption-he').value = en ? `גרסה חדשה: ${en}` : 'הוק חדש — חכו לדרופ...';
-    showToast('הוק עודכן — ערוך לפני פרסום');
+  document.getElementById('btn-remix-hook').addEventListener('click', async () => {
+    if (!window.api?.generateHooks) {
+      return;
+    }
+    const result = await window.api.generateHooks({
+      title: currentCampaign?.title || document.getElementById('video-title').textContent,
+    });
+    if (result?.hooks?.length) {
+      document.getElementById('caption-he').value = result.hooks[0];
+      document.getElementById('caption-en').value = result.hooks[1] ?? result.hooks[0];
+      showToast(`הוקים מ-${result.engine}`);
+    } else {
+      showToast(result?.error ?? 'יצירת הוקים נכשלה');
+    }
   });
 }
 
@@ -292,8 +311,240 @@ function setupDropZone() {
       zone.classList.remove('dragover');
     });
   });
-  zone.addEventListener('drop', () => {
-    showToast('שלב הבא: חיבור למנוע FFmpeg לרינדור אוטומטי');
+  zone.addEventListener('drop', async (event) => {
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) {
+      return;
+    }
+    await renderDroppedFile(file);
+  });
+  document.getElementById('audio-file')?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      await renderDroppedFile(file);
+    }
+  });
+}
+
+async function renderDroppedFile(file) {
+  showToast(`מרנדר ${file.name}...`);
+  let result;
+  if (file.path && window.api?.renderReel) {
+    result = await window.api.renderReel({ audioPath: file.path, title: file.name });
+  } else if (window.api?.uploadAndRender) {
+    result = await window.api.uploadAndRender(file);
+  } else {
+    showToast('API רינדור לא זמין');
+    return;
+  }
+  await refreshCreationLog();
+  if (result?.success) {
+    showToast(`רונדר ${result.relativePath}`);
+    await loadApprovalQueue();
+  } else {
+    showToast(result?.error ?? 'הרינדור נכשל');
+  }
+}
+
+function renderLogText(payload) {
+  const box = document.getElementById('creation-log');
+  if (!box) {
+    return;
+  }
+  if (!payload?.entries?.length) {
+    box.textContent = 'אין לוג עדיין — לחץ "בדוק מנועים" או רנדר טראק.';
+    return;
+  }
+  box.textContent = payload.text;
+  box.scrollTop = box.scrollHeight;
+}
+
+async function refreshCreationLog() {
+  if (!window.api?.getLog) {
+    return;
+  }
+  renderLogText(await window.api.getLog());
+}
+
+async function refreshSystemStatus() {
+  if (!window.api?.getEngines) {
+    return;
+  }
+  const status = await window.api.getEngines();
+  const label = document.querySelector('#system-status span');
+  const dot = document.querySelector('#system-status .status-indicator');
+  if (!label || !dot) {
+    return;
+  }
+  label.textContent = status.ok ? 'FFmpeg + Studio API פעילים' : 'מנועים חסרים — ראה לוג';
+  dot.classList.toggle('online', Boolean(status.ok));
+}
+
+let playlist = [];
+let playlistIndex = -1;
+
+function currentTrack() {
+  return playlist[playlistIndex] ?? null;
+}
+
+function streamUrl(track) {
+  if (!track) {
+    return '';
+  }
+  if (location.protocol === 'file:') {
+    return `file://${track.path.replace(/\\/g, '/')}`;
+  }
+  return `/api/music/stream/${track.id}`;
+}
+
+function renderTrackList() {
+  const list = document.getElementById('track-list');
+  const status = document.getElementById('player-index-status');
+  if (!list) {
+    return;
+  }
+  list.innerHTML = '';
+  if (!playlist.length) {
+    if (status) {
+      status.textContent = 'אין אינדקס מוזיקה — הרץ סריקה';
+    }
+    return;
+  }
+  if (status) {
+    status.textContent = `${playlist.length} קבצים באינדקס`;
+  }
+  playlist.forEach((track, index) => {
+    const item = document.createElement('li');
+    item.className = index === playlistIndex ? 'active' : '';
+    item.textContent = `${track.kind === 'midi' ? '🎹' : '🎵'} ${track.name}`;
+    item.addEventListener('click', () => playAt(index));
+    list.appendChild(item);
+  });
+}
+
+async function loadMusicIndex() {
+  if (!window.api?.getMusicIndex) {
+    return;
+  }
+  const index = await window.api.getMusicIndex();
+  playlist = index.tracks ?? [];
+  renderTrackList();
+}
+
+function playAt(index) {
+  const audio = document.getElementById('universal-audio');
+  const track = playlist[index];
+  if (!audio || !track) {
+    return;
+  }
+  if (track.kind === 'midi') {
+    showToast('MIDI מאונדקס — נגן אודיו דורש WAV/MP3. בחר טראק אודיו או רנדר.');
+    playlistIndex = index;
+    document.getElementById('now-playing').textContent = track.name;
+    renderTrackList();
+    return;
+  }
+  playlistIndex = index;
+  audio.src = streamUrl(track);
+  audio.play().catch((error) => showToast(error.message));
+  document.getElementById('now-playing').textContent = track.name;
+  renderTrackList();
+}
+
+function setupPlayerControls() {
+  const audio = document.getElementById('universal-audio');
+  if (!audio) {
+    return;
+  }
+  document.getElementById('btn-scan-music')?.addEventListener('click', async () => {
+    showToast('סורק ספריית מוזיקה...');
+    await window.api.scanMusic({});
+    await loadMusicIndex();
+    await refreshCreationLog();
+    showToast('הסריקה הושלמה');
+  });
+  document.getElementById('btn-play')?.addEventListener('click', () => {
+    if (playlistIndex < 0 && playlist.length) {
+      playAt(0);
+      return;
+    }
+    audio.play().catch((error) => showToast(error.message));
+  });
+  document.getElementById('btn-stop')?.addEventListener('click', () => {
+    audio.pause();
+    audio.currentTime = 0;
+  });
+  document.getElementById('btn-fwd')?.addEventListener('click', () => {
+    audio.currentTime = Math.min((audio.duration || 0), audio.currentTime + 5);
+  });
+  document.getElementById('btn-prev')?.addEventListener('click', () => {
+    if (playlist.length) {
+      playAt((playlistIndex - 1 + playlist.length) % playlist.length);
+    }
+  });
+  document.getElementById('btn-next')?.addEventListener('click', () => {
+    if (playlist.length) {
+      playAt((playlistIndex + 1) % playlist.length);
+    }
+  });
+  document.getElementById('volume')?.addEventListener('input', (event) => {
+    const value = Number(event.target.value);
+    audio.volume = value / 100;
+    document.getElementById('volume-label').textContent = `${value}%`;
+  });
+  audio.volume = 0.75;
+  audio.addEventListener('timeupdate', () => {
+    const clock = document.getElementById('player-clock');
+    if (clock) {
+      const cur = Math.floor(audio.currentTime || 0);
+      clock.textContent = `${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`;
+    }
+  });
+  audio.addEventListener('ended', () => {
+    if (document.getElementById('chk-loop')?.checked && playlist.length) {
+      playAt((playlistIndex + 1) % playlist.length);
+    }
+  });
+}
+
+function setupStudioActions() {
+  document.getElementById('btn-probe-engines')?.addEventListener('click', async () => {
+    await window.api.getEngines();
+    await refreshCreationLog();
+    await refreshSystemStatus();
+    showToast('בדיקת מנועים הושלמה');
+  });
+  document.getElementById('btn-ig-session')?.addEventListener('click', async () => {
+    const result = await window.api.instagramSession();
+    await refreshCreationLog();
+    showToast(result.success ? `Instagram: ${result.engine}` : result.error);
+  });
+  document.getElementById('btn-generate-hooks')?.addEventListener('click', async () => {
+    const track = currentTrack();
+    const result = await window.api.generateHooks({
+      title: track?.name || 'ShiBass Progressive Psytrance',
+      bpm: 142,
+    });
+    await refreshCreationLog();
+    showToast(result.success ? `${result.hooks.length} הוקים מ-${result.engine}` : result.error);
+  });
+  document.getElementById('btn-render-selected')?.addEventListener('click', async () => {
+    const track = currentTrack() || playlist.find((item) => item.kind === 'audio');
+    if (!track) {
+      showToast('אין טראק אודיו — סרוק או גרור קובץ');
+      return;
+    }
+    const result = await window.api.renderReel({
+      audioPath: track.path,
+      title: track.name,
+    });
+    await refreshCreationLog();
+    if (result.success) {
+      showToast(`רונדר ${result.relativePath}`);
+      await loadApprovalQueue();
+    } else {
+      showToast(result.error ?? 'הרינדור נכשל');
+    }
   });
 }
 
@@ -302,5 +553,10 @@ window.addEventListener('DOMContentLoaded', () => {
   setupActions();
   setupPlayerWatchGate();
   setupDropZone();
+  setupPlayerControls();
+  setupStudioActions();
   loadApprovalQueue();
+  refreshSystemStatus();
+  refreshCreationLog();
+  loadMusicIndex();
 });
