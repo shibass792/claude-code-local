@@ -486,12 +486,15 @@ function renderLogText(payload) {
   if (!box) {
     return;
   }
-  const fakeBanner = /סימולטור בלבד|אין כאן קריאה אמיתית|InstaPy Pyt/;
+  const logText = String(payload?.text ?? '');
+  const fakeBanner = (logText.includes('סימולטור') && logText.includes('בלבד'))
+    || (logText.includes('קריאה') && logText.includes('אמיתית') && logText.includes('תבנית'))
+    || (logText.includes('InstaPy') && logText.includes('Pyt') && logText.includes('100%'));
   if (payload?.error && !payload.entries?.length) {
     box.textContent = payload.error;
     return;
   }
-  if (fakeBanner.test(String(payload?.text ?? ''))) {
+  if (fakeBanner) {
     box.textContent = 'זוהה לוג מזויף — Studio API האמיתי על 4052 לא מחובר. הרץ npm run api.';
     return;
   }
