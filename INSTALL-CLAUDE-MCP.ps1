@@ -47,10 +47,11 @@ function Install-File {
   Ensure-Directory (Split-Path -Parent $Destination)
   $url = Get-RawUrl $RelativePath
   Write-Step "Download $RelativePath"
-  Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $Destination
+  Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $Destination -TimeoutSec 60
   if (-not (Test-Path -LiteralPath $Destination) -or ((Get-Item -LiteralPath $Destination).Length -lt 20)) {
     throw "Download failed or empty: $url"
   }
+  Write-Ok ("Saved " + ((Get-Item -LiteralPath $Destination).Length) + " bytes -> " + $Destination)
 }
 
 Write-Host "===================================================================="

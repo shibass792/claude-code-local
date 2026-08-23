@@ -51,6 +51,7 @@ test('Windows installer repairs file or broken junction before writing', () => {
   assert.match(installer, /FileAttributes\]::ReparsePoint/);
   assert.match(installer, /Directory\]::CreateDirectory/);
   assert.match(installer, /WriteAllText/);
+  assert.match(installer, /TimeoutSec 60/);
   assert.equal(installer.includes('Set-Content -LiteralPath $settingsPath'), false);
 });
 
