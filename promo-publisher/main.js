@@ -1,0 +1,97 @@
+require('dotenv').config({ path: require('path').join(__dirname, 'config/.env') });
+
+const { app, BrowserWindow, ipcMain, Notification, shell } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const radar = require('./modules/radar');
+const approvalEngine = require('./modules/approval-publisher');
+const { resolveFromRoot } = require('./modules/store');
+
+let mainWindow;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1366,
+    height: 850,
+    minWidth: 1100,
+    minHeight: 700,
+    backgroundColor: '#0f1117',
+    title: 'ShiBass Social Studio',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+    },
+    autoHideMenuBar: true,
+  });
+
+  mainWindow.loadFile(path.join(__dirname, 'ui/index.html'));
+}
+
+app.whenReady().then(() => {
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+ipcMain.handle('radar:get-trends', async () => radar.getTopTrendingContent());
+
+ipcMain.handle('radar:scan', async () => radar.scanWatchlist());
+
+ipcMain.handle('radar:get-template', async (_event, templateId) =>
+  radar.getTemplateById(templateId),
+);
+
+ipcMain.handle('approval:get-pending', async () => approvalEngine.getPendingQueue());
+
+ipcMain.handle('approval:reject', async (_event, campaignId) =>
+  approvalEngine.rejectCampaign(campaignId),
+);
+
+ipcMain.handle('approval:mark-watched', async (_event, campaignId) =>
+  approvalEngine.markWatched(campaignId),
+);
+
+ipcMain.handle('approval:get-history', async () => approvalEngine.getPublishHistory());
+
+ipcMain.handle('connections:get-health', async () => approvalEngine.getConnectionHealth());
+
+ipcMain.handle('media:resolve-path', async (_event, relativePath) => {
+  const absolute = resolveFromRoot(relativePath);
+  if (!absolute) {
+    return { exists: false, path: null };
+  }
+  if (!fs.existsSync(absolute)) {
+    return { exists: false, path: absolute };
+  }
+  return { exists: true, path: `file://${absolute.replace(/\\/g, '/')}` };
+});
+
+ipcMain.handle('approval:approve-and-publish', async (_event, campaignData) => {
+  const result = await approvalEngine.publishCampaign(campaignData);
+
+  if (result.success && Notification.isSupported()) {
+    new Notification({
+      title: result.mock ? 'פרסום סימולציה הושלם' : 'הפרסום הושלם בהצלחה! 🚀',
+      body: `הסרטון ${campaignData.title} — ${(campaignData.platforms ?? []).join(', ')}`,
+    }).show();
+  }
+
+  return result;
+});
+
+ipcMain.handle('shell:open-external', async (_event, url) => {
+  await shell.openExternal(url);
+  return true;
+});

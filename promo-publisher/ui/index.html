@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShiBass Social Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="logo">
+        <h2>🎧 SHIBASS <span>STUDIO</span></h2>
+        <p class="logo-sub">Desktop Approval Hub</p>
+      </div>
+
+      <nav class="nav-menu" id="nav-menu">
+        <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
+        <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
+        <button class="nav-btn" data-tab="create-tab">🎬 יצירת סרטון חדש</button>
+        <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
+        <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
+      </nav>
+
+      <div class="system-status" id="system-status">
+        <div class="status-indicator online"></div>
+        <span>מנוע מקומי מוכן</span>
+      </div>
+    </aside>
+
+    <main class="content-area">
+      <section id="approval-tab" class="tab-content active">
+        <header class="tab-header">
+          <h1>תצוגה מקדימה ואישור פרסום</h1>
+          <p>שום תוכן אינו עולה לרשת ללא אישורך המפורש — יש לצפות בסרטון לפחות פעם אחת</p>
+        </header>
+
+        <div id="approval-empty" class="empty-state hidden">
+          <h3>אין סרטונים ממתינים לאישור</h3>
+          <p>גרור טראק חדש בטאב "יצירת סרטון" או הרץ רינדור מהמנוע המקומי</p>
+        </div>
+
+        <div class="approval-workspace" id="approval-workspace">
+          <div class="video-preview-card">
+            <div class="video-wrapper">
+              <video id="main-player" controls preload="metadata" playsinline></video>
+              <div id="video-placeholder" class="video-placeholder">אין קובץ וידאו — מצב תצוגה מקדימה</div>
+            </div>
+            <div class="video-meta">
+              <span id="video-title">שם הטראק</span>
+              <span id="video-duration">00:00 | 9:16</span>
+            </div>
+            <p id="watch-hint" class="watch-hint">▶ לחץ Play כדי לאפשר פרסום</p>
+          </div>
+
+          <div class="post-details-card">
+            <div class="form-group">
+              <label for="caption-he">כיתוב בעברית</label>
+              <textarea id="caption-he" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="caption-en">English Caption</label>
+              <textarea id="caption-en" rows="3" dir="ltr"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="post-hashtags">האשטאגים</label>
+              <input type="text" id="post-hashtags" dir="ltr">
+            </div>
+
+            <div class="platforms-selector">
+              <label><input type="checkbox" id="chk-ig" checked> Instagram Reels</label>
+              <label><input type="checkbox" id="chk-tt" checked> TikTok</label>
+              <label><input type="checkbox" id="chk-fb" checked> Facebook Video</label>
+            </div>
+
+            <div class="action-buttons">
+              <button class="btn btn-secondary" id="btn-remix-hook" type="button">🔄 שנה הוק</button>
+              <button class="btn btn-danger" id="btn-reject" type="button">❌ דחה / מחק</button>
+              <button class="btn btn-primary" id="btn-publish" type="button" disabled>🚀 אשר ופרסם</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="radar-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>רדאר אמנים והשראה ויראלית (0$ תקציב)</h1>
+            <p>פוסטים עם חריגת חשיפה (Viral Outliers ≥ 2.5x) וניתוח מבנה ההצלחה</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-scan-radar" type="button">🔄 סרוק מחדש</button>
+        </header>
+        <div class="radar-grid" id="radar-list"></div>
+      </section>
+
+      <section id="create-tab" class="tab-content">
+        <header class="tab-header">
+          <h1>הפקת סרטון חדש מהמחשב</h1>
+          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+        </header>
+        <div class="drop-zone" id="drop-zone">
+          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
+          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
+          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+        </div>
+      </section>
+
+      <section id="history-tab" class="tab-content">
+        <header class="tab-header">
+          <h1>היסטוריית פרסומים</h1>
+          <p>תוצאות מ-publish_results.json</p>
+        </header>
+        <div class="history-table-wrap">
+          <table class="history-table" id="history-table">
+            <thead>
+              <tr>
+                <th>תאריך</th>
+                <th>קמפיין</th>
+                <th>פלטפורמות</th>
+                <th>סטטוס</th>
+              </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="connections-tab" class="tab-content">
+        <header class="tab-header">
+          <h1>חיבורי רשתות ו-API Health</h1>
+          <p>הגדר משתני סביבה בקובץ config/.env (העתק מ-.env.example)</p>
+        </header>
+        <div class="connections-grid" id="connections-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>

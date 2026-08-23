@@ -1,0 +1,6 @@
+node_modules/
+output/
+config/tokens.enc
+config/.env
+*.log
+dist/
