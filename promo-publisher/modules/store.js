@@ -2,7 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const OUTPUT_DIR = path.join(ROOT, 'output');
+
+// Overridable so the test suite cannot clobber a real approval queue or index.
+const OUTPUT_DIR = process.env.SHIBASS_OUTPUT_DIR
+  ? path.resolve(process.env.SHIBASS_OUTPUT_DIR)
+  : path.join(ROOT, 'output');
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });

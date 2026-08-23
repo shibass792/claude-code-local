@@ -1,7 +1,40 @@
 [
-  { "name": "Astrix", "handle": "astrixofficial", "platform": "instagram", "avgViews": 45000 },
-  { "name": "Vini Vici", "handle": "vinivicimusic", "platform": "instagram", "avgViews": 85000 },
-  { "name": "Infected Mushroom", "handle": "infectedmushroom", "platform": "instagram", "avgViews": 60000 },
-  { "name": "Ace Ventura", "handle": "aceventuramusic", "platform": "instagram", "avgViews": 35000 },
-  { "name": "Morten Granau", "handle": "mortengranau", "platform": "instagram", "avgViews": 28000 }
+  {
+    "name": "Vini Vici",
+    "handle": "ViniViciMusic",
+    "platform": "youtube",
+    "avgViews": 85000,
+    "note": "Works without credentials. avgViews is only a fallback — the radar computes the real median from the posts it fetches."
+  },
+  {
+    "name": "Infected Mushroom",
+    "handle": "InfectedMushroom",
+    "platform": "youtube",
+    "avgViews": 60000
+  },
+  {
+    "name": "Astrix",
+    "handle": "astrixmusic",
+    "platform": "youtube",
+    "avgViews": 45000
+  },
+  {
+    "name": "Ace Ventura",
+    "handle": "AceVentura",
+    "platform": "youtube",
+    "avgViews": 35000
+  },
+  {
+    "name": "Astrix (Instagram)",
+    "handle": "astrixofficial",
+    "platform": "instagram",
+    "avgViews": 45000,
+    "note": "Instagram listings require a logged-in session — set YTDLP_COOKIES_FILE or YTDLP_COOKIES_FROM_BROWSER in config/.env, otherwise this entry is reported as a scan error."
+  },
+  {
+    "name": "Morten Granau (Instagram)",
+    "handle": "mortengranau",
+    "platform": "instagram",
+    "avgViews": 28000
+  }
 ]
