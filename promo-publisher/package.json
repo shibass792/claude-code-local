@@ -11,7 +11,7 @@
     "api": "node studio-api.js",
     "sql:install": "node ../tools/studio-sql/install-studio-sql.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
-    "lint": "node --check main.js preload.js studio-api.js modules/*.js modules/publishers/*.js ui/app.js ui/api-client.js ../tools/studio-sql/install-studio-sql.js"
+    "lint": "node --check main.js preload.js studio-api.js modules/*.js modules/publishers/*.js ui/app.js ui/api-client.js ../tools/studio-sql/install-studio-sql.js ../tools/os-bridge/*.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
