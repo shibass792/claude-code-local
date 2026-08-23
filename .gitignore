@@ -9,3 +9,6 @@ __pycache__/
 .claude/
 *.key
 orchestrator.key
+social-studio/node_modules/
+social-studio/output/
+social-studio/*.log

@@ -1,0 +1,22 @@
+{
+  "name": "shibass-social-studio",
+  "version": "2.0.0",
+  "description": "ShiBass standalone social media desktop studio — trend radar, local render queue, human approval, multi-platform publish",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test tests/*.test.js",
+    "radar:scan": "node scripts/run-radar-scan.js",
+    "lint:syntax": "node --check main.js && node --check preload.js && node --check modules/radar.js && node --check modules/approval-publisher.js && node --check modules/campaign-factory.js && node --check ui/app.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

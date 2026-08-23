@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Astrix",
+    "handle": "astrixofficial",
+    "platforms": ["instagram", "tiktok", "youtube"],
+    "avgViews": 45000,
+    "genre": "psytrance"
+  },
+  {
+    "name": "Vini Vici",
+    "handle": "vinivicimusic",
+    "platforms": ["instagram", "tiktok", "youtube"],
+    "avgViews": 85000,
+    "genre": "psytrance"
+  },
+  {
+    "name": "Infected Mushroom",
+    "handle": "infectedmushroom",
+    "platforms": ["instagram", "tiktok", "youtube"],
+    "avgViews": 60000,
+    "genre": "psytrance"
+  },
+  {
+    "name": "Ace Ventura",
+    "handle": "aceventuramusic",
+    "platforms": ["instagram", "tiktok"],
+    "avgViews": 35000,
+    "genre": "psytrance"
+  },
+  {
+    "name": "Morten Granau",
+    "handle": "mortengranau",
+    "platforms": ["instagram", "tiktok"],
+    "avgViews": 28000,
+    "genre": "progressive-psy"
+  },
+  {
+    "name": "Ranji",
+    "handle": "ranjimusic",
+    "platforms": ["instagram", "tiktok"],
+    "avgViews": 40000,
+    "genre": "fullon"
+  },
+  {
+    "name": "Bliss",
+    "handle": "blissofficial",
+    "platforms": ["instagram", "tiktok"],
+    "avgViews": 32000,
+    "genre": "progressive-psy"
+  }
+]

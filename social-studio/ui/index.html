@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; media-src 'self' file: blob:; img-src 'self' data:;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShiBass Social Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="studio-bg" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-kicker">LOCAL · ZERO BUDGET</p>
+        <h1 class="brand-name">SHIBASS</h1>
+        <p class="brand-sub">Social Studio</p>
+      </div>
+
+      <nav class="nav" aria-label="ניווט ראשי">
+        <button type="button" class="nav-btn active" data-tab="approval-tab">ממתינים לאישור</button>
+        <button type="button" class="nav-btn" data-tab="radar-tab">רדאר השראה</button>
+        <button type="button" class="nav-btn" data-tab="create-tab">יצירת סרטון</button>
+        <button type="button" class="nav-btn" data-tab="connections-tab">חיבורי רשת</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="status-row">
+          <span class="dot online" aria-hidden="true"></span>
+          <span id="engine-status">מנוע מקומי מוכן</span>
+        </div>
+        <p id="queue-count" class="muted">0 בתור</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section id="approval-tab" class="tab active" aria-label="אישור פרסום">
+        <header class="page-head">
+          <h2>תצוגה מקדימה ואישור</h2>
+          <p>שום תוכן לא עולה לרשת בלי צפייה ואישור מפורש בתוכנה.</p>
+        </header>
+
+        <div id="approval-empty" class="empty-state hidden">
+          <h3>אין סרטונים ממתינים</h3>
+          <p>צור סרטון חדש או משוך מבנה מרדאר ההשראה.</p>
+        </div>
+
+        <div id="approval-workspace" class="approval-grid">
+          <div class="preview-panel">
+            <div class="phone-frame">
+              <video id="main-player" controls playsinline preload="metadata"></video>
+            </div>
+            <div class="preview-meta">
+              <strong id="video-title">—</strong>
+              <span id="video-meta">—</span>
+            </div>
+            <p id="watch-hint" class="hint">נגן את הסרטון לפחות פעם אחת כדי לפתוח פרסום.</p>
+          </div>
+
+          <div class="editor-panel">
+            <label class="field">
+              <span>כיתוב בעברית</span>
+              <textarea id="caption-he" rows="3"></textarea>
+            </label>
+            <label class="field">
+              <span>English caption</span>
+              <textarea id="caption-en" rows="3" dir="ltr"></textarea>
+            </label>
+            <label class="field">
+              <span>Hashtags</span>
+              <input id="post-hashtags" type="text" dir="ltr" />
+            </label>
+
+            <fieldset class="platforms">
+              <legend>פלטפורמות</legend>
+              <label><input type="checkbox" id="chk-ig" checked /> Instagram Reels</label>
+              <label><input type="checkbox" id="chk-tt" checked /> TikTok</label>
+              <label><input type="checkbox" id="chk-fb" checked /> Facebook</label>
+            </fieldset>
+
+            <div class="actions">
+              <button type="button" class="btn ghost danger" id="btn-reject">דחה</button>
+              <button type="button" class="btn primary" id="btn-approve" disabled>אשר ופרסם (dry-run)</button>
+            </div>
+            <p id="action-message" class="message" role="status"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="radar-tab" class="tab" aria-label="רדאר">
+        <header class="page-head">
+          <h2>רדאר אמנים וויראליות</h2>
+          <p>פוסטים עם חריגת צפיות מול ממוצע האמן — בלי כלי ריגול בתשלום.</p>
+          <div id="radar-summary" class="summary-strip"></div>
+        </header>
+        <div id="radar-list" class="radar-grid"></div>
+      </section>
+
+      <section id="create-tab" class="tab" aria-label="יצירה">
+        <header class="page-head">
+          <h2>הפקת סרטון מהמחשב</h2>
+          <p>בחר תבנית, אופציונלית מדיה מקומית, והוסף לתור האישורים.</p>
+        </header>
+        <div class="create-layout">
+          <div class="drop-zone" id="drop-zone">
+            <h3>בחר קובץ אודיו / וידאו מהאולפן</h3>
+            <p id="picked-file" class="muted">עדיין לא נבחר קובץ</p>
+            <button type="button" class="btn primary" id="btn-pick">בחירת קובץ</button>
+          </div>
+          <div>
+            <label class="field">
+              <span>תבנית עריכה</span>
+              <select id="template-select"></select>
+            </label>
+            <label class="field">
+              <span>שם קמפיין</span>
+              <input id="campaign-title" type="text" placeholder="ShiBass — New Drop Cut" />
+            </label>
+            <button type="button" class="btn primary" id="btn-create">צור והוסף לתור אישור</button>
+            <p id="create-message" class="message" role="status"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="connections-tab" class="tab" aria-label="חיבורים">
+        <header class="page-head">
+          <h2>חיבורי רשת ובריאות מערכת</h2>
+          <p>סטטוס טוקנים ומנהרת HTTPS — פרסום אמיתי נעול עד חיבור.</p>
+        </header>
+        <div id="connections-list" class="connections-grid"></div>
+        <div class="history-block">
+          <h3>היסטוריית פרסומים</h3>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
