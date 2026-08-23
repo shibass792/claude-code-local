@@ -37,6 +37,8 @@ module.exports = {
   PENDING_DB: path.join(OUTPUT_DIR, 'pending_campaigns.json'),
   RADAR_DB: path.join(OUTPUT_DIR, 'radar_feed.json'),
   PUBLISH_RESULTS: path.join(OUTPUT_DIR, 'publish_results.json'),
+  CREATION_LOG: path.join(OUTPUT_DIR, 'creation_log.json'),
+  LIBRARY_DB: path.join(OUTPUT_DIR, 'library_index.json'),
   WATCHLIST: path.join(ROOT, 'config', 'watchlist.json'),
   ensureDir,
   readJson,

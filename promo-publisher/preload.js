@@ -13,4 +13,10 @@ contextBridge.exposeInMainWorld('api', {
   approveAndPublish: (campaignData) =>
     ipcRenderer.invoke('approval:approve-and-publish', campaignData),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  getCreationLog: () => ipcRenderer.invoke('log:get'),
+  clearCreationLog: () => ipcRenderer.invoke('log:clear'),
+  generateHooks: (payload) => ipcRenderer.invoke('hooks:generate', payload),
+  getLibrary: () => ipcRenderer.invoke('library:get'),
+  scanLibrary: () => ipcRenderer.invoke('library:scan'),
+  renderAudio: (payload) => ipcRenderer.invoke('render:audio', payload),
 });

@@ -86,15 +86,38 @@ function getSampleFeed(watchlist) {
   );
 }
 
-async function tryYtDlpScan(handle) {
+async function tryYtDlpScan(artist) {
+  const query = `${artist.name} ${artist.genre ?? 'psytrance'} short`;
   try {
-    await execFileAsync('yt-dlp', ['--version']);
+    const { stdout } = await execFileAsync(
+      'yt-dlp',
+      [
+        '--flat-playlist',
+        '--dump-single-json',
+        '--no-warnings',
+        '--playlist-end',
+        '6',
+        `ytsearch6:${query}`,
+      ],
+      { timeout: 45000 },
+    );
+    const parsed = JSON.parse(stdout);
+    const entries = parsed.entries ?? [];
+    return entries
+      .filter((entry) => entry?.id && entry?.title)
+      .map((entry) => ({
+        id: `yt_${entry.id}`,
+        platform: 'youtube',
+        views: Number(entry.view_count ?? entry.viewcount ?? 0),
+        hookText: entry.title,
+        style: 'YouTube Short / live scan',
+        captionSnippet: entry.description ?? entry.title,
+        keyStrategy: 'Live yt-dlp search — title-as-hook from recent shorts',
+        collectedAt: new Date().toISOString(),
+      }));
   } catch {
     return null;
   }
-
-  // Placeholder: real scraping would pull recent shorts/reels metadata.
-  return null;
 }
 
 async function scanWatchlist() {
@@ -102,7 +125,7 @@ async function scanWatchlist() {
   const collected = [];
 
   for (const artist of watchlist) {
-    const scraped = await tryYtDlpScan(artist.handle);
+    const scraped = await tryYtDlpScan(artist);
     if (scraped?.length) {
       collected.push(...scraped.map((post) => analyzePost(artist, post)));
     }

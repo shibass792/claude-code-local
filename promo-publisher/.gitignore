@@ -1,6 +1,7 @@
 node_modules/
 .electron-user-data/
 output/
+library/
 config/tokens.enc
 config/.env
 *.log

@@ -6,6 +6,11 @@ const fs = require('fs');
 const radar = require('./modules/radar');
 const approvalEngine = require('./modules/approval-publisher');
 const { resolveFromRoot } = require('./modules/store');
+const { startStudioApiServer } = require('./modules/api-server');
+const { readLog, getFormattedLog, clearLog } = require('./modules/creation-log');
+const { generateViralHooks } = require('./modules/engines/ollama-hooks');
+const { renderVerticalReel } = require('./modules/engines/ffmpeg-render');
+const { scanLibrary, getLibrary } = require('./modules/engines/library-index');
 
 function configureElectronStorage() {
   const userDataPath = path.join(__dirname, '.electron-user-data');
@@ -73,7 +78,12 @@ app.on('second-instance', () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    await startStudioApiServer();
+  } catch (error) {
+    console.error('[studio-api]', error.message);
+  }
   createWindow();
 
   app.on('activate', () => {
@@ -110,6 +120,25 @@ ipcMain.handle('approval:mark-watched', async (_event, campaignId) =>
 ipcMain.handle('approval:get-history', async () => approvalEngine.getPublishHistory());
 
 ipcMain.handle('connections:get-health', async () => approvalEngine.getConnectionHealth());
+
+ipcMain.handle('log:get', async () => ({ entries: readLog(), text: getFormattedLog() }));
+ipcMain.handle('log:clear', async () => clearLog());
+ipcMain.handle('hooks:generate', async (_event, payload) => generateViralHooks(payload ?? {}));
+ipcMain.handle('library:get', async () => getLibrary());
+ipcMain.handle('library:scan', async () => scanLibrary());
+ipcMain.handle('render:audio', async (_event, payload) => {
+  const rendered = await renderVerticalReel(payload);
+  const campaign = approvalEngine.enqueueRenderedCampaign({
+    id: `camp_${Date.now()}`,
+    title: payload.title || require('path').basename(payload.audioPath),
+    videoPath: rendered.relativePath,
+    duration: 'render',
+    captionEn: payload.hook ?? '',
+    captionHe: payload.captionHe ?? '',
+    hashtags: payload.hashtags ?? '#Psytrance #ShiBass',
+  });
+  return { ...rendered, campaign };
+});
 
 ipcMain.handle('media:resolve-path', async (_event, relativePath) => {
   const absolute = resolveFromRoot(relativePath);

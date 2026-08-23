@@ -19,7 +19,8 @@ async function publishInstagramReel({ videoUrl, caption }) {
     return {
       platform: 'instagram',
       success: false,
-      mock: true,
+      mock: false,
+      live: false,
       error: 'META credentials missing — set META_ACCESS_TOKEN, META_PAGE_ID, META_IG_USER_ID',
     };
   }
@@ -53,6 +54,7 @@ async function publishInstagramReel({ videoUrl, caption }) {
     platform: 'instagram',
     success: true,
     mock: false,
+    live: true,
     id: publishRes.data.id,
   };
 }
@@ -63,7 +65,8 @@ async function publishFacebookVideo({ videoUrl, caption }) {
     return {
       platform: 'facebook',
       success: false,
-      mock: true,
+      mock: false,
+      live: false,
       error: 'META credentials missing — set META_ACCESS_TOKEN and META_PAGE_ID',
     };
   }
@@ -84,6 +87,7 @@ async function publishFacebookVideo({ videoUrl, caption }) {
     platform: 'facebook',
     success: true,
     mock: false,
+    live: true,
     id: res.data.id,
   };
 }

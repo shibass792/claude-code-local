@@ -3,8 +3,12 @@ require('dotenv').config({ path: require('path').join(__dirname, '../config/.env
 const fs = require('fs');
 const path = require('path');
 const { createTemporaryPublicUrl } = require('./tunnel');
-const metaPublisher = require('./publishers/meta');
+const instagramGraph = require('./engines/instagram-graph');
 const tiktokPublisher = require('./publishers/tiktok');
+const { probeOllama } = require('./engines/ollama-hooks');
+const { probeFfmpeg } = require('./engines/ffmpeg-render');
+const { getLibrary } = require('./engines/library-index');
+const { appendLog } = require('./creation-log');
 const {
   PENDING_DB,
   PUBLISH_RESULTS,
@@ -64,6 +68,22 @@ function rejectCampaign(campaignId) {
   return { success: true, remaining: queue.length };
 }
 
+function enqueueRenderedCampaign(campaign) {
+  if (!campaign?.id || !campaign.videoPath) {
+    throw new Error('Rendered campaign requires id and videoPath');
+  }
+  const queue = getPendingQueue().filter((item) => item.id !== campaign.id);
+  queue.unshift({
+    watched: false,
+    format: 'Reels / TikTok (9:16)',
+    platforms: ['instagram', 'tiktok', 'facebook'],
+    ...campaign,
+  });
+  savePendingQueue(queue);
+  appendLog('success', 'studio', `Queued campaign ${campaign.id} for approval`);
+  return queue[0];
+}
+
 function markWatched(campaignId) {
   const queue = getPendingQueue().map((item) =>
     item.id === campaignId ? { ...item, watched: true } : item,
@@ -78,7 +98,7 @@ async function publishToPlatforms(campaign, publicVideoUrl) {
 
   if (campaign.platforms.includes('instagram')) {
     results.push(
-      await metaPublisher.publishInstagramReel({
+      await instagramGraph.publishInstagramReel({
         videoUrl: publicVideoUrl,
         caption,
       }),
@@ -87,7 +107,7 @@ async function publishToPlatforms(campaign, publicVideoUrl) {
 
   if (campaign.platforms.includes('facebook')) {
     results.push(
-      await metaPublisher.publishFacebookVideo({
+      await instagramGraph.publishFacebookVideo({
         videoUrl: publicVideoUrl,
         caption,
       }),
@@ -106,12 +126,22 @@ async function publishToPlatforms(campaign, publicVideoUrl) {
   return results;
 }
 
-function mockPublishUrls(campaignId) {
-  return {
-    instagram: `https://instagram.com/p/mock_${campaignId}`,
-    facebook: `https://facebook.com/watch/mock_${campaignId}`,
-    tiktok: `https://tiktok.com/@shibass/video/mock_${campaignId}`,
-  };
+function collectPublishUrls(platformResults) {
+  const urls = {};
+  for (const item of platformResults) {
+    if (item.success && item.id) {
+      if (item.platform === 'instagram') {
+        urls.instagram = `https://www.instagram.com/reel/${item.id}/`;
+      }
+      if (item.platform === 'facebook') {
+        urls.facebook = `https://www.facebook.com/watch/?v=${item.id}`;
+      }
+    }
+    if (item.success && item.publishId && item.platform === 'tiktok') {
+      urls.tiktok = `tiktok:publish:${item.publishId}`;
+    }
+  }
+  return urls;
 }
 
 async function publishCampaign(campaignData) {
@@ -129,34 +159,30 @@ async function publishCampaign(campaignData) {
   const videoPath = resolveFromRoot(campaignData.videoPath);
   const hasVideo = Boolean(videoPath && fs.existsSync(videoPath));
 
+  if (!hasVideo) {
+    appendLog('error', 'publish', 'Publish blocked — rendered video file is missing');
+    return {
+      success: false,
+      mock: false,
+      live: false,
+      error: 'אין קובץ וידאו אמיתי לפרסום — רנדר קודם בטאב היצירה',
+    };
+  }
+
   let tunnelHandle = null;
   let publicVideoUrl = null;
 
-  if (hasVideo) {
-    tunnelHandle = await createTemporaryPublicUrl(videoPath);
-    publicVideoUrl = tunnelHandle.url;
-  }
-
-  let platformResults = [];
-  let urls = mockPublishUrls(campaignData.id);
+  tunnelHandle = await createTemporaryPublicUrl(videoPath);
+  publicVideoUrl = tunnelHandle.url;
+  appendLog('info', 'publish', `Tunnel ${tunnelHandle.mode}: ${publicVideoUrl}`);
 
   try {
-    if (hasVideo && publicVideoUrl) {
-      platformResults = await publishToPlatforms(campaignData, publicVideoUrl);
-    } else {
-      platformResults = (campaignData.platforms ?? []).map((platform) => ({
-        platform,
-        success: true,
-        mock: true,
-        error: 'Video file missing — mock publish only',
-      }));
-    }
-
-    const allMock =
-      platformResults.length > 0 && platformResults.every((item) => item.mock);
+    const platformResults = await publishToPlatforms(campaignData, publicVideoUrl);
+    const urls = collectPublishUrls(platformResults);
     const anyFailed = platformResults.some((item) => item.success === false);
+    const allLive = platformResults.every((item) => item.live && item.success);
 
-    if (!anyFailed || allMock) {
+    if (!anyFailed) {
       rejectCampaign(campaignData.id);
     }
 
@@ -168,14 +194,17 @@ async function publishCampaign(campaignData) {
       publicVideoUrl,
       results: platformResults,
       urls,
-      mock: allMock,
+      mock: false,
+      live: allLive,
     };
 
     appendPublishResult(entry);
+    appendLog(anyFailed ? 'error' : 'success', 'publish', anyFailed ? 'Publish had API failures' : 'Live publish completed');
 
     return {
-      success: !anyFailed || allMock,
-      mock: allMock,
+      success: !anyFailed,
+      mock: false,
+      live: allLive,
       publishedAt: entry.publishedAt,
       campaignId: campaignData.id,
       urls,
@@ -192,18 +221,42 @@ function getPublishHistory() {
   return readJson(PUBLISH_RESULTS, []);
 }
 
-function getConnectionHealth() {
+async function getConnectionHealth() {
+  const [instagram, ollama, ffmpeg] = await Promise.all([
+    instagramGraph.probeInstagram(),
+    probeOllama(),
+    probeFfmpeg(),
+  ]);
+  const library = getLibrary();
+
   return {
-    meta: {
-      configured: metaPublisher.isConfigured(),
-      label: 'Instagram & Facebook (Meta Graph API)',
+    instagram: {
+      ...instagram,
+      configured: instagram.configured,
+      label: 'Instagram Graph API (official)',
     },
     tiktok: {
       configured: tiktokPublisher.isConfigured(),
+      live: tiktokPublisher.isConfigured(),
       label: 'TikTok Content Posting API',
       mode: process.env.TIKTOK_PUBLISH_MODE ?? 'draft',
     },
+    ollama: {
+      ...ollama,
+      label: 'Ollama ReelHook (local LLM)',
+    },
+    ffmpeg: {
+      ...ffmpeg,
+      label: 'FFmpeg 9:16 renderer',
+    },
+    library: {
+      configured: library.count > 0,
+      live: true,
+      count: library.count,
+      label: `Music library index (${library.count} files)`,
+    },
     tunnel: {
+      configured: Boolean(process.env.CLOUDFLARE_TUNNEL_TOKEN),
       cloudflared: Boolean(process.env.CLOUDFLARE_TUNNEL_TOKEN),
       label: 'Cloudflare Tunnel / HTTPS proxy',
     },
@@ -214,6 +267,7 @@ module.exports = {
   buildCaption,
   getPendingQueue,
   savePendingQueue,
+  enqueueRenderedCampaign,
   rejectCampaign,
   markWatched,
   publishCampaign,

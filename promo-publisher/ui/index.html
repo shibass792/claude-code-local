@@ -18,6 +18,7 @@
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
         <button class="nav-btn" data-tab="create-tab">🎬 יצירת סרטון חדש</button>
+        <button class="nav-btn" data-tab="player-tab">⚡ נגן אוניברסלי</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
       </nav>
@@ -98,12 +99,54 @@
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
           <h1>הפקת סרטון חדש מהמחשב</h1>
-          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+          <p>FFmpeg 9:16 + Ollama ReelHook + Instagram Graph — לוג חי, לא תבנית</p>
         </header>
-        <div class="drop-zone" id="drop-zone">
-          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
-          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
-          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+        <div class="create-grid">
+          <div class="drop-zone" id="drop-zone">
+            <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או בחר קובץ</h3>
+            <p>רינדור אמיתי: 1080×1920 · Waveform · כתוביות SRT</p>
+            <input id="audio-file" type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a">
+            <div class="form-group" style="margin-top:16px;text-align:right">
+              <label for="create-title">שם הטראק</label>
+              <input type="text" id="create-title" value="ShiBass Progressive Psytrance">
+            </div>
+            <div class="action-buttons" style="border:none;justify-content:center">
+              <button class="btn btn-secondary" id="btn-generate-hooks" type="button">🎯 הוקים מ-Ollama</button>
+              <button class="btn btn-primary" id="btn-render" type="button">🎬 רנדר 9:16</button>
+            </div>
+            <ol id="hooks-list" class="hooks-list"></ol>
+          </div>
+          <div class="log-card">
+            <header class="tab-header">
+              <h1>📋 לוג יצירה, Graph ורינדור</h1>
+              <p id="log-mode">מנוע חי — כל שורה נכתבת מקריאת API / FFmpeg / Ollama</p>
+            </header>
+            <pre id="creation-log" class="creation-log">ממתין לפעולה…</pre>
+            <button class="btn btn-secondary" id="btn-refresh-log" type="button">רענן לוג</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="player-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>⚡ ShiBass Universal Player</h1>
+            <p>אינדקס קבצים אמיתי מהדיסק — סריקה מקומית, לא תבנית</p>
+          </div>
+          <button class="btn btn-secondary" id="btn-scan-library" type="button">🔍 סרוק ספרייה</button>
+        </header>
+        <p id="library-status" class="muted">אין אינדקס מוזיקה — הרץ סריקה</p>
+        <select id="library-select" size="8" class="library-select"></select>
+        <audio id="universal-player" controls></audio>
+        <div class="player-controls">
+          <button class="btn btn-secondary" id="btn-prev" type="button">⏮️</button>
+          <button class="btn btn-primary" id="btn-play" type="button">▶ נגן</button>
+          <button class="btn btn-secondary" id="btn-stop" type="button">■ עצור</button>
+          <button class="btn btn-secondary" id="btn-fwd" type="button">⏩ +5s</button>
+          <button class="btn btn-secondary" id="btn-next" type="button">⏭️</button>
+          <label class="muted"><input type="checkbox" id="chk-loop" checked> ברצף: פעיל</label>
+          <label class="muted">🔊 <input type="range" id="vol" min="0" max="100" value="75"></label>
+          <span id="player-time" class="muted">00:00</span>
         </div>
       </section>
 
