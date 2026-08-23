@@ -27,6 +27,10 @@ const { buildProducerPack } = require('./modules/producer-pack');
 const { buildEpk } = require('./modules/epk');
 const { getLineStatus } = require('./modules/line-status');
 const transcriber = require('./modules/transcriber');
+const { getSprint, toggleCell } = require('./modules/sprint');
+const { getLadder } = require('./modules/ladder');
+const { getWave1, evaluateCsv, evaluateCsvFile } = require('./modules/ads-cpc');
+const { probeOps, formatOpsLog } = require('./modules/ops-probe');
 const { ROOT, ensureDir, OUTPUT_DIR } = require('./modules/store');
 
 const HOST = process.env.SHIBASS_API_HOST || '127.0.0.1';
@@ -251,6 +255,53 @@ async function handleApi(req, res, url) {
   if (pathname === '/api/guides' && req.method === 'POST') {
     const body = await readBody(req);
     sendJson(res, 200, transcriber.createGuide(body));
+    return;
+  }
+
+  if (pathname === '/api/guides/ingest' && req.method === 'POST') {
+    const body = await readBody(req);
+    sendJson(res, body.filePath ? 200 : 400, transcriber.ingestFile(body));
+    return;
+  }
+
+  if (pathname === '/api/sprint' && req.method === 'GET') {
+    sendJson(res, 200, getSprint());
+    return;
+  }
+
+  if (pathname === '/api/sprint/toggle' && req.method === 'POST') {
+    const body = await readBody(req);
+    sendJson(res, 200, toggleCell(body.id, body.done));
+    return;
+  }
+
+  if (pathname === '/api/ladder' && req.method === 'GET') {
+    sendJson(res, 200, getLadder());
+    return;
+  }
+
+  if (pathname === '/api/wave1' && req.method === 'GET') {
+    sendJson(res, 200, getWave1());
+    return;
+  }
+
+  if (pathname === '/api/ads/evaluate' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (body.filePath) {
+      sendJson(res, 200, evaluateCsvFile(body.filePath));
+      return;
+    }
+    if (body.csv) {
+      sendJson(res, 200, evaluateCsv(body.csv));
+      return;
+    }
+    sendJson(res, 400, { success: false, error: 'csv or filePath required' });
+    return;
+  }
+
+  if (pathname === '/api/ops' && req.method === 'GET') {
+    const report = await probeOps();
+    sendJson(res, 200, { ...report, log: formatOpsLog(report) });
     return;
   }
 

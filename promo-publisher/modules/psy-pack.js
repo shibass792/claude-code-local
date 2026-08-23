@@ -1,16 +1,18 @@
 'use strict';
 
 /**
- * psy_pack_v3 — generate Phrygian psytrance MIDI sketches for Cubase/Ableton.
+ * psy_pack_v3 — Phrygian Family MIDI sketches for Cubase/Ableton.
+ * Dated folders. Mix 20 bass / 15 leads / 10 arps / 5 drums when count=50.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { writeMidi, pulseEvents, programChange } = require('./midi-writer');
 const { ensureDir, writeJson, OUTPUT_DIR } = require('./store');
+const family = require('./phrygian-family');
 
-const PHRYGIAN_INTERVALS = [0, 1, 3, 5, 7, 8, 10];
-const ROOTS = { E: 64, F: 65, G: 67, A: 69, D: 62 };
+const PHRYGIAN_INTERVALS = family.FAMILY.phrygian.intervals;
+const ROOTS = family.ROOTS;
 const DEFAULT_BPM = 142;
 
 function windowsStudioPaths() {
@@ -26,33 +28,21 @@ function windowsStudioPaths() {
   };
 }
 
-function packDirs() {
-  const win = windowsStudioPaths();
-  return {
-    local: path.join(OUTPUT_DIR, 'psy_pack_v3'),
-    midiExport: win.midiExport,
-    cubaseInbox: win.cubaseInbox,
-  };
-}
-
-function scaleNotes(rootMidi, octaves = 2) {
-  const notes = [];
-  for (let o = 0; o < octaves; o += 1) {
-    for (const iv of PHRYGIAN_INTERVALS) {
-      notes.push(rootMidi + iv + o * 12);
-    }
+function dateStamp(options = {}) {
+  if (options.date) {
+    return String(options.date).slice(0, 10);
   }
-  return notes;
+  return new Date().toISOString().slice(0, 10);
 }
 
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a += 0x6d2b79f5;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+function packDirs(options = {}) {
+  const win = windowsStudioPaths();
+  const stamp = dateStamp(options);
+  return {
+    stamp,
+    local: path.join(OUTPUT_DIR, 'psy_pack_v3', stamp),
+    midiExport: win.midiExport ? path.join(win.midiExport, stamp) : null,
+    cubaseInbox: win.cubaseInbox,
   };
 }
 
@@ -124,15 +114,17 @@ function arpPattern(scale, ppq, bars) {
   return notes;
 }
 
-function fileSpec(kind, rootName, rootMidi, bpm, seed, bars) {
-  const rng = mulberry32(seed);
+function fileSpec(kind, rootName, rootMidi, bpm, seed, bars, scaleFamily) {
+  const rng = family.mulberry32(seed);
   const ppq = 96;
-  const scale = scaleNotes(rootMidi, 2);
-  const safe = `${kind}_${rootName}_phrygian_${bpm}bpm_s${seed}`;
+  const scale = family.scaleNotes(rootMidi, scaleFamily.intervals, 2);
+  const slug = scaleFamily.id.replace(/_/g, '-');
+  const safe = `${kind}_${rootName}_${slug}_${bpm}bpm_s${seed}`;
 
   if (kind === 'kick') {
     return {
       name: safe,
+      family: scaleFamily,
       buf: writeMidi({
         bpm,
         ppq,
@@ -143,6 +135,7 @@ function fileSpec(kind, rootName, rootMidi, bpm, seed, bars) {
   if (kind === 'hats') {
     return {
       name: safe,
+      family: scaleFamily,
       buf: writeMidi({
         bpm,
         ppq,
@@ -153,6 +146,7 @@ function fileSpec(kind, rootName, rootMidi, bpm, seed, bars) {
   if (kind === 'bass') {
     return {
       name: safe,
+      family: scaleFamily,
       buf: writeMidi({
         bpm,
         ppq,
@@ -166,6 +160,7 @@ function fileSpec(kind, rootName, rootMidi, bpm, seed, bars) {
   if (kind === 'arp') {
     return {
       name: safe,
+      family: scaleFamily,
       buf: writeMidi({
         bpm,
         ppq,
@@ -178,6 +173,7 @@ function fileSpec(kind, rootName, rootMidi, bpm, seed, bars) {
   }
   return {
     name: safe,
+    family: scaleFamily,
     buf: writeMidi({
       bpm,
       ppq,
@@ -190,6 +186,9 @@ function fileSpec(kind, rootName, rootMidi, bpm, seed, bars) {
 }
 
 function copyIfPossible(src, destDir, fileName) {
+  if (!destDir) {
+    return false;
+  }
   try {
     ensureDir(destDir);
     fs.copyFileSync(src, path.join(destDir, fileName));
@@ -201,19 +200,21 @@ function copyIfPossible(src, destDir, fileName) {
 
 function generatePsyPack(options = {}) {
   const count = Math.min(80, Math.max(5, Number(options.count || 10)));
-  const bpm = Number(options.bpm || DEFAULT_BPM);
+  const seedBase = Number(options.seed || Date.now() % 100000);
+  const rng = family.mulberry32(seedBase);
+  const bpm = family.pickBpm(rng, options.bpm === undefined ? DEFAULT_BPM : options.bpm);
   const rootName = String(options.root || 'E').toUpperCase();
   const rootMidi = ROOTS[rootName] || ROOTS.E;
   const bars = Number(options.bars || 8);
-  const seedBase = Number(options.seed || Date.now() % 100000);
-  const kinds = ['kick', 'bass', 'lead', 'arp', 'hats'];
-  const dirs = packDirs();
+  const kinds = family.kindsForCount(count);
+  const dirs = packDirs(options);
   ensureDir(dirs.local);
 
   const files = [];
   for (let i = 0; i < count; i += 1) {
-    const kind = kinds[i % kinds.length];
-    const spec = fileSpec(kind, rootName, rootMidi, bpm, seedBase + i, bars);
+    const kind = kinds[i];
+    const scaleFamily = family.pickFamily(kind, family.mulberry32(seedBase + i * 17));
+    const spec = fileSpec(kind, rootName, rootMidi, bpm, seedBase + i, bars, scaleFamily);
     const fileName = `${String(i + 1).padStart(2, '0')}_${spec.name}.mid`;
     const dest = path.join(dirs.local, fileName);
     fs.writeFileSync(dest, spec.buf);
@@ -224,15 +225,25 @@ function generatePsyPack(options = {}) {
       path: dest,
       kind,
       bpm,
-      key: `${rootName} Phrygian`,
+      family: scaleFamily.id,
+      key: `${rootName} ${scaleFamily.label}`,
       size: spec.buf.length,
     });
   }
 
+  const mix = family.countByKind(kinds);
   const manifest = {
     version: 'psy_pack_v3',
     generatedAt: new Date().toISOString(),
-    scale: `${rootName} Phrygian`,
+    date: dirs.stamp,
+    scale: `${rootName} Phrygian Family`,
+    family: {
+      lockedRoles: ['bass', 'kick', 'hats'],
+      wanderRoles: ['lead', 'arp'],
+      weights: { phrygian: 0.7, phrygian_dominant: 0.25, locrian: 0.05 },
+      bpmRange: [family.BPM_MIN, family.BPM_MAX],
+    },
+    mix,
     bpm,
     count: files.length,
     route: 'Drop these .mid files on Serum / Sylenth1 in Cubase Audix templates',

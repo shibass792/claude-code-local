@@ -1,0 +1,235 @@
+{
+  "asOf": "2026-08-23",
+  "title": "הסולם: מאיפה ShiBass לאן",
+  "self": {
+    "artist": "ShiBass",
+    "legalName": "Shaul",
+    "instagram": {
+      "handle": "@shibassmusic",
+      "followers": 20400,
+      "followersLabel": "20.4K",
+      "engagementPct": 1.56,
+      "source": "HypeAuditor"
+    },
+    "spotifyMonthly": {
+      "value": null,
+      "label": "לא נמדד",
+      "unverified": true
+    },
+    "label": "Blue Tunes Records",
+    "latestRelease": "Dextamine (June 2026)",
+    "remixTouchpoints": ["Argy — Melodia", "Anyma — After Love", "Anyma — Save Me"],
+    "sameLabelPeer": "The Freak Show"
+  },
+  "nextRung": {
+    "igFollowers": "150–180K",
+    "names": ["Captain Hook", "Ace Ventura", "Blastoyz"],
+    "spotifyCountryThreshold": 5000,
+    "spotifyCountryNote": "5K+ monthly listeners per country ≈ festivals take you ~3x more seriously (Chartlex)"
+  },
+  "deadlines": {
+    "boomFestival": {
+      "closes": "2026-01-31",
+      "note": "סגירת הגשות ~31.01; 2,719 הגשות ב-2025",
+      "slotsForIndependents": true
+    },
+    "sukkotWellness": { "dates": "2026-10-01/02" }
+  },
+  "rungs": [
+    {
+      "id": "freak-show",
+      "name": "The Freak Show",
+      "tier": "peer",
+      "path": "דואו מ-2007, אחר כך סולו. Blue Tunes (Brain Attack, Miracle, Juan עם Soundbuster) ו-UP Records.",
+      "money": "לא אומת — נתונים פומביים דלים.",
+      "promo": "שחרורים בלייבל + הופעות בישראל (URBAN MUSIC, Sukkot Wellness איתך).",
+      "why": "הבנצ'מרק הישיר: אותו לייבל, אותם ליינאפים. קולאב = הצעד הזול ביותר למעלה.",
+      "unverified": ["money"]
+    },
+    {
+      "id": "captain-hook",
+      "name": "Captain Hook",
+      "tier": 1,
+      "instagram": 177000,
+      "spotifyMonthly": 203000,
+      "path": "תקליטן ויניל → Quantize → Captain Hook. 4 אלבומים ב-Iboga. Alien Art עם Ace Ventura (2024). Ouroboros 2024–26.",
+      "money": "FM Booking (booking@fm-booking.com). Bungee Jump — 15.9M סטרימים.",
+      "promo": "סדרת רמיקסים רב-שנתית; קולאבים עם Astrix ו-Ace Ventura.",
+      "why": "הרף הריאלי הבא: 150–180K IG, רוסטר FM Booking."
+    },
+    {
+      "id": "ace-ventura",
+      "name": "Ace Ventura",
+      "tier": 1,
+      "instagram": 149000,
+      "spotifyMonthly": 290000,
+      "path": "סאונד לטלוויזיה → Psysex (HOMmega) → Ace Ventura 2006. Alpha Portal, Alien Art, Liquid Ace, Easy Riders, Acid Punks, Psy-Nation.",
+      "money": "FM Booking (עולם) + Kontrol Agency (ברזיל). מרצ', Bandcamp, Psy-Nation.",
+      "promo": "רדיו חודשי Psy-Nation; 5+ פרויקטים = 5+ זרמי שחרורים.",
+      "why": "מודל אליאסים: כל שם = סלוט נפרד. Pranava 14.1M."
+    },
+    {
+      "id": "blastoyz",
+      "name": "Blastoyz",
+      "tier": 1,
+      "instagram": 182000,
+      "spotifyMonthly": 497000,
+      "path": "פריצה עם Parvati Valley ו-Mandala (30.5M). Iboga, Alteza, Armada, Ophelia, Monstercat. לייבל WELVRAVE.",
+      "money": "סוכן עצמאי בת״א (בעבר Fantastic / Alteza). לייבל WELVRAVE, מרצ' ב-KT8.",
+      "promo": "רמיקסים חוצי ז'אנר → קולאבים. פלייליסט משלו. מזמין מעריצים ל-DM.",
+      "why": "הישראלי שגשר הכי מהר ל-EDM אמריקאי."
+    },
+    {
+      "id": "infected-mushroom",
+      "name": "Infected Mushroom",
+      "tier": 2,
+      "instagram": 245000,
+      "spotifyMonthly": 756000,
+      "path": "1996 חיפה. The Gathering 1999. אלבום כל 1–2 שנים. IM30 ב-2026. Dim Mak, Monstercat.",
+      "money": "UTA (לא אומת). Polyverse Music — פלאגינים. מאסטרקלאסים, סאמפל-פאקים.",
+      "promo": "סטים מלאים ביוטיוב; קולאבים חוצי ז'אנר; חינוך = משפך למוצר.",
+      "why": "הכנסה מפלאגינים וחינוך יכולה להיות עסק שני.",
+      "unverified": ["UTA"]
+    },
+    {
+      "id": "neelix",
+      "name": "Neelix",
+      "tier": 2,
+      "instagram": 372000,
+      "spotifyMonthly": 825000,
+      "path": "המבורג, קומפוזיטינג לקולנוע → הפקה ~2000. בית: Spin Twist Records.",
+      "money": "Spin Twist = לייבל + סוכנות. Assured Agency; Season Bookings בברזיל. סינק.",
+      "promo": "מאות רמיקסים ב-Beatport; פלייליסט לייבל ביוטיוב; סטים מלאים.",
+      "why": "המודל לייבל = סוכנות."
+    },
+    {
+      "id": "astrix",
+      "name": "Astrix",
+      "tier": 3,
+      "instagram": 606000,
+      "spotifyMonthly": 703000,
+      "path": "1997 תל אביב. HOMmega 2002. He.art 2016 בלייבל Shamanic Tales. 1,000+ הופעות.",
+      "money": "FM Booking. Shamanic Tales + מרצ' + Bandcamp.",
+      "promo": "יוטיוב של סטים מלאים; חבילות רמיקסים; קולאבים עם Vini Vici, Captain Hook.",
+      "why": "הדרך הישראלית הקלאסית: HOMmega → לייבל משלו → מרצ'."
+    },
+    {
+      "id": "vini-vici",
+      "name": "Vini Vici",
+      "tier": 3,
+      "instagram": 728000,
+      "spotifyMonthly": 3190000,
+      "path": "Sesto Sento 2001 → Vini Vici 2013. Free Tibet 2016. Alteza 2018. DJ Mag #32 (2025).",
+      "money": "Fantastic Management (dima@fantastic-management.com). Alteza / Smash The House. Armada Publishing.",
+      "promo": "קולאב כלפי מעלה (Armin, W&W, Aoki); רמיקס עם הוק ענק.",
+      "why": "הפריצה הכי גדולה מפסיי למיין-סטייג' — רמיקס אחד וקולאב אחד."
+    },
+    {
+      "id": "argy",
+      "name": "Argy",
+      "tier": "melodic",
+      "instagram": 882000,
+      "spotifyMonthly": 3900000,
+      "path": "רודוס → לונדון 2004. פיבוט ל-Afterlife: Tataki 2022, Higher Power 2023, Aria 134.7M. לייבל NEW WORLD.",
+      "money": "Afterlife + NEW WORLD. The Soundtrack Company (Ferrari, BMW, Bvlgari). סוכנות: לא אומת.",
+      "promo": "זהות ויזואלית; הוקים של 2 דקות לרילס; קולאבים עם MEDUZA, Anyma.",
+      "why": "כבר עשית לו רמיקס (Melodia).",
+      "unverified": ["agency"]
+    },
+    {
+      "id": "anyma",
+      "name": "Anyma",
+      "tier": "melodic",
+      "instagram": 3880000,
+      "spotifyMonthly": 6900000,
+      "path": "Tale of Us 2008 → Afterlife 2016 → Anyma 2021. Sphere Las Vegas 2024–25. DJ Mag #10 (2025).",
+      "money": "CAA עולמי. Afterlife/Interscope, Kobalt. UNVRS Ibiza, מותגים.",
+      "promo": "50% מהזמן על ויז'ואל. טרילוגיית אלבומים = יקום נרטיבי.",
+      "why": "כבר עשית רמיקסים (After Love, Save Me). התקרה של הז'אנר."
+    }
+  ],
+  "patterns": [
+    "טראק/רמיקס אחד פתח את כל הדלתות (Free Tibet, Mandala, Tataki/Aria, Pranava, Bungee Jump).",
+    "רמיקס כלפי מעלה, קולאב לצדדים.",
+    "לייבל-בית חזק, ואז לייבל משלך.",
+    "פרויקט צד = סלוט נוסף בפסטיבל.",
+    "קצב הוצאה גבוה.",
+    "הווידאו הוא המוצר — סטים מלאים ביוטיוב.",
+    "הכנסה מעבר לדמי הופעה (פלאגינים, סינק, מרצ', מאסטרקלאס).",
+    "גשר ל-EDM מיינסטרים = מכפיל."
+  ],
+  "booking": [
+    { "name": "FM Booking", "email": "booking@fm-booking.com", "note": "70+ אמני פסיי" },
+    { "name": "Fantastic Management", "email": "dima@fantastic-management.com", "note": "Vini Vici" },
+    { "name": "Spin Twist Records", "email": null, "note": "לייבל = סוכנות, טופס פתוח" },
+    { "name": "Blue Tunes Booking", "email": null, "note": "לשאול אם מטפלים ב-ShiBass" },
+    { "name": "Season Bookings", "email": null, "note": "ברזיל" },
+    { "name": "Kontrol Agency", "email": null, "note": "ברזיל" },
+    { "name": "Siam Bookings", "email": null, "note": "תאילנד" },
+    { "name": "Chakradelic", "email": null, "note": "שוויץ" },
+    { "name": "Spiralbooking", "email": null, "note": "מינכן" },
+    { "name": "Bom Shanka Bookings", "email": null, "note": "UK" }
+  ],
+  "stages": [
+    {
+      "id": "now-sukkot",
+      "when": "עכשיו → סוכות (23.08–02.10)",
+      "focus": "בסיס + מדידה",
+      "actions": [
+        "גל 1: 20 קמפיינים × ₪20 ל-4 ימים, להרוג 70% התחתונים",
+        "Sukkot: קליפ חי לא ערוך + סט מלא ליוטיוב",
+        "EPK במסך אחד",
+        "מייל ל-Blue Tunes: האם הם מטפלים בבוקינג?"
+      ],
+      "metric": "CPC ≤ ₪0.15 בגל 2 · 1 קליפ חי לכל הופעה"
+    },
+    {
+      "id": "oct-jan",
+      "when": "אוקטובר → ינואר 2027",
+      "focus": "משיכה מקומית ב-4 שווקים",
+      "actions": [
+        "סטרימינג גיאו: ישראל, ברזיל, שוויץ, תאילנד — 5K מאזינים חודשיים לכל מדינה",
+        "רמיקס אחד כלפי מעלה (Blue Tunes / Iboga)",
+        "הגשה ל-Boom לפני 31.01",
+        "פיץ' Season / Siam / Chakradelic"
+      ],
+      "metric": "5K+ מאזינים ב-2 מדינות · 1 רמיקס · Boom הוגש"
+    },
+    {
+      "id": "feb-jul",
+      "when": "פברואר → יולי 2027",
+      "focus": "קצב + קולאב",
+      "actions": [
+        "סינגל/רמיקס כל 4–6 שבועות",
+        "קולאב Freak Show → שכבת Blastoyz",
+        "סט מלא ביוטיוב מכל הופעה + רילס 15–30 שנ׳",
+        "פרויקט צד (אליאס) לסלוט נפרד"
+      ],
+      "metric": "6 שחרורים · 1 קולאב · 50K IG"
+    },
+    {
+      "id": "aug-plus",
+      "when": "אוגוסט 2027 והלאה",
+      "focus": "סוכנות + טראק חתימה",
+      "actions": [
+        "רוסטר FM Booking / Spin Twist / Bom Shanka",
+        "טראק חתימה אחד עם כל התקציב",
+        "סאמפל-פאק / מאסטרקלאס / מרצ' קטן",
+        "לבחון לייבל/מותג אירועים משלך"
+      ],
+      "metric": "סוכנות חתומה · טראק 1M+ · 150K IG"
+    }
+  ],
+  "sources": [
+    "HypeAuditor",
+    "Spotify artist pages",
+    "Wikipedia",
+    "FM Booking",
+    "DJ Mag Top 100 2025",
+    "Boom Festival",
+    "Chartlex",
+    "Pirate.com",
+    "Beats to Rap On",
+    "Goabase"
+  ]
+}

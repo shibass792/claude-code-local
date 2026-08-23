@@ -66,6 +66,7 @@ body {
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  overflow-y: auto;
 }
 
 .nav-btn {
@@ -451,6 +452,65 @@ input[type='text'] {
   padding: 12px 20px;
   border-radius: 8px;
   z-index: 1000;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #1b2130;
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 0 0 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--primary);
+}
+
+.sprint-list {
+  list-style: none;
+  max-height: calc(100vh - 280px);
+  overflow: auto;
+}
+
+.sprint-list li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.86rem;
+}
+
+.sprint-list li.done {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.compact-log {
+  min-height: 72px;
+  max-height: 110px;
+}
+
+.ladder-self,
+.stage-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.subhead {
+  margin: 18px 0 8px;
+  font-size: 0.95rem;
+}
+
+.plain-list {
+  padding-right: 18px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
 }
 
 @media (max-width: 1100px) {

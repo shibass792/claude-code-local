@@ -121,8 +121,9 @@ if ($IncludeDailyLine) {
 
 Write-Host ""
 Write-Host "Doctor: scripts\shibass-doctor.ps1" -ForegroundColor DarkCyan
-Write-Host "Daily:  START-DAILY-LINE.cmd  (4051 + 4340 + psy_pack)" -ForegroundColor DarkCyan
-Write-Host "Studio: START-ALL-SHIBASS.cmd  or  http://127.0.0.1:4051/" -ForegroundColor DarkCyan
+Write-Host "Daily:  START-DAILY-LINE.cmd  (4051 + 4340 + dated psy_pack + Electron)" -ForegroundColor DarkCyan
+Write-Host "Sprint: START-SPRINT.cmd   Ops: START-OPS.cmd   MCP: SHIBASS-MCP.cmd" -ForegroundColor DarkCyan
+Write-Host "Studio: START-ALL-SHIBASS.cmd  or Electron desktop (not Chrome)" -ForegroundColor DarkCyan
 Write-Host "Demucs: docs\DEMUCS_QUICKSTART_HE.md" -ForegroundColor DarkCyan
 Write-Host "Install: docs\WINDOWS_INSTALL_ALL_HE.md" -ForegroundColor DarkCyan
 Write-Host ""

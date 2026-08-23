@@ -1,0 +1,190 @@
+{
+  "account": "act_447647440556829",
+  "objective": "OUTCOME_TRAFFIC",
+  "optimization": "LINK_CLICKS",
+  "dailyBudgetIls": 20,
+  "totalDailyIls": 400,
+  "status": "PAUSED",
+  "verifiedAgainstMeta": "2026-08-23",
+  "note": "All 20 campaigns were built PAUSED. Shaul turns them on manually in Ads Manager. This repo never calls Meta to ENABLE.",
+  "killedSameDay": [
+    {
+      "name": "ילדים רוקדים – עותק – עותק",
+      "dailyIls": 50,
+      "cpcIls": 2.5,
+      "note": "Burned ₪130 in a week — killed"
+    },
+    {
+      "name": "SWF26 (two campaigns)",
+      "cpcIls": "0.14–0.16",
+      "note": "Were working; paused because they passed the date window"
+    }
+  ],
+  "killRule": {
+    "cpcIlsMax": 0.3,
+    "lpvMin": 1,
+    "wave2CpcTarget": 0.15
+  },
+  "campaigns": [
+    {
+      "code": "W1-01",
+      "id": "120249738379150378",
+      "creative": "KIDS Reel → Sukkot",
+      "audience": "IL Warm 30-46",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-02",
+      "id": "120249738383750378",
+      "creative": "KIDS Reel → Profile",
+      "audience": "IL Cold 21-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-03",
+      "id": "120249738384050378",
+      "creative": "KIDS Reel → Profile",
+      "audience": "Global Cold Psy/EDM",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-04",
+      "id": "120249738384220378",
+      "creative": "KIDS Reel → Profile",
+      "audience": "Industry Pros",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-05",
+      "id": "120249738384440378",
+      "creative": "KIDS Img → Sukkot Tickets",
+      "audience": "IL Warm 30-46",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-06",
+      "id": "120249738384540378",
+      "creative": "KIDS Img → Sukkot Tickets",
+      "audience": "IL Cold 21-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-07",
+      "id": "120249738384640378",
+      "creative": "KIDS Img → Sukkot Tickets",
+      "audience": "IL Families 25-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-08",
+      "id": "120249738384800378",
+      "creative": "Sukkot Lineup → Tickets",
+      "audience": "IL Warm 30-46",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-09",
+      "id": "120249738385120378",
+      "creative": "Sukkot Lineup → Tickets",
+      "audience": "IL Cold 21-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-10",
+      "id": "120249738385230378",
+      "creative": "Sukkot Lineup → Tickets",
+      "audience": "IL Families 25-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-11",
+      "id": "120249738385400378",
+      "creative": "Dextamine → Beatport",
+      "audience": "IL Warm 30-46",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-12",
+      "id": "120249738385710378",
+      "creative": "Dextamine → Beatport",
+      "audience": "IL Cold 21-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-13",
+      "id": "120249738385900378",
+      "creative": "Dextamine → Beatport (EN)",
+      "audience": "Global Cold Psy/EDM",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-14",
+      "id": "120249738386140378",
+      "creative": "Dextamine → Beatport (EN)",
+      "audience": "Industry Pros",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-15",
+      "id": "120249738386290378",
+      "creative": "Bookings → shibass.co.il",
+      "audience": "IL Warm 30-46",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-16",
+      "id": "120249738386500378",
+      "creative": "Bookings → shibass.co.il",
+      "audience": "IL Cold 21-45",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-17",
+      "id": "120249738386640378",
+      "creative": "Bookings (EN) → shibass.co.il",
+      "audience": "Global Cold Psy/EDM",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-18",
+      "id": "120249738386770378",
+      "creative": "Bookings (EN) → shibass.co.il",
+      "audience": "Industry Pros",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-19",
+      "id": "120249738386830378",
+      "creative": "Set Me Free → YouTube",
+      "audience": "Global Cold Psy/EDM",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    },
+    {
+      "code": "W1-20",
+      "id": "120249738387000378",
+      "creative": "Set Me Free → YouTube",
+      "audience": "Industry Pros",
+      "dailyIls": 20,
+      "status": "PAUSED"
+    }
+  ]
+}

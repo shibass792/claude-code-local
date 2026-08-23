@@ -1,6 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, 'config/.env') });
 
-const { app, BrowserWindow, ipcMain, Notification, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const radar = require('./modules/radar');
@@ -10,7 +10,15 @@ const renderEngine = require('./modules/render-engine');
 const hookGenerator = require('./modules/hook-generator');
 const engines = require('./modules/engines');
 const { createCampaignFromRender } = require('./modules/campaign-factory');
-const { resolveFromRoot } = require('./modules/store');
+const { resolveFromRoot, OUTPUT_DIR } = require('./modules/store');
+const { generatePsyPack } = require('./modules/psy-pack');
+const { buildProducerPack } = require('./modules/producer-pack');
+const { buildEpk } = require('./modules/epk');
+const { getSprint, toggleCell } = require('./modules/sprint');
+const { getLadder } = require('./modules/ladder');
+const { getWave1, evaluateCsvFile } = require('./modules/ads-cpc');
+const { probeOps, formatOpsLog } = require('./modules/ops-probe');
+const transcriber = require('./modules/transcriber');
 
 function configureElectronStorage() {
   const userDataPath = path.join(__dirname, '.electron-user-data');
@@ -159,3 +167,32 @@ ipcMain.handle('hooks:generate', async (_event, options) => hookGenerator.genera
 ipcMain.handle('render:reel', async (_event, options) => renderEngine.renderReel(options || {}));
 
 ipcMain.handle('create:campaign', async (_event, options) => createCampaignFromRender(options || {}));
+
+ipcMain.handle('psy:generate', async (_event, options) => generatePsyPack(options || {}));
+ipcMain.handle('pack:build', async (_event, options) => buildProducerPack(options || {}));
+ipcMain.handle('epk:build', async (_event, options) => buildEpk(options || {}));
+ipcMain.handle('sprint:get', async () => getSprint());
+ipcMain.handle('sprint:toggle', async (_event, payload) => toggleCell(payload?.id, payload?.done));
+ipcMain.handle('ladder:get', async () => getLadder());
+ipcMain.handle('wave1:get', async () => getWave1());
+ipcMain.handle('ops:probe', async () => {
+  const report = await probeOps();
+  return { ...report, log: formatOpsLog(report) };
+});
+ipcMain.handle('ads:pick-csv', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Wave 1 Ads CSV (Windsor / Ads Manager export)',
+    filters: [{ name: 'CSV', extensions: ['csv', 'txt'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || !result.filePaths[0]) {
+    return { canceled: true };
+  }
+  return evaluateCsvFile(result.filePaths[0]);
+});
+ipcMain.handle('guides:ingest', async (_event, payload) => transcriber.ingestFile(payload || {}));
+ipcMain.handle('shell:open-path', async (_event, target) => {
+  const dest = target || OUTPUT_DIR;
+  await shell.openPath(dest);
+  return true;
+});

@@ -27,16 +27,18 @@ start "ShiBass Library Compat 4000" /MIN cmd /c "cd /d %PP% && node line-compat-
 
 timeout /t 2 /nobreak >nul
 
-echo Generating morning psy_pack_v3 (10 MIDI, E Phrygian, 142)...
+echo Generating dated psy_pack_v3 (50 MIDI, Phrygian Family)...
 pushd "%PP%"
-node -e "console.log(JSON.stringify(require('./modules/psy-pack').generatePsyPack({count:10,root:'E',bpm:142}),null,2))"
+node cli.js psy 50
+echo.
+node cli.js sprint
 popd
 
 echo.
-echo Studio:      http://127.0.0.1:4051/
-echo Transcriber: http://127.0.0.1:4340/api/health
+echo Desktop Electron — not Chrome.
 echo Cubase drop: H:\ShiBass_Cubase_Projects\Audix_Templates\psy_pack_inbox
-echo 14-day goal: Producer Pack v1 — button "ארוז Producer Pack" in Studio
+echo MIDI dated:  H:\shibass-ai\10_OUTPUTS\MIDI_EXPORT\psy_pack_v3\YYYY-MM-DD
+echo Dual goal:   Audix track + Producer Pack + Wave 1 (you turn ads on)
 echo.
-start "" "http://127.0.0.1:4051/"
+start "ShiBass Desktop" cmd /c "cd /d %PP% && npm start"
 pause

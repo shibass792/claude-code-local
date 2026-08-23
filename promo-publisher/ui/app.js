@@ -37,6 +37,18 @@ function switchTab(tabId) {
   if (tabId === 'create-tab') {
     // keep log
   }
+  if (tabId === 'sprint-tab') {
+    loadSprint();
+  }
+  if (tabId === 'ladder-tab') {
+    loadLadder();
+  }
+  if (tabId === 'ops-tab') {
+    loadOps();
+  }
+  if (tabId === 'ads-tab') {
+    loadWave1();
+  }
 }
 
 function updatePublishButtonState() {
@@ -408,11 +420,140 @@ function setupLiveApis() {
   });
 }
 
+async function loadSprint() {
+  if (!window.api?.getSprint) return;
+  const s = await window.api.getSprint();
+  const meta = document.getElementById('sprint-meta');
+  if (meta) meta.textContent = `${s.start} → ${s.end} · ${s.completed}/${s.total} (${s.pct}%) · ${s.progressPath}`;
+  const bar = document.getElementById('sprint-bar');
+  if (bar) bar.style.width = `${s.pct || 0}%`;
+  const goals = document.getElementById('sprint-goals');
+  if (goals && s.goals) {
+    goals.textContent = `TRACK  ${s.goals.track}\nPACK   ${s.goals.pack}\nADS    ${s.goals.marketing}`;
+  }
+  const list = document.getElementById('sprint-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (s.cells || []).forEach((cell) => {
+    const li = document.createElement('li');
+    li.className = cell.done ? 'done' : '';
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = cell.done;
+    box.addEventListener('change', async () => {
+      await window.api.toggleSprint({ id: cell.id, done: box.checked });
+      await loadSprint();
+    });
+    const span = document.createElement('span');
+    span.textContent = ` D${cell.day} · ${cell.lane} · ${cell.title}`;
+    li.appendChild(box);
+    li.appendChild(span);
+    list.appendChild(li);
+  });
+}
+
+function formatK(n) {
+  if (n == null) return 'לא נמדד';
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${Math.round(n / 1000)}K`;
+  return String(n);
+}
+
+async function loadLadder() {
+  if (!window.api?.getLadder) return;
+  const data = await window.api.getLadder();
+  const self = data.self || {};
+  const selfEl = document.getElementById('ladder-self');
+  if (selfEl) {
+    selfEl.textContent = `${self.artist} · IG ${self.instagram?.followersLabel || ''} (${self.instagram?.engagementPct}% HypeAuditor) · ספוטיפיי: ${self.spotifyMonthly?.label || 'לא נמדד'} · השלב הבא: ${data.nextRung?.igFollowers || ''}`;
+  }
+  const body = document.getElementById('ladder-body');
+  if (body) {
+    body.innerHTML = '';
+    (data.rungs || []).forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.name}</td><td>${r.tier}</td><td>${formatK(r.instagram)}</td><td>${formatK(r.spotifyMonthly)}</td><td>${r.why || ''}</td>`;
+      body.appendChild(tr);
+    });
+  }
+  const stages = document.getElementById('ladder-stages');
+  if (stages) {
+    stages.innerHTML = (data.stages || []).map((st) =>
+      `<article class="stage-card"><strong>${st.when}</strong><p>${st.focus} — ${st.metric}</p></article>`
+    ).join('');
+  }
+  const booking = document.getElementById('ladder-booking');
+  if (booking) {
+    booking.innerHTML = (data.booking || []).map((b) =>
+      `<li>${b.name}${b.email ? ` · ${b.email}` : ''} — ${b.note || ''}</li>`
+    ).join('');
+  }
+}
+
+async function loadOps() {
+  if (!window.api?.probeOps) return;
+  const report = await window.api.probeOps();
+  const log = document.getElementById('ops-log');
+  if (log) log.textContent = report.log || report.summary;
+  const body = document.getElementById('ops-body');
+  if (!body) return;
+  body.innerHTML = '';
+  (report.services || []).forEach((s) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.port}</td><td>${s.name}</td><td class="${s.online ? 'badge-ok' : 'badge-fail'}">${s.online ? 'ONLINE' : 'OFFLINE'}</td><td>${s.online ? `HTTP ${s.statusCode}` : (s.error || 'no listener')}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+function renderWaveRows(campaigns) {
+  const body = document.getElementById('ads-body');
+  if (!body) return;
+  body.innerHTML = '';
+  (campaigns || []).forEach((c) => {
+    const tr = document.createElement('tr');
+    const decision = c.action ? `${c.action} · ${c.reason || ''}` : c.status;
+    tr.innerHTML = `<td>${c.code}</td><td>${c.creative}</td><td>${c.audience}</td><td dir="ltr">${c.id}</td><td>${c.status}</td><td>${decision}</td>`;
+    body.appendChild(tr);
+  });
+}
+
+async function loadWave1() {
+  if (!window.api?.getWave1) return;
+  const wave = await window.api.getWave1();
+  renderWaveRows(wave.campaigns);
+}
+
+function setupSprintDesk() {
+  document.getElementById('btn-psy-50')?.addEventListener('click', async () => {
+    const r = await window.api.generatePsy({ count: 50, root: 'E' });
+    showToast(r.success ? `${r.count} MIDI · ${r.date} · ${r.scale}` : r.error);
+  });
+  document.getElementById('btn-pack-build')?.addEventListener('click', async () => {
+    const r = await window.api.buildPack({ count: 50 });
+    showToast(r.success ? `Pack ${r.midiCount} · ${r.zipPath}` : r.error);
+  });
+  document.getElementById('btn-epk-build')?.addEventListener('click', async () => {
+    const r = await window.api.buildEpk({});
+    showToast(r.success ? `EPK → ${r.emailPath}` : r.error);
+  });
+  document.getElementById('btn-ops-probe')?.addEventListener('click', () => loadOps());
+  document.getElementById('btn-ads-csv')?.addEventListener('click', async () => {
+    const report = await window.api.pickAdsCsv();
+    if (report.canceled) return;
+    const v = document.getElementById('ads-verdict');
+    if (v) {
+      v.textContent = `KEEP ${report.keep?.length || 0} · KILL ${report.kill?.length || 0} · UNKNOWN ${report.unknown?.length || 0} — שאול מכבה ב-Ads Manager`;
+    }
+    renderWaveRows(report.campaigns);
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   setupActions();
   setupPlayerWatchGate();
   setupDropZone();
   setupLiveApis();
+  setupSprintDesk();
   loadApprovalQueue();
 });

@@ -21,6 +21,10 @@
         <button class="nav-btn" data-tab="player-tab">⚡ Universal Player</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
+        <button class="nav-btn" data-tab="sprint-tab">✅ ספרינט 14</button>
+        <button class="nav-btn" data-tab="ladder-tab">📈 סולם אמנים</button>
+        <button class="nav-btn" data-tab="ops-tab">🛰️ Ops חי</button>
+        <button class="nav-btn" data-tab="ads-tab">📢 Wave 1 Ads</button>
       </nav>
 
       <div class="system-status" id="system-status">
@@ -165,6 +169,71 @@
           <p>הגדר משתני סביבה בקובץ config/.env (העתק מ-.env.example)</p>
         </header>
         <div class="connections-grid" id="connections-grid"></div>
+      </section>
+
+      <section id="sprint-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>ספרינט 14 יום — טראק + Pack</h1>
+            <p id="sprint-meta">24.08 → 06.09.2026 · נתונים על הדיסק, לא localStorage</p>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary" id="btn-psy-50" type="button">50 MIDI</button>
+            <button class="btn btn-secondary" id="btn-pack-build" type="button">ארוז Pack</button>
+            <button class="btn btn-primary" id="btn-epk-build" type="button">EPK</button>
+          </div>
+        </header>
+        <div class="progress-bar"><div id="sprint-bar" class="progress-fill"></div></div>
+        <pre id="sprint-goals" class="live-log compact-log"></pre>
+        <ul id="sprint-list" class="sprint-list"></ul>
+      </section>
+
+      <section id="ladder-tab" class="tab-content">
+        <header class="tab-header">
+          <h1>הסולם — מאיפה ShiBass לאן</h1>
+          <p>מספרים מ-23.08.2026. מה שלא אומת מסומן.</p>
+        </header>
+        <div id="ladder-self" class="ladder-self"></div>
+        <table class="history-table" id="ladder-table">
+          <thead>
+            <tr><th>אמן</th><th>שכבה</th><th>IG</th><th>ספוטיפיי</th><th>למה לעקוב</th></tr>
+          </thead>
+          <tbody id="ladder-body"></tbody>
+        </table>
+        <h3 class="subhead">שלבים</h3>
+        <div id="ladder-stages"></div>
+        <h3 class="subhead">סוכנויות</h3>
+        <ul id="ladder-booking" class="plain-list"></ul>
+      </section>
+
+      <section id="ops-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>Ops חי — בדיקות HTTP</h1>
+            <p>אין סימולטור. אם הפורט כבוי — כתוב OFFLINE.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-ops-probe" type="button">בדוק עכשיו</button>
+        </header>
+        <pre id="ops-log" class="live-log">לחץ "בדוק עכשיו" — פרובים אמיתיים ל-127.0.0.1</pre>
+        <table class="history-table">
+          <thead><tr><th>פורט</th><th>שם</th><th>מצב</th><th>פירוט</th></tr></thead>
+          <tbody id="ops-body"></tbody>
+        </table>
+      </section>
+
+      <section id="ads-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>Wave 1 — 20 קמפיינים PAUSED</h1>
+            <p>חשבון act_447647440556829 · ₪20/יום · שאול מדליק ידנית. האפליקציה לא ENABLE.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-ads-csv" type="button">CSV מ-Ads</button>
+        </header>
+        <p id="ads-verdict" class="watch-hint">הורד CSV מ-Windsor/Ads, גרור כלל: CPC&gt;₪0.30 או 0 LPV = KILL</p>
+        <table class="history-table">
+          <thead><tr><th>קוד</th><th>קריאייטיב</th><th>קהל</th><th>Campaign ID</th><th>מצב</th><th>החלטה</th></tr></thead>
+          <tbody id="ads-body"></tbody>
+        </table>
       </section>
     </main>
   </div>

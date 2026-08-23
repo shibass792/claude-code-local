@@ -65,6 +65,10 @@ const server = http.createServer(async (req, res) => {
     }
     if ((url.pathname === '/api/guides' || url.pathname === '/api/ingest') && req.method === 'POST') {
       const body = await readBody(req);
+      if (body.filePath) {
+        send(res, 200, transcriber.ingestFile(body));
+        return;
+      }
       send(res, 200, transcriber.createGuide(body));
       return;
     }

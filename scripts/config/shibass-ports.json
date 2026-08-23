@@ -6,6 +6,10 @@
   "tier1_always_on": {
     "main_ide": { "port": 4000, "url": "http://127.0.0.1:4000", "health": "/api/ops/health", "name": "ShiBass AI IDE" },
     "promo_publisher_web": { "port": 4050, "url": "http://127.0.0.1:4050", "health": "/", "name": "Promo Publisher (web)" },
+    "studio_api": { "port": 4051, "url": "http://127.0.0.1:4051", "health": "/api/health", "name": "Social Studio live API" },
+    "transcriber": { "port": 4340, "url": "http://127.0.0.1:4340", "health": "/api/health", "name": "Learning transcriber" },
+    "diklest_master": { "port": 4327, "url": "http://127.0.0.1:4327", "health": "/", "name": "Diklest Master Suite" },
+    "club_sound_doctor": { "port": 4330, "url": "http://127.0.0.1:4330", "health": "/", "name": "Club Sound Doctor" },
     "promo_publisher_proxy": { "port": 5100, "url": "http://127.0.0.1:5100", "health": "/", "name": "Promo Publisher proxy" },
     "control_panel": { "port": 7777, "url": "http://127.0.0.1:7777", "health": "/", "name": "Control Panel" },
     "static_panels": { "port": 8000, "url": "http://127.0.0.1:8000", "health": "/", "name": "Static HTML panels" },

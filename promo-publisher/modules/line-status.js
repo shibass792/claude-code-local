@@ -34,7 +34,7 @@ async function getLineStatus() {
   return {
     success: true,
     checkedAt: new Date().toISOString(),
-    goal14: 'ShiBass Producer Pack v1 (MIDI + listing) — track can still run in morning Cubase slot',
+    goal14: 'Dual sprint: Audix track + Producer Pack v1 + Wave 1 ads (24.08–06.09.2026)',
     services: {
       studioApi: { port: studioPort, ...studio, role: 'Library + render + pack + psy_pack' },
       transcriber: { port: transcriberPort, ...transcriber, role: 'guide_he.md from notes/videos' },

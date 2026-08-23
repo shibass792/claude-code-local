@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { ensureDir, writeJson, readJson, OUTPUT_DIR } = require('./store');
+const { ensureDir, writeJson, readJson, OUTPUT_DIR, ROOT } = require('./store');
 
 const GUIDES_DIR = path.join(OUTPUT_DIR, 'guides');
 const INDEX_FILE = path.join(GUIDES_DIR, 'index.json');
@@ -86,6 +86,45 @@ function listGuides() {
   };
 }
 
+function isAllowedIngestPath(abs) {
+  const roots = [
+    OUTPUT_DIR,
+    ROOT,
+    process.env.SHIBASS_ROOT,
+    process.env.SHIBASS_NOTES,
+  ].filter(Boolean);
+  return roots.some((root) => {
+    const base = path.resolve(root);
+    return abs === base || abs.startsWith(`${base}${path.sep}`);
+  });
+}
+
+function ingestFile({ filePath, title } = {}) {
+  if (!filePath || typeof filePath !== 'string') {
+    return { success: false, error: 'filePath required' };
+  }
+  const abs = path.resolve(filePath);
+  if (!isAllowedIngestPath(abs)) {
+    return {
+      success: false,
+      error: 'path not allowed — put notes under promo-publisher/output, the repo, or SHIBASS_ROOT',
+    };
+  }
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
+    return { success: false, error: `file not found: ${abs}` };
+  }
+  const ext = path.extname(abs).toLowerCase();
+  if (!['.md', '.txt', '.json', '.csv'].includes(ext)) {
+    return { success: false, error: 'only .md .txt .json .csv' };
+  }
+  const notes = fs.readFileSync(abs, 'utf8').slice(0, 80000);
+  return createGuide({
+    title: title || path.basename(abs),
+    notes,
+    source: abs,
+  });
+}
+
 function readGuide(id) {
   const item = (loadIndex().items || []).find((g) => g.id === id || g.file === id);
   if (!item || !fs.existsSync(item.path)) {
@@ -99,4 +138,5 @@ module.exports = {
   createGuide,
   listGuides,
   readGuide,
+  ingestFile,
 };
