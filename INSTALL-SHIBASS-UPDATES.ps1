@@ -108,6 +108,8 @@ function Copy-RepoToTarget {
     "INSTALL-SHIBASS-UPDATES.cmd",
     "INSTALL-CLAUDE-MCP.ps1",
     "INSTALL-CLAUDE-MCP.cmd",
+    "INSTALL-SB-DAW-JOBS.ps1",
+    "INSTALL-SB-DAW-JOBS.cmd",
     "START-SOCIAL-STUDIO.cmd",
     "START-STUDIO-API.cmd",
     "START-CLAUDE-MCP-SETUP.cmd"
@@ -153,8 +155,20 @@ if (Test-Path $mcpInstaller) {
   if ($LASTEXITCODE -ne 0) { $mcpOk = $false }
   $ErrorActionPreference = $prevErr
   if (-not $mcpOk) {
-    Write-Host "Claude MCP install reported an error — .claude folder + settings may still have been written." -ForegroundColor Yellow
+    Write-Host "Claude MCP install reported an error - .claude folder + settings may still have been written." -ForegroundColor Yellow
   }
+}
+
+$sbDaw = Join-Path $TargetRoot "tools\sb-daw\Patch-SbDawJobs.ps1"
+if (Test-Path -LiteralPath $sbDaw) {
+  Write-Step "Mounting /api/sb-daw/jobs/ on server.js..."
+  $prevDaw = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $sbDaw -TargetRoot $TargetRoot
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "sb-daw jobs patch reported an error. Run INSTALL-SB-DAW-JOBS.cmd after Node is on PATH." -ForegroundColor Yellow
+  }
+  $ErrorActionPreference = $prevDaw
 }
 
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
@@ -165,5 +179,6 @@ Write-Host ("Doctor: " + $TargetRoot + "\scripts\shibass-doctor.ps1")
 Write-Host ("Social: " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
 Write-Host ("Studio API: " + $TargetRoot + "\START-STUDIO-API.cmd")
 Write-Host ("Claude MCP: " + $TargetRoot + "\INSTALL-CLAUDE-MCP.cmd")
+Write-Host ("sb-daw jobs: " + $TargetRoot + "\INSTALL-SB-DAW-JOBS.cmd")
 Write-Host ("Demucs: " + $TargetRoot + "\scripts\wire-demucs-for-midi-forge.ps1")
 Write-Host ""
