@@ -25,6 +25,7 @@
 | 4870 | Release Distribution Studio | HTTP 200 |
 | 4899 | Edit Studio | HTTP 200 |
 | 4900 | Publishing Board | HTTP 200 |
+| **4903** | **Synth control hub** (Sylenth1 rack, master menu, synths/MIDI player) | **HTTP 200** |
 | 8016 | ACE-Step | HTTP 200 |
 | 3005 | Local Data Engine | HTTP 200 |
 | 4100 | Hub Ports (Audio-to-MIDI) | HTTP 200 |
@@ -39,6 +40,19 @@
 | 8000 | Static Panels | HTTP 200 |
 
 **מאזין אבל non-200:** 4860 Academy, 4296 Producer Brain DB, 4782 All-Connected Brain
+
+### פורט 4903 — Synth control hub (נבדק ידנית 2026-08-23)
+
+| URL | תפקיד |
+|-----|--------|
+| http://127.0.0.1:4903/ | ראשי |
+| http://127.0.0.1:4903/shibass-control-center.html | ראק שליטה Sylenth1 |
+| http://127.0.0.1:4903/SHIBASS-MASTER-MENU.html | תפריט מאסטר |
+| http://127.0.0.1:4903/sb-design-resources.html | משאבי עיצוב |
+| http://127.0.0.1:4903/sb-synths-midi-player.html | נגן סינths + מנוע MIDI (UI) |
+| http://127.0.0.1:4903/api/health | בריאות API |
+
+> **הערה:** UI על 4903 ≠ `music_brain` על **8791**. Demucs עדיין דרך watcher / `8015` / `.venv-demucs`, לא דרך 4903 בלבד.
 
 ---
 

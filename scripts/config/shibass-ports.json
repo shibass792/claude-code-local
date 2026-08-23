@@ -15,7 +15,21 @@
     "sound_dna_portal": { "port": 4781, "url": "http://127.0.0.1:4781", "health": "/", "name": "All-Connected Brain / portal" },
     "sound_dna_worker": { "port": 4786, "url": "http://127.0.0.1:4786", "health": "/", "name": "Sound-DNA worker" },
     "producer_brain_db": { "port": 4296, "url": "http://127.0.0.1:4296", "health": "/", "name": "Producer Brain DB" },
-    "local_ai_gate": { "port": 5200, "url": "http://127.0.0.1:5200", "health": "/", "name": "Local-AI Gate" },
+    "edit_studio": { "port": 4899, "url": "http://127.0.0.1:4899", "health": "/", "name": "Edit Studio" },
+    "publishing_board": { "port": 4900, "url": "http://127.0.0.1:4900", "health": "/", "name": "Publishing Board" },
+    "synth_control_hub": {
+      "port": 4903,
+      "url": "http://127.0.0.1:4903",
+      "health": "/api/health",
+      "name": "Synth control hub (Sylenth1 rack + MIDI player UI)",
+      "pages": {
+        "root": "/",
+        "control_center": "/shibass-control-center.html",
+        "master_menu": "/SHIBASS-MASTER-MENU.html",
+        "design_resources": "/sb-design-resources.html",
+        "synths_midi_player": "/sb-synths-midi-player.html"
+      }
+    },
     "ollama": { "port": 11434, "url": "http://127.0.0.1:11434", "health": "/api/tags" }
   },
   "tier2_panel_managed": {
