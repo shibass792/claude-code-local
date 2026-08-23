@@ -1,5 +1,11 @@
 'use strict';
 
+// Redirect all generated files to a scratch dir BEFORE the modules are loaded,
+// so running the suite never touches a real approval queue, radar feed or index.
+process.env.SHIBASS_OUTPUT_DIR = require('fs').mkdtempSync(
+  require('path').join(require('os').tmpdir(), 'shibass-out-'),
+);
+
 /**
  * Radar tests never touch the network: YTDLP_PATH is pointed at a binary that
  * does not exist so the "tool unavailable" path is exercised deterministically.
@@ -78,6 +84,26 @@ test('buildSourceUrl maps each platform and respects an explicit url', () => {
   );
   assert.equal(radar.buildSourceUrl({ url: 'https://example.com/x' }), 'https://example.com/x');
   assert.equal(radar.buildSourceUrl({}), null);
+});
+
+test('youtube falls back to /videos for channels with no shorts tab', () => {
+  assert.deepEqual(radar.buildSourceUrls({ handle: 'chan', platform: 'youtube' }), [
+    'https://www.youtube.com/@chan/shorts',
+    'https://www.youtube.com/@chan/videos',
+  ]);
+
+  assert.equal(radar.buildSourceUrls({ handle: 'x', platform: 'tiktok' }).length, 1);
+  assert.deepEqual(radar.buildSourceUrls({ url: 'https://e.com/x' }), ['https://e.com/x']);
+  assert.deepEqual(radar.buildSourceUrls({}), []);
+});
+
+test('scanArtist reports every candidate it tried when all of them fail', async () => {
+  await withEnv({ YTDLP_PATH: NO_TOOL }, async () => {
+    const result = await radar.scanArtist({ handle: 'chan', platform: 'youtube' });
+    assert.equal(result.posts, null);
+    assert.match(result.error, /shorts/);
+    assert.match(result.error, /videos/, 'the fallback attempt is reported too');
+  });
 });
 
 test('buildAuthArgs prefers a cookie file over a browser jar', async () => {

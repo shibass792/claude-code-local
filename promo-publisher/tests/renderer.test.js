@@ -1,5 +1,11 @@
 'use strict';
 
+// Redirect all generated files to a scratch dir BEFORE the modules are loaded,
+// so running the suite never touches a real approval queue, radar feed or index.
+process.env.SHIBASS_OUTPUT_DIR = require('fs').mkdtempSync(
+  require('path').join(require('os').tmpdir(), 'shibass-out-'),
+);
+
 /**
  * These tests run the real ffmpeg binary. When ffmpeg is absent the encoding
  * tests skip rather than fail, but the pure argument/ASS builders always run.

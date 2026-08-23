@@ -1,5 +1,11 @@
 'use strict';
 
+// Redirect all generated files to a scratch dir BEFORE the modules are loaded,
+// so running the suite never touches a real approval queue, radar feed or index.
+process.env.SHIBASS_OUTPUT_DIR = require('fs').mkdtempSync(
+  require('path').join(require('os').tmpdir(), 'shibass-out-'),
+);
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');

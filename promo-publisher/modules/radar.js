@@ -88,28 +88,39 @@ async function checkHealth() {
 }
 
 /**
- * Build the listing URL for an artist. `url` on the watchlist entry wins so any
- * platform yt-dlp supports can be tracked.
+ * Candidate listing URLs for an artist, tried in order. `url` on the watchlist
+ * entry wins so any platform yt-dlp supports can be tracked.
+ *
+ * YouTube needs two candidates: channels without a Shorts tab return
+ * "This channel does not have a shorts tab", so fall back to /videos.
  */
-function buildSourceUrl(artist) {
+function buildSourceUrls(artist) {
   if (artist.url) {
-    return artist.url;
+    return [artist.url];
   }
 
   const handle = String(artist.handle ?? '').replace(/^@/, '');
   if (!handle) {
-    return null;
+    return [];
   }
 
   switch (artist.platform) {
     case 'youtube':
-      return `https://www.youtube.com/@${handle}/shorts`;
+      return [
+        `https://www.youtube.com/@${handle}/shorts`,
+        `https://www.youtube.com/@${handle}/videos`,
+      ];
     case 'tiktok':
-      return `https://www.tiktok.com/@${handle}`;
+      return [`https://www.tiktok.com/@${handle}`];
     case 'instagram':
     default:
-      return `https://www.instagram.com/${handle}/`;
+      return [`https://www.instagram.com/${handle}/`];
   }
+}
+
+/** First candidate URL — kept for callers that only need the primary source. */
+function buildSourceUrl(artist) {
+  return buildSourceUrls(artist)[0] ?? null;
 }
 
 /**
@@ -146,16 +157,7 @@ function normalizeEntry(entry, artist, sourceUrl) {
   };
 }
 
-/**
- * Fetch real recent-post metadata for one artist. Returns null when the source
- * cannot be read (tool missing, login required, network error).
- */
-async function scanArtist(artist) {
-  const sourceUrl = buildSourceUrl(artist);
-  if (!sourceUrl) {
-    return { posts: null, error: 'No handle or url configured' };
-  }
-
+async function fetchFromUrl(artist, sourceUrl) {
   const args = [
     '--dump-single-json',
     '--flat-playlist',
@@ -166,34 +168,55 @@ async function scanArtist(artist) {
     sourceUrl,
   ];
 
-  try {
-    const { stdout } = await execFileAsync(ytdlpBin(), args, {
-      timeout: SCAN_TIMEOUT_MS,
-      maxBuffer: 32 * 1024 * 1024,
-    });
+  const { stdout } = await execFileAsync(ytdlpBin(), args, {
+    timeout: SCAN_TIMEOUT_MS,
+    maxBuffer: 32 * 1024 * 1024,
+  });
 
-    const data = JSON.parse(stdout);
-    const entries = Array.isArray(data.entries) ? data.entries : [data];
-    const usable = entries.filter(Boolean).map((entry) => normalizeEntry(entry, artist, sourceUrl));
+  const data = JSON.parse(stdout);
+  const entries = Array.isArray(data.entries) ? data.entries : [data];
+  return entries.filter(Boolean).map((entry) => normalizeEntry(entry, artist, sourceUrl));
+}
 
-    if (!usable.length) {
-      return { posts: null, error: 'Source returned no posts' };
-    }
-
-    // The artist's own recent median is a far better baseline than a hand-typed
-    // avgViews, and it keeps up as their audience grows.
-    const observedMedian = median(usable.map((post) => post.views));
-    const baseline = observedMedian > 0 ? observedMedian : artist.avgViews ?? 1;
-
-    return {
-      posts: usable.map((post) => ({ ...post, avgViews: baseline })),
-      baseline,
-      sourceUrl,
-    };
-  } catch (error) {
-    const detail = (error.stderr || error.message || '').toString().trim().slice(-300);
-    return { posts: null, error: detail || 'yt-dlp failed', sourceUrl };
+/**
+ * Fetch real recent-post metadata for one artist, trying each candidate URL.
+ * Returns posts: null when no source could be read (tool missing, login
+ * required, network error) — never invented data.
+ */
+async function scanArtist(artist) {
+  const candidates = buildSourceUrls(artist);
+  if (!candidates.length) {
+    return { posts: null, error: 'No handle or url configured' };
   }
+
+  const errors = [];
+
+  for (const sourceUrl of candidates) {
+    try {
+      const usable = await fetchFromUrl(artist, sourceUrl);
+
+      if (!usable.length) {
+        errors.push(`${sourceUrl}: returned no posts`);
+        continue;
+      }
+
+      // The artist's own recent median is a far better baseline than a
+      // hand-typed avgViews, and it keeps up as their audience grows.
+      const observedMedian = median(usable.map((post) => post.views));
+      const baseline = observedMedian > 0 ? observedMedian : artist.avgViews ?? 1;
+
+      return {
+        posts: usable.map((post) => ({ ...post, avgViews: baseline })),
+        baseline,
+        sourceUrl,
+      };
+    } catch (error) {
+      const detail = (error.stderr || error.message || '').toString().trim().slice(-300);
+      errors.push(`${sourceUrl}: ${detail || 'yt-dlp failed'}`);
+    }
+  }
+
+  return { posts: null, error: errors.join(' | '), sourceUrl: candidates[0] };
 }
 
 const SAMPLE_POSTS = [
@@ -337,6 +360,7 @@ module.exports = {
   analyzePost,
   checkHealth,
   buildSourceUrl,
+  buildSourceUrls,
   buildAuthArgs,
   normalizeEntry,
   scanArtist,
