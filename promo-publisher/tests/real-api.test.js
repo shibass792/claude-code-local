@@ -127,5 +127,15 @@ test('HTTP studio API serves engines and music index', async () => {
   assert.ok(Array.isArray(index.tracks));
   const escapeAttempt = await fetch(`http://127.0.0.1:${port}/api/file?path=${encodeURIComponent('../../../../etc/passwd')}`);
   assert.equal(escapeAttempt.status, 404);
+  const pack = await fetch(`http://127.0.0.1:${port}/api/pack/generate`, { method: 'POST' }).then((res) => res.json());
+  assert.equal(pack.mock, false);
+  assert.ok(pack.midiCount >= 52);
+  const epk = await fetch(`http://127.0.0.1:${port}/api/career/epk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ links: { setLink: 'https://example.com/set' } }),
+  }).then((res) => res.json());
+  assert.equal(epk.success, true);
+  assert.match(epk.emails.he.body, /https:\/\/example.com\/set/);
   await new Promise((resolve) => server.close(resolve));
 });

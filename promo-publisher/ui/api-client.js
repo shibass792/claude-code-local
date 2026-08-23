@@ -44,6 +44,10 @@
     instagramSession: () => json('POST', '/api/instagram/session', {}),
     scanMusic: (payload) => json('POST', '/api/music/scan', payload ?? {}),
     getMusicIndex: () => json('GET', '/api/music/index'),
+    getCareer: () => json('GET', '/api/career'),
+    writeEpk: (payload) => json('POST', '/api/career/epk', payload ?? {}),
+    getPack: () => json('GET', '/api/pack'),
+    generatePack: () => json('POST', '/api/pack/generate', {}),
     uploadAndRender: async (file) => {
       const res = await fetch('/api/render/upload', {
         method: 'POST',

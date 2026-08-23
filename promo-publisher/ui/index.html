@@ -18,6 +18,7 @@
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
         <button class="nav-btn" data-tab="create-tab">🎬 יצירה ורינדור</button>
         <button class="nav-btn" data-tab="player-tab">⚡ נגן אוניברסלי</button>
+        <button class="nav-btn" data-tab="career-tab">🎯 מסלול קריירה</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
@@ -83,6 +84,102 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <section id="career-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1 id="career-title">ShiBass · מעקב אמנים ומסלול קריירה</h1>
+            <p id="career-subtitle">הסולם: מאיפה ShiBass לאן — חשיפה אורגנית עם הכלים שבמחשב</p>
+          </div>
+          <div class="engine-actions">
+            <button class="btn btn-secondary" id="btn-refresh-career" type="button">רענן מנועים</button>
+            <button class="btn btn-secondary" id="btn-generate-pack" type="button">הרץ psy_pack_v3</button>
+            <button class="btn btn-primary" id="btn-write-epk" type="button">כתוב EPK + מייל בוקינג</button>
+          </div>
+        </header>
+        <div class="kpi-grid" id="career-kpis"></div>
+        <section class="career-block">
+          <h2>שבועיים הקרובים</h2>
+          <p class="muted" id="career-sprint-title"></p>
+          <div class="sprint-grid" id="career-sprint"></div>
+        </section>
+        <section class="career-block">
+          <h2>ShiBass Psy-Tech Pack Vol. 1</h2>
+          <p class="muted" id="career-pack-summary"></p>
+          <div class="pack-grid" id="career-pack"></div>
+        </section>
+        <section class="career-block">
+          <h2>מייל EPK לפרומוטרים — להעתקה</h2>
+          <p class="muted">ימים 12–14. מלאו את שלושת הלינקים, לחצו כתוב EPK, העתיקו. אל תשלחו עם [LINK_SET] ריק.</p>
+          <div class="epk-links" dir="ltr">
+            <label>Latest set <input id="epk-link-set" type="url" placeholder="https://..."></label>
+            <label>Audix release <input id="epk-link-audix" type="url" placeholder="https://..."></label>
+            <label>Pack sale <input id="epk-link-pack" type="url" placeholder="https://gumroad.com/..."></label>
+          </div>
+          <div class="epk-copy-grid">
+            <article class="epk-copy-card">
+              <div class="row-header">
+                <h3>עברית — ישראל</h3>
+                <button class="btn btn-secondary" id="btn-copy-epk-he" type="button">העתק</button>
+              </div>
+              <pre id="epk-he-body" class="epk-pre">לחצו «כתוב EPK + מייל בוקינג»</pre>
+            </article>
+            <article class="epk-copy-card">
+              <div class="row-header">
+                <h3>English — abroad</h3>
+                <button class="btn btn-secondary" id="btn-copy-epk-en" type="button">Copy</button>
+              </div>
+              <pre id="epk-en-body" class="epk-pre">Click “write EPK” to fill</pre>
+            </article>
+          </div>
+        </section>
+        <section class="career-block">
+          <h2>חשיפה אורגנית מהמחשב הזה</h2>
+          <p class="muted" id="career-organic-summary"></p>
+          <div class="organic-grid" id="career-organic"></div>
+        </section>
+        <section class="career-block">
+          <h2>הסולם במספרים</h2>
+          <p class="muted">עוקבי אינסטגרם ומאזינים חודשיים בספוטיפיי, אוגוסט 2026, סקאלה לוגריתמית — כל צעד ימינה הוא פי 10. ShiBass בכתום.</p>
+          <div class="ladder-scale" dir="ltr"><span>10K</span><span>100K</span><span>1.0M</span><span>10M</span></div>
+          <div id="career-ladder"></div>
+        </section>
+        <section class="career-block">
+          <h2>האמנים — איך הם מימנו ואיך הם פרסמו</h2>
+          <div class="artist-grid" id="career-artists"></div>
+        </section>
+        <section class="career-block">
+          <h2>מה כולם עשו</h2>
+          <div class="pattern-grid" id="career-patterns"></div>
+        </section>
+        <section class="career-block">
+          <h2>בוקינג ותעשייה</h2>
+          <div class="agency-list" id="career-agencies"></div>
+        </section>
+        <section class="career-block">
+          <h2>המסלול של ShiBass</h2>
+          <div class="stage-grid" id="career-stages"></div>
+        </section>
+        <section class="career-block">
+          <h2>גל 1 — 20 קמפייני ניסוי (PAUSED)</h2>
+          <p class="muted" id="career-wave-note"></p>
+          <div class="history-table-wrap">
+            <table class="history-table" id="career-wave-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>קריאייטיב → יעד</th>
+                  <th>קהל</th>
+                  <th>תקציב</th>
+                  <th>מצב</th>
+                </tr>
+              </thead>
+              <tbody id="career-wave-body"></tbody>
+            </table>
+          </div>
+          <p class="muted" id="career-sources"></p>
+        </section>
       </section>
 
       <section id="radar-tab" class="tab-content">

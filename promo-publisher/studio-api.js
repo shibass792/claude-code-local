@@ -16,6 +16,19 @@ const music = require('./modules/music-library');
 const { readLog, clearLog, formatLogText, readState } = require('./modules/creation-log');
 const { MEDIA_DIR, OUTPUT_DIR, ROOT, ensureDir, resolveFromRoot } = require('./modules/store');
 const { runCommand } = require('./modules/engines');
+const career = require('./modules/career-ladder');
+const psyPack = require('./modules/psy-pack');
+
+async function careerDashboard() {
+  const engines = await getEngineStatus();
+  const inventory = music.getIndex();
+  const pending = approval.getPendingQueue();
+  return career.buildCareerBoard({
+    engines: engines.engines ?? engines,
+    inventory,
+    pending: pending.length,
+  });
+}
 
 const PORT = Number(process.env.STUDIO_API_PORT || 4052);
 const UI_DIR = path.join(__dirname, 'ui');
@@ -255,6 +268,35 @@ async function handleApi(req, res, url) {
 
   if (req.method === 'GET' && route === '/api/approval/history') {
     sendJson(res, 200, approval.getPublishHistory());
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/career') {
+    sendJson(res, 200, await careerDashboard());
+    return;
+  }
+
+  if (req.method === 'POST' && route === '/api/career/epk') {
+    const engines = await getEngineStatus();
+    const inventory = music.getIndex();
+    const pending = approval.getPendingQueue();
+    const body = await readJsonBody(req).catch(() => ({}));
+    sendJson(res, 200, career.writeEpk({
+      engines: engines.engines ?? engines,
+      inventory,
+      pending: pending.length,
+      links: body.links ?? {},
+    }));
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/pack') {
+    sendJson(res, 200, psyPack.getPackStatus());
+    return;
+  }
+
+  if (req.method === 'POST' && route === '/api/pack/generate') {
+    sendJson(res, 200, psyPack.generatePack());
     return;
   }
 

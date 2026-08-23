@@ -12,6 +12,8 @@ const { renderVerticalReel } = require('./modules/render');
 const { generateViralHooks } = require('./modules/hooks');
 const instagram = require('./modules/instagram-engine');
 const music = require('./modules/music-library');
+const career = require('./modules/career-ladder');
+const psyPack = require('./modules/psy-pack');
 
 function configureElectronStorage() {
   const userDataPath = path.join(__dirname, '.electron-user-data');
@@ -166,3 +168,26 @@ ipcMain.handle('music:index', async () => music.getIndex());
 ipcMain.handle('render:upload-meta', async (_event, payload) =>
   renderVerticalReel(payload ?? {}),
 );
+
+ipcMain.handle('career:get', async () => {
+  const engines = await getEngineStatus();
+  return career.buildCareerBoard({
+    engines: engines.engines ?? engines,
+    inventory: music.getIndex(),
+    pending: approvalEngine.getPendingQueue().length,
+  });
+});
+
+ipcMain.handle('career:epk', async (_event, payload) => {
+  const engines = await getEngineStatus();
+  return career.writeEpk({
+    engines: engines.engines ?? engines,
+    inventory: music.getIndex(),
+    pending: approvalEngine.getPendingQueue().length,
+    links: payload?.links ?? {},
+  });
+});
+
+ipcMain.handle('pack:status', async () => psyPack.getPackStatus());
+
+ipcMain.handle('pack:generate', async () => psyPack.generatePack());

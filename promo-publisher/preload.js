@@ -21,4 +21,8 @@ contextBridge.exposeInMainWorld('api', {
   scanMusic: (payload) => ipcRenderer.invoke('music:scan', payload),
   getMusicIndex: () => ipcRenderer.invoke('music:index'),
   uploadAndRender: (payload) => ipcRenderer.invoke('render:upload-meta', payload),
+  getCareer: () => ipcRenderer.invoke('career:get'),
+  writeEpk: (payload) => ipcRenderer.invoke('career:epk', payload ?? {}),
+  getPack: () => ipcRenderer.invoke('pack:status'),
+  generatePack: () => ipcRenderer.invoke('pack:generate'),
 });

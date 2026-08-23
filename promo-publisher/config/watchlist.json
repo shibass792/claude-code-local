@@ -1,7 +1,12 @@
 [
+  { "name": "The Freak Show", "handle": "thefreakshow", "platform": "instagram", "avgViews": 8000 },
+  { "name": "Captain Hook", "handle": "captainhookmusic", "platform": "instagram", "avgViews": 32000 },
+  { "name": "Ace Ventura", "handle": "aceventuramusic", "platform": "instagram", "avgViews": 35000 },
+  { "name": "Blastoyz", "handle": "blastoyz", "platform": "instagram", "avgViews": 40000 },
+  { "name": "Infected Mushroom", "handle": "infectedmushroom", "platform": "instagram", "avgViews": 60000 },
+  { "name": "Neelix", "handle": "neelixmusic", "platform": "instagram", "avgViews": 50000 },
   { "name": "Astrix", "handle": "astrixofficial", "platform": "instagram", "avgViews": 45000 },
   { "name": "Vini Vici", "handle": "vinivicimusic", "platform": "instagram", "avgViews": 85000 },
-  { "name": "Infected Mushroom", "handle": "infectedmushroom", "platform": "instagram", "avgViews": 60000 },
-  { "name": "Ace Ventura", "handle": "aceventuramusic", "platform": "instagram", "avgViews": 35000 },
-  { "name": "Morten Granau", "handle": "mortengranau", "platform": "instagram", "avgViews": 28000 }
+  { "name": "Argy", "handle": "argy", "platform": "instagram", "avgViews": 90000 },
+  { "name": "Anyma", "handle": "anyma", "platform": "instagram", "avgViews": 120000 }
 ]

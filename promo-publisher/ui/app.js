@@ -37,6 +37,17 @@ function switchTab(tabId) {
   if (tabId === 'player-tab') {
     loadMusicIndex();
   }
+  if (tabId === 'career-tab') {
+    loadCareerBoard();
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function updatePublishButtonState() {
@@ -507,6 +518,257 @@ function setupPlayerControls() {
   });
 }
 
+function linkLabel(key) {
+  const labels = {
+    instagram: 'IG',
+    spotify: 'Spotify',
+    youtube: 'YT',
+    soundcloud: 'SC',
+    beatport: 'Beatport',
+    booking: 'Booking',
+    site: 'Site',
+    label: 'Label',
+    polyverse: 'Polyverse',
+    unvrs: 'UNVRS',
+  };
+  return labels[key] ?? key;
+}
+
+function renderCareerBoard(board) {
+  document.getElementById('career-title').textContent = board.title;
+  document.getElementById('career-subtitle').textContent = `${board.subtitle} · עודכן ${board.updatedAt}`;
+
+  const kpis = document.getElementById('career-kpis');
+  kpis.innerHTML = board.kpis.map((kpi) => `
+    <article class="kpi-card">
+      <strong>${escapeHtml(kpi.value)}</strong>
+      <span>${escapeHtml(kpi.label)}</span>
+      <small>${escapeHtml(kpi.note)}</small>
+    </article>
+  `).join('');
+
+  document.getElementById('career-sprint-title').textContent = board.sprint?.title ?? '';
+  const sprint = document.getElementById('career-sprint');
+  sprint.innerHTML = (board.sprint?.weeks ?? []).map((week) => `
+    <article class="sprint-card">
+      <h3>${escapeHtml(week.title)}</h3>
+      ${(week.days ?? []).map((day) => `
+        <div class="sprint-day">
+          <strong>${escapeHtml(day.title)}</strong>
+          <ul>${day.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+        </div>
+      `).join('')}
+    </article>
+  `).join('');
+
+  const pack = board.pack ?? {};
+  document.getElementById('career-pack-summary').textContent = pack.next ?? '';
+  const packBox = document.getElementById('career-pack');
+  packBox.innerHTML = `
+    <article class="pack-card">
+      <h3>3 שלדים</h3>
+      <ul>${(pack.skeletons ?? []).map((row) => `<li>${escapeHtml(row.id)} · ${escapeHtml(row.title || `${row.bpm} ${row.key}`)}</li>`).join('')}</ul>
+    </article>
+    <article class="pack-card">
+      <h3>MIDI</h3>
+      <p>${escapeHtml(String(pack.midiCount ?? 0))} קבצים · 40 מובילים + 12 שלד</p>
+      <p class="muted">${pack.ready ? escapeHtml(pack.relativeZip ?? '') : 'עדיין לא נוצר ZIP'}</p>
+    </article>
+    <article class="pack-card">
+      <h3>10 פריסטים לייצוא</h3>
+      <ol>${(pack.presets ?? []).map((row) => `<li>${escapeHtml(row.name)} (${escapeHtml(row.synth)})</li>`).join('')}</ol>
+    </article>
+  `;
+
+  document.getElementById('career-organic-summary').textContent =
+    `${board.organic.readyCount}/${board.organic.total} כלים מוכנים במחשב · ${board.organic.tracks} טראקים באינדקס · ${board.organic.pendingRenders} רילס בתור אישור`;
+
+  const organic = document.getElementById('career-organic');
+  organic.innerHTML = board.organic.tools.map((tool) => `
+    <article class="organic-card ${tool.ready ? 'ready' : 'blocked'}">
+      <span class="tool-badge ${tool.ready ? 'ok' : ''}">${tool.ready ? 'מוכן במחשב' : 'חסר / מוגבל'}</span>
+      <h3>${escapeHtml(tool.title)}</h3>
+      <p class="muted">${escapeHtml(tool.how)}</p>
+      <p>${escapeHtml(tool.next)}</p>
+      <button class="btn btn-secondary" type="button" data-career-action="${escapeHtml(tool.action)}" data-career-tab="${escapeHtml(tool.tab)}">הרץ</button>
+    </article>
+  `).join('');
+
+  const ladder = document.getElementById('career-ladder');
+  ladder.innerHTML = board.ladder.map((row) => `
+    <div class="ladder-row ${row.highlight ? 'me' : ''}">
+      <div class="ladder-name">${escapeHtml(row.name)}</div>
+      <div class="ladder-bars">
+        <div class="bar-track"><div class="bar-fill ig ${row.highlight ? 'me' : ''}" style="width:${row.instagramBar}%"></div></div>
+        <div class="ladder-meta">IG ${escapeHtml(row.instagramLabel)} · Spotify ${escapeHtml(row.spotifyLabel)}</div>
+        <div class="bar-track"><div class="bar-fill spotify" style="width:${row.spotifyBar}%"></div></div>
+      </div>
+    </div>
+  `).join('');
+
+  const artists = document.getElementById('career-artists');
+  artists.innerHTML = board.artists.map((artist) => {
+    const links = Object.entries(artist.links ?? {})
+      .map(([key, href]) => `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(linkLabel(key))}</a>`)
+      .join('');
+    return `
+      <article class="artist-card">
+        <h3>${escapeHtml(artist.name)}</h3>
+        <p class="muted">${escapeHtml(artist.layer)}${artist.instagramFollowers ? ` · ${escapeHtml(String(artist.instagramFollowers))} IG` : ''}${artist.spotifyMonthly ? ` · ${escapeHtml(String(artist.spotifyMonthly))} Spotify` : ''}</p>
+        <p><strong>המסלול</strong> ${escapeHtml(artist.path)}</p>
+        <p><strong>הכסף</strong> ${escapeHtml(artist.money)}</p>
+        ${artist.moneyVerified ? '' : '<p class="unverified">לא אומת</p>'}
+        <p><strong>הקידום</strong> ${escapeHtml(artist.promo)}</p>
+        <p><strong>למה לעקוב</strong> ${escapeHtml(artist.why)}</p>
+        <div class="artist-links">${links}</div>
+      </article>
+    `;
+  }).join('');
+
+  document.getElementById('career-patterns').innerHTML = board.patterns.map((pattern) => `
+    <article class="pattern-card">
+      <h3>${escapeHtml(pattern.title)}</h3>
+      <p class="muted">${escapeHtml(pattern.body)}</p>
+    </article>
+  `).join('');
+
+  document.getElementById('career-agencies').innerHTML = board.agencies.map((agency) => `
+    <article class="agency-card">
+      <h3>${escapeHtml(agency.name)}</h3>
+      <p>${escapeHtml(agency.detail)}</p>
+      ${agency.contact ? `<p class="muted" dir="ltr">${escapeHtml(agency.contact)}</p>` : ''}
+    </article>
+  `).join('');
+
+  document.getElementById('career-stages').innerHTML = board.stages.map((stage) => `
+    <article class="stage-card">
+      <h3>${escapeHtml(stage.title)}</h3>
+      <p class="muted">${escapeHtml(stage.subtitle)}</p>
+      <ul>${stage.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+      <p><strong>מדד:</strong> ${escapeHtml(stage.metric)}</p>
+    </article>
+  `).join('');
+
+  document.getElementById('career-wave-note').textContent = board.wave1.note;
+  document.getElementById('career-wave-body').innerHTML = board.wave1.campaigns.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.id)}</td>
+      <td>${escapeHtml(row.creative)}</td>
+      <td>${escapeHtml(row.audience)}</td>
+      <td>₪${escapeHtml(String(row.dailyIls))}/יום</td>
+      <td class="badge-mock">${escapeHtml(row.status)}</td>
+    </tr>
+  `).join('');
+  document.getElementById('career-sources').textContent = `מקורות: ${board.sources.join(', ')}`;
+
+  organic.querySelectorAll('[data-career-action]').forEach((button) => {
+    button.addEventListener('click', () => runCareerAction(button.dataset.careerAction, button.dataset.careerTab));
+  });
+}
+
+async function loadCareerBoard() {
+  if (!window.api?.getCareer) {
+    return;
+  }
+  const board = await window.api.getCareer();
+  renderCareerBoard(board);
+}
+
+async function runCareerAction(action, tabId) {
+  if (action === 'scan-music') {
+    showToast('סורק ספריית מוזיקה...');
+    await window.api.scanMusic({});
+    await loadMusicIndex();
+    await loadCareerBoard();
+    showToast('הסריקה הושלמה — זה הקטלוג האורגני');
+    switchTab('player-tab');
+    return;
+  }
+  if (action === 'hooks') {
+    const track = currentTrack();
+    const result = await window.api.generateHooks({
+      title: track?.name || 'ShiBass Progressive Psytrance',
+      bpm: 142,
+    });
+    showToast(result.success ? `${result.hooks.length} הוקים מ-${result.engine}` : result.error);
+    switchTab('create-tab');
+    await refreshCreationLog();
+    return;
+  }
+  if (action === 'radar') {
+    if (window.api.scanRadar) {
+      await window.api.scanRadar();
+    }
+    switchTab('radar-tab');
+    return;
+  }
+  if (action === 'pack') {
+    await generateStudioPack();
+    return;
+  }
+  if (action === 'epk') {
+    await writeStudioEpk();
+    return;
+  }
+  if (tabId) {
+    switchTab(tabId);
+  }
+}
+
+function epkLinksFromForm() {
+  return {
+    setLink: document.getElementById('epk-link-set')?.value.trim() || undefined,
+    audixLink: document.getElementById('epk-link-audix')?.value.trim() || undefined,
+    packLink: document.getElementById('epk-link-pack')?.value.trim() || undefined,
+  };
+}
+
+function showEpkEmails(result) {
+  const he = result?.emails?.he;
+  const en = result?.emails?.en;
+  if (he) {
+    document.getElementById('epk-he-body').textContent = `נושא: ${he.subject}\n\n${he.body}`;
+  }
+  if (en) {
+    document.getElementById('epk-en-body').textContent = `Subject: ${en.subject}\n\n${en.body}`;
+  }
+}
+
+async function writeStudioEpk() {
+  const result = await window.api.writeEpk({ links: epkLinksFromForm() });
+  showEpkEmails(result);
+  showToast(result.success ? `EPK נכתב ל-${result.relativePath}` : result.error);
+  await refreshCreationLog();
+  await loadCareerBoard();
+}
+
+async function generateStudioPack() {
+  showToast('psy_pack_v3 רץ — 3 שלדים + 40 MIDI...');
+  const result = await window.api.generatePack();
+  showToast(result.success ? `${result.midiCount} MIDI → ${result.relativeZip}` : result.error);
+  await refreshCreationLog();
+  await loadCareerBoard();
+}
+
+async function copyPre(id) {
+  const text = document.getElementById(id)?.textContent ?? '';
+  await navigator.clipboard.writeText(text);
+  showToast('הועתק ללוח');
+}
+
+function setupCareerActions() {
+  document.getElementById('btn-refresh-career')?.addEventListener('click', async () => {
+    await window.api.getEngines();
+    await loadCareerBoard();
+    await refreshSystemStatus();
+    showToast('פאנל הקריירה עודכן מהמנועים המקומיים');
+  });
+  document.getElementById('btn-generate-pack')?.addEventListener('click', () => generateStudioPack());
+  document.getElementById('btn-write-epk')?.addEventListener('click', () => writeStudioEpk());
+  document.getElementById('btn-copy-epk-he')?.addEventListener('click', () => copyPre('epk-he-body'));
+  document.getElementById('btn-copy-epk-en')?.addEventListener('click', () => copyPre('epk-en-body'));
+}
+
 function setupStudioActions() {
   document.getElementById('btn-probe-engines')?.addEventListener('click', async () => {
     await window.api.getEngines();
@@ -555,6 +817,7 @@ window.addEventListener('DOMContentLoaded', () => {
   setupDropZone();
   setupPlayerControls();
   setupStudioActions();
+  setupCareerActions();
   loadApprovalQueue();
   refreshSystemStatus();
   refreshCreationLog();
