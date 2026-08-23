@@ -884,6 +884,7 @@ bash ~/NarrateClaude/narrative-claude.sh
  │   └── upload-mlx-quant.sh    ← Publish your own MLX-quantized uploads to HF
  ├── 📊 docs/
  │   ├── BENCHMARKS.md          ← Detailed speed comparisons
+ │   ├── GITHUB-TO-EXE-GUIDE.md ← Turn any GitHub repo into a real executable
  │   └── TWITTER-THREAD.md      ← Social media content
  ├── 📱 IMESSAGE_MEDIA_PIPELINE.md ← Phone control + media sending docs
  └── setup.sh                    ← One-command installer
