@@ -13,6 +13,12 @@ const ai = require('./ai');
 const MAX_HOOK_LENGTH = 120;
 const DEFAULT_HOOK_COUNT = 3;
 
+// Instagram and TikTok both cap a caption at 2200 characters. Small models
+// happily ignore the "keep it short" instruction and sometimes ramble for
+// thousands of characters, so enforce the platform contract here rather than
+// letting the publish call fail.
+const MAX_CAPTION_LENGTH = Number(process.env.AI_MAX_CAPTION_LENGTH ?? 2200);
+
 const SYSTEM_PROMPT = [
   'You are ReelHook, a short-form video strategist for the psytrance producer ShiBass.',
   'You write scroll-stopping opening hooks for Instagram Reels and TikTok.',
@@ -212,8 +218,8 @@ async function generateCaptions({ track = {}, hook = '', trends = [] } = {}) {
     temperature: 0.8,
   });
 
-  const captionHe = clean(data.captionHe ?? data.he ?? '');
-  const captionEn = clean(data.captionEn ?? data.en ?? '');
+  const captionHe = truncate(data.captionHe ?? data.he ?? '', MAX_CAPTION_LENGTH);
+  const captionEn = truncate(data.captionEn ?? data.en ?? '', MAX_CAPTION_LENGTH);
 
   if (!captionHe && !captionEn) {
     throw new Error('AI response contained no caption text');
@@ -259,6 +265,7 @@ async function remixHook({ currentHook, track = {}, trends = [] } = {}) {
 module.exports = {
   DEFAULT_HOOK_COUNT,
   MAX_HOOK_LENGTH,
+  MAX_CAPTION_LENGTH,
   SYSTEM_PROMPT,
   clean,
   truncate,

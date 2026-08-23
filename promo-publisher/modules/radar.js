@@ -137,6 +137,33 @@ function buildAuthArgs() {
   return args;
 }
 
+/**
+ * yt-dlp failures arrive as long multi-line strings ending in "please report
+ * this issue on https://github.com/..." boilerplate. Keep the part that tells
+ * the operator what to do and drop the rest, so the UI can show it inline.
+ */
+function summarizeSourceError(raw) {
+  let text = String(raw ?? '')
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ');
+
+  text = text
+    .replace(/;?\s*please report this issue.*$/i, '')
+    .replace(/\s*Confirm you are on the latest version.*$/i, '')
+    .replace(/^ERROR:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (/login|cookies|authenticat|rate-?limit|sign in|not logged/i.test(text)) {
+    text += ' — נדרש session: הגדר YTDLP_COOKIES_FILE או YTDLP_COOKIES_FROM_BROWSER';
+  }
+
+  return text.slice(0, 240);
+}
+
 function normalizeEntry(entry, artist, sourceUrl) {
   const views = Number(entry.view_count ?? entry.views ?? 0);
   const title = entry.title ?? entry.description ?? '';
@@ -211,7 +238,7 @@ async function scanArtist(artist) {
         sourceUrl,
       };
     } catch (error) {
-      const detail = (error.stderr || error.message || '').toString().trim().slice(-300);
+      const detail = summarizeSourceError(error.stderr || error.message);
       errors.push(`${sourceUrl}: ${detail || 'yt-dlp failed'}`);
     }
   }
@@ -362,6 +389,7 @@ module.exports = {
   buildSourceUrl,
   buildSourceUrls,
   buildAuthArgs,
+  summarizeSourceError,
   normalizeEntry,
   scanArtist,
   sampleAllowed,

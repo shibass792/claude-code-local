@@ -120,6 +120,33 @@ test('buildAuthArgs prefers a cookie file over a browser jar', async () => {
   });
 });
 
+test('summarizeSourceError strips yt-dlp boilerplate and adds an actionable hint', () => {
+  const raw =
+    'ERROR: [instagram:user] astrixofficial: Unable to extract shared data; ' +
+    'please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , ' +
+    'filling out the appropriate issue template. ' +
+    'Confirm you are on the latest version using  yt-dlp -U';
+
+  const summary = radar.summarizeSourceError(raw);
+
+  assert.match(summary, /Unable to extract shared data/);
+  assert.ok(!summary.includes('github.com'), 'issue-tracker boilerplate is dropped');
+  assert.ok(!summary.includes('yt-dlp -U'));
+  assert.ok(!summary.startsWith('ERROR:'));
+  assert.ok(summary.length <= 240);
+});
+
+test('summarizeSourceError points at the cookie settings for login failures', () => {
+  const summary = radar.summarizeSourceError('ERROR: Requested content is not available, login required');
+  assert.match(summary, /YTDLP_COOKIES_FILE/);
+});
+
+test('summarizeSourceError collapses multi-line output and tolerates empty input', () => {
+  assert.equal(radar.summarizeSourceError('a\n\n  b  \nc'), 'a b c');
+  assert.equal(radar.summarizeSourceError(''), '');
+  assert.equal(radar.summarizeSourceError(undefined), '');
+});
+
 test('normalizeEntry maps real yt-dlp fields', () => {
   const post = radar.normalizeEntry(
     {

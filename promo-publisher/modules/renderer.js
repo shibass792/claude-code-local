@@ -32,11 +32,14 @@ const AUDIO_EXTENSIONS = new Set([
   '.wav', '.mp3', '.flac', '.aiff', '.aif', '.m4a', '.aac', '.ogg', '.opus', '.wma',
 ]);
 
+// Order matters: the UI select offers these in order, so the strongest default
+// comes first. `bars` reacts on the very first frame, while `spectrum` is a
+// waterfall that only fills in as the clip plays.
 const STYLES = Object.freeze({
-  spectrum: 'Scrolling spectrum analyzer',
+  bars: 'Frequency bars (מומלץ)',
   waves: 'Waveform pulse',
   cqt: 'Constant-Q bars',
-  bars: 'Frequency bars',
+  spectrum: 'Scrolling spectrum (מתמלא במהלך הקליפ)',
 });
 
 class RenderError extends Error {

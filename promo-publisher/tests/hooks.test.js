@@ -219,6 +219,27 @@ test('generateCaptions normalizes hashtags from the model', async () => {
   }
 });
 
+test('a rambling model reply is capped at the platform caption limit', async () => {
+  const stub = await startOllamaStub(() =>
+    JSON.stringify({
+      captionHe: 'א'.repeat(hooks.MAX_CAPTION_LENGTH + 2000),
+      captionEn: 'b'.repeat(hooks.MAX_CAPTION_LENGTH + 2000),
+      hashtags: '#tag',
+    }),
+  );
+
+  process.env.OLLAMA_HOST = stub.url;
+  try {
+    const result = await hooks.generateCaptions({ track: { title: 'T' } });
+    assert.equal(result.captionHe.length, hooks.MAX_CAPTION_LENGTH);
+    assert.equal(result.captionEn.length, hooks.MAX_CAPTION_LENGTH);
+    assert.match(result.captionHe, /…$/);
+  } finally {
+    await stub.close();
+    delete process.env.OLLAMA_HOST;
+  }
+});
+
 test('remixHook returns a single rewritten hook', async () => {
   const stub = await startOllamaStub((prompt) => {
     assert.match(prompt, /old hook/);

@@ -170,13 +170,20 @@ function renderHookList(hooks) {
   });
 }
 
+/** Reading a cached feed still hits disk/IPC, so never leave the pane blank. */
+function showLoading(container, message) {
+  container.innerHTML = `<p class="loading-note">${message}</p>`;
+}
+
 async function loadRadarData() {
   if (!window.api) return;
 
-  const feed = await window.api.getRadarFeed();
-  const trends = feed?.viral ?? (await window.api.getTrends()) ?? [];
   const container = document.getElementById('radar-list');
   const banner = document.getElementById('radar-source');
+  showLoading(container, 'טוען נתוני רדאר…');
+
+  const feed = await window.api.getRadarFeed();
+  const trends = feed?.viral ?? (await window.api.getTrends()) ?? [];
   container.innerHTML = '';
 
   if (feed) {
@@ -399,8 +406,10 @@ async function loadLibraryStatus() {
 
 async function runLibrarySearch() {
   const query = document.getElementById('library-search').value;
-  const tracks = await window.api.searchLibrary(query, { limit: 200 });
   const body = document.getElementById('library-body');
+  body.innerHTML = '<tr><td colspan="6" class="loading-note">טוען…</td></tr>';
+
+  const tracks = await window.api.searchLibrary(query, { limit: 200 });
   body.innerHTML = '';
 
   if (!tracks.length) {
@@ -588,6 +597,10 @@ function setupActions() {
 
   document.getElementById('btn-scan-radar').addEventListener('click', async () => {
     showToast('סורק מקורות חיים…');
+    showLoading(
+      document.getElementById('radar-list'),
+      'סורק מקורות חיים דרך yt-dlp — עוקב אחרי ההתקדמות בלוג למטה…',
+    );
     const result = await window.api.scanRadar();
     await loadRadarData();
     showToast(
