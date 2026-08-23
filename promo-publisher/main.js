@@ -7,6 +7,29 @@ const radar = require('./modules/radar');
 const approvalEngine = require('./modules/approval-publisher');
 const { resolveFromRoot } = require('./modules/store');
 
+function configureElectronStorage() {
+  const userDataPath = path.join(__dirname, '.electron-user-data');
+  const cachePath = path.join(userDataPath, 'cache');
+  const gpuCachePath = path.join(userDataPath, 'gpu-cache');
+
+  fs.mkdirSync(cachePath, { recursive: true });
+  fs.mkdirSync(gpuCachePath, { recursive: true });
+
+  app.setPath('userData', userDataPath);
+  app.commandLine.appendSwitch('disk-cache-dir', cachePath);
+  app.commandLine.appendSwitch('gpu-disk-cache-dir', gpuCachePath);
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+  app.commandLine.appendSwitch('disable-http-cache');
+}
+
+configureElectronStorage();
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+  process.exit(0);
+}
+
 let mainWindow;
 
 function createWindow() {
@@ -28,6 +51,15 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'ui/index.html'));
 }
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow.focus();
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();

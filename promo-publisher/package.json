@@ -4,8 +4,8 @@
   "description": "ShiBass Standalone Social Media Desktop Studio — radar, approval hub, and multi-platform publishing",
   "main": "main.js",
   "scripts": {
-    "start": "electron . --disable-gpu --no-sandbox",
-    "start:win": "electron .",
+    "start": "electron . --disable-gpu --disable-gpu-sandbox --no-sandbox",
+    "start:win": "electron . --disable-gpu-shader-disk-cache",
     "radar:scan": "node modules/radar.js --scan",
     "import:social": "node scripts/import-social-inbox.js",
     "test": "node --test tests/*.test.js",
