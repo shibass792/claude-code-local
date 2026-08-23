@@ -412,6 +412,77 @@ input[type='text'] {
   z-index: 1000;
 }
 
+.engine-log {
+  background: #07080c;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 220px;
+  max-height: 320px;
+  overflow: auto;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: #d1d5db;
+}
+
+.engine-actions,
+.create-actions,
+.player-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.player-card {
+  margin-top: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.player-head h2 {
+  font-size: 1.1rem;
+}
+
+.now-playing {
+  font-weight: 600;
+}
+
+#track-select {
+  width: 100%;
+  background: #0a0c10;
+  color: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 180px;
+}
+
+.create-fields {
+  margin: 18px auto 0;
+  max-width: 640px;
+  text-align: right;
+}
+
+#audio-file {
+  margin-top: 16px;
+}
+
+.volume-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 @media (max-width: 1100px) {
   .approval-workspace {
     grid-template-columns: 1fr;

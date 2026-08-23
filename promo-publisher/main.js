@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const radar = require('./modules/radar');
 const approvalEngine = require('./modules/approval-publisher');
+const engines = require('./modules/engines');
+const { startApiServer } = require('./api-server');
 const { resolveFromRoot } = require('./modules/store');
 
 function configureElectronStorage() {
@@ -73,7 +75,14 @@ app.on('second-instance', () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    const api = await startApiServer();
+    console.log(`[engines-api] ${api.address}`);
+  } catch (error) {
+    console.error('[engines-api] already running or failed:', error.message);
+  }
+
   createWindow();
 
   app.on('activate', () => {
@@ -138,4 +147,29 @@ ipcMain.handle('approval:approve-and-publish', async (_event, campaignData) => {
 ipcMain.handle('shell:open-external', async (_event, url) => {
   await shell.openExternal(url);
   return true;
+});
+
+ipcMain.handle('engines:status', async () => engines.getEnginesStatus());
+ipcMain.handle('engines:log', async (_event, limit) => engines.creationLog.readLog(limit));
+ipcMain.handle('engines:log-clear', async () => engines.creationLog.clearLog());
+ipcMain.handle('engines:instagram-status', async () => engines.instagram.getStatus());
+ipcMain.handle('engines:hooks', async (_event, input) => engines.reelhook.generateHooks(input));
+ipcMain.handle('engines:render', async (_event, input) => {
+  const render = await engines.renderer.renderVerticalReel(input);
+  if (render.ok) {
+    approvalEngine.enqueueRenderedCampaign(render);
+  }
+  return render;
+});
+ipcMain.handle('engines:player-index', async () => engines.player.getIndexOrEmpty());
+ipcMain.handle('engines:player-scan', async (_event, roots) => engines.player.scanLibrary(roots));
+ipcMain.handle('engines:player-stream-url', async (_event, id) => {
+  const port = Number(process.env.ENGINES_API_PORT ?? 4051);
+  return `http://127.0.0.1:${port}/api/player/stream/${encodeURIComponent(id)}`;
+});
+ipcMain.handle('media:path-for-file', async (_event, filePath) => {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { exists: false, path: null };
+  }
+  return { exists: true, path: filePath };
 });

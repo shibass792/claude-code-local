@@ -5,3 +5,6 @@ config/tokens.enc
 config/.env
 *.log
 dist/
+media/imports/
+media/*.wav
+media/*.mp3

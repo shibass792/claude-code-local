@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   getTrends: () => ipcRenderer.invoke('radar:get-trends'),
@@ -13,4 +13,17 @@ contextBridge.exposeInMainWorld('api', {
   approveAndPublish: (campaignData) =>
     ipcRenderer.invoke('approval:approve-and-publish', campaignData),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  enginesStatus: () => ipcRenderer.invoke('engines:status'),
+  getCreationLog: (limit) => ipcRenderer.invoke('engines:log', limit),
+  clearCreationLog: () => ipcRenderer.invoke('engines:log-clear'),
+  instagramStatus: () => ipcRenderer.invoke('engines:instagram-status'),
+  generateHooks: (input) => ipcRenderer.invoke('engines:hooks', input),
+  renderReel: (input) => ipcRenderer.invoke('engines:render', input),
+  playerIndex: () => ipcRenderer.invoke('engines:player-index'),
+  playerScan: (roots) => ipcRenderer.invoke('engines:player-scan', roots),
+  playerStreamUrl: (id) => ipcRenderer.invoke('engines:player-stream-url', id),
+  pathForDroppedFile: (file) => {
+    const filePath = webUtils?.getPathForFile ? webUtils.getPathForFile(file) : file.path;
+    return ipcRenderer.invoke('media:path-for-file', filePath);
+  },
 });

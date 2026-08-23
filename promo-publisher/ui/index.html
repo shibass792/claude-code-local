@@ -18,6 +18,7 @@
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
         <button class="nav-btn" data-tab="create-tab">🎬 יצירת סרטון חדש</button>
+        <button class="nav-btn" data-tab="engines-tab">⚙️ מנועים אמיתיים</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
         <button class="nav-btn" data-tab="connections-tab">🔗 חיבורי רשתות</button>
       </nav>
@@ -98,13 +99,59 @@
       <section id="create-tab" class="tab-content">
         <header class="tab-header">
           <h1>הפקת סרטון חדש מהמחשב</h1>
-          <p>גרור טראק מהאולפן — המערכת תנתח Drop ותכין גרסאות לאישור</p>
+          <p>FFmpeg אמיתי — 9:16 1080x1920. אין תבנית הצלחה קבועה.</p>
         </header>
         <div class="drop-zone" id="drop-zone">
-          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או קאבר</h3>
-          <p>תבניות: Spectrum Visualizer · DAW PIP · Kinetic Subtitles · Hook-First</p>
-          <p class="muted">שלב הבא: חיבור למנוע FFmpeg / NVENC הקיים בפרויקט</p>
+          <h3>📁 גרור לכאן קובץ אודיו (WAV / MP3) או בחר קובץ</h3>
+          <p>רינדור FFmpeg · הוקים מ-Ollama / מטא־דאטה · תור אישור</p>
+          <input id="audio-file" type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a" />
+          <div class="form-group create-fields">
+            <label for="render-hook">הוק / כותרת</label>
+            <input type="text" id="render-hook" value="🔥 ShiBass Progressive Psytrance 142 BPM - Out Now!" dir="ltr">
+          </div>
+          <div class="action-buttons create-actions">
+            <button class="btn btn-secondary" id="btn-render-tone" type="button">רינדור טון בדיקה</button>
+            <button class="btn btn-primary" id="btn-render-audio" type="button">רינדור 9:16</button>
+          </div>
+          <p class="muted" id="create-status">ממתין לקובץ או לרינדור טון</p>
         </div>
+      </section>
+
+      <section id="engines-tab" class="tab-content">
+        <header class="tab-header row-header">
+          <div>
+            <h1>לוג יצירה, Instagram Graph ורינדור</h1>
+            <p>כל שורה נכתבת רק אחרי קריאה אמיתית — Graph / FFmpeg / Ollama / סריקת קבצים</p>
+          </div>
+          <div class="engine-actions">
+            <button class="btn btn-secondary" id="btn-ping-instagram" type="button">בדוק Instagram Graph</button>
+            <button class="btn btn-secondary" id="btn-generate-hooks" type="button">יצירת הוקים</button>
+            <button class="btn btn-secondary" id="btn-refresh-log" type="button">רענן לוג</button>
+            <button class="btn btn-danger" id="btn-clear-log" type="button">נקה לוג</button>
+          </div>
+        </header>
+        <pre class="engine-log" id="creation-log" dir="ltr"></pre>
+
+        <section class="player-card" id="universal-player">
+          <header class="player-head">
+            <h2>⚡ ShiBass Universal Player</h2>
+            <p id="player-index-status">אין אינדקס מוזיקה — הרץ סריקה</p>
+          </header>
+          <p class="now-playing" id="now-playing">לא נבחר טראק</p>
+          <audio id="library-audio" preload="metadata"></audio>
+          <div class="player-controls">
+            <button class="btn btn-secondary" id="btn-scan-music" type="button">סרוק ספרייה</button>
+            <button class="btn btn-secondary" id="btn-prev-track" type="button">⏮️</button>
+            <button class="btn btn-primary" id="btn-play-track" type="button">▶ נגן</button>
+            <button class="btn btn-secondary" id="btn-stop-track" type="button">■ עצור</button>
+            <button class="btn btn-secondary" id="btn-skip-5" type="button">⏩ +5s</button>
+            <button class="btn btn-secondary" id="btn-next-track" type="button">⏭️</button>
+            <button class="btn btn-secondary" id="btn-loop-track" type="button">🔁 ברצף: כבוי</button>
+            <label class="volume-label">🔊 <input id="player-volume" type="range" min="0" max="100" value="75"> <span id="volume-label">75%</span></label>
+          </div>
+          <p class="muted" id="player-clock">00:00</p>
+          <select id="track-select" size="8"></select>
+        </section>
       </section>
 
       <section id="history-tab" class="tab-content">

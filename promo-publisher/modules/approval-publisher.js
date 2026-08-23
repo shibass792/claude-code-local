@@ -5,6 +5,8 @@ const path = require('path');
 const { createTemporaryPublicUrl } = require('./tunnel');
 const metaPublisher = require('./publishers/meta');
 const tiktokPublisher = require('./publishers/tiktok');
+const instagramEngine = require('./engines/instagram-engine');
+const { appendLog } = require('./engines/creation-log');
 const {
   PENDING_DB,
   PUBLISH_RESULTS,
@@ -21,31 +23,7 @@ function buildCaption(campaign) {
 }
 
 function getPendingQueue() {
-  const queue = readJson(PENDING_DB, null);
-  if (queue) {
-    return queue;
-  }
-
-  const sampleQueue = [
-    {
-      id: 'camp_001',
-      title: 'Shiva Mangala (ShiBass Edit)',
-      videoPath: 'output/campaigns/camp_001/reel_1080x1920.mp4',
-      duration: '00:15',
-      format: 'Reels / TikTok (9:16)',
-      templateId: null,
-      watched: false,
-      captionHe:
-        'כשסוף סוף פיצחת את הלואו-אנד המושלם באולפן 🔊✨ חכו לדרופ...',
-      captionEn:
-        'When the kick & bass finally sit right in the mix 🔥 Wait for the drop! #ShiBass #Psytrance',
-      hashtags: '#Psytrance #ElectronicMusic #ProducerLife #Cubase #AudixRecords',
-      platforms: ['instagram', 'tiktok', 'facebook'],
-    },
-  ];
-
-  writeJson(PENDING_DB, sampleQueue);
-  return sampleQueue;
+  return readJson(PENDING_DB, []);
 }
 
 function savePendingQueue(queue) {
@@ -78,7 +56,7 @@ async function publishToPlatforms(campaign, publicVideoUrl) {
 
   if (campaign.platforms.includes('instagram')) {
     results.push(
-      await metaPublisher.publishInstagramReel({
+      await instagramEngine.publishReel({
         videoUrl: publicVideoUrl,
         caption,
       }),
@@ -106,12 +84,35 @@ async function publishToPlatforms(campaign, publicVideoUrl) {
   return results;
 }
 
-function mockPublishUrls(campaignId) {
-  return {
-    instagram: `https://instagram.com/p/mock_${campaignId}`,
-    facebook: `https://facebook.com/watch/mock_${campaignId}`,
-    tiktok: `https://tiktok.com/@shibass/video/mock_${campaignId}`,
+function enqueueRenderedCampaign(render) {
+  if (!render?.ok) {
+    return null;
+  }
+
+  const campaign = {
+    id: `camp_${render.id}`,
+    title: render.hook || 'ShiBass Reel',
+    videoPath: render.relativePath,
+    duration: `00:${String(Math.round(render.durationSeconds)).padStart(2, '0')}`,
+    format: 'Reels / TikTok (9:16)',
+    templateId: null,
+    watched: false,
+    captionHe: render.hook ?? '',
+    captionEn: render.hook ?? '',
+    hashtags: '#Psytrance #ShiBass #ElectronicMusic',
+    platforms: ['instagram', 'tiktok', 'facebook'],
   };
+
+  const queue = getPendingQueue().filter((item) => item.id !== campaign.id);
+  queue.unshift(campaign);
+  savePendingQueue(queue);
+  appendLog({
+    engine: 'approval',
+    event: 'enqueue',
+    message: `Queued ${campaign.id} from render ${render.relativePath}`,
+    data: { campaignId: campaign.id, videoPath: campaign.videoPath },
+  });
+  return campaign;
 }
 
 async function publishCampaign(campaignData) {
@@ -122,41 +123,36 @@ async function publishCampaign(campaignData) {
   if (!campaignData.watched) {
     return {
       success: false,
+      mock: false,
       error: 'יש לצפות בסרטון לפחות פעם אחת לפני פרסום',
     };
   }
 
   const videoPath = resolveFromRoot(campaignData.videoPath);
   const hasVideo = Boolean(videoPath && fs.existsSync(videoPath));
+  if (!hasVideo) {
+    const error = 'Video file missing — publish aborted (no mock)';
+    appendLog({
+      engine: 'approval',
+      event: 'publish',
+      level: 'error',
+      message: error,
+      data: { campaignId: campaignData.id, videoPath: campaignData.videoPath },
+    });
+    return { success: false, mock: false, error };
+  }
 
   let tunnelHandle = null;
   let publicVideoUrl = null;
 
-  if (hasVideo) {
+  try {
     tunnelHandle = await createTemporaryPublicUrl(videoPath);
     publicVideoUrl = tunnelHandle.url;
-  }
-
-  let platformResults = [];
-  let urls = mockPublishUrls(campaignData.id);
-
-  try {
-    if (hasVideo && publicVideoUrl) {
-      platformResults = await publishToPlatforms(campaignData, publicVideoUrl);
-    } else {
-      platformResults = (campaignData.platforms ?? []).map((platform) => ({
-        platform,
-        success: true,
-        mock: true,
-        error: 'Video file missing — mock publish only',
-      }));
-    }
-
-    const allMock =
-      platformResults.length > 0 && platformResults.every((item) => item.mock);
+    const platformResults = await publishToPlatforms(campaignData, publicVideoUrl);
     const anyFailed = platformResults.some((item) => item.success === false);
+    const anyMock = platformResults.some((item) => item.mock);
 
-    if (!anyFailed || allMock) {
+    if (!anyFailed) {
       rejectCampaign(campaignData.id);
     }
 
@@ -167,18 +163,25 @@ async function publishCampaign(campaignData) {
       tunnelMode: tunnelHandle?.mode ?? 'none',
       publicVideoUrl,
       results: platformResults,
-      urls,
-      mock: allMock,
+      mock: false,
     };
 
     appendPublishResult(entry);
+    appendLog({
+      engine: 'approval',
+      event: 'publish',
+      level: anyFailed ? 'error' : 'info',
+      message: anyFailed
+        ? `Publish failed for ${campaignData.id}`
+        : `Published ${campaignData.id} to ${(campaignData.platforms ?? []).join(', ')}`,
+      data: { results: platformResults, mock: anyMock },
+    });
 
     return {
-      success: !anyFailed || allMock,
-      mock: allMock,
+      success: !anyFailed,
+      mock: false,
       publishedAt: entry.publishedAt,
       campaignId: campaignData.id,
-      urls,
       results: platformResults,
     };
   } finally {
@@ -219,4 +222,5 @@ module.exports = {
   publishCampaign,
   getPublishHistory,
   getConnectionHealth,
+  enqueueRenderedCampaign,
 };
