@@ -77,6 +77,7 @@ Write-Host "Verify:" -ForegroundColor White
 $checks = @(
   (Join-Path $TargetRoot "scripts\wire-demucs-for-midi-forge.ps1"),
   (Join-Path $TargetRoot "tools\demucs_wav_hook.py"),
+  (Join-Path $TargetRoot "tools\script_fix_paths.ps1"),
   (Join-Path $TargetRoot "promo-publisher\main.js")
 )
 foreach ($c in $checks) {
