@@ -28,6 +28,19 @@ test('Windows installer creates .claude before writing settings.json', () => {
   assert.ok(createAt >= 0 && writeAt > createAt);
 });
 
+test('Windows installer scripts are ASCII so PowerShell 5.1 does not eat quotes', () => {
+  const files = [
+    path.join(__dirname, '..', '..', 'INSTALL-CLAUDE-MCP.ps1'),
+    path.join(__dirname, 'Setup-ShiBass-Claude-MCP.ps1'),
+  ];
+  for (const filePath of files) {
+    const bytes = fs.readFileSync(filePath);
+    for (let i = 0; i < bytes.length; i += 1) {
+      assert.ok(bytes[i] <= 127, `${path.basename(filePath)} has non-ASCII at byte ${i}`);
+    }
+  }
+});
+
 test('merges into existing settings without dropping other allows', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-settings-'));
   const settingsPath = path.join(dir, 'settings.json');

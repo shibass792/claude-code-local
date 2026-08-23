@@ -1,15 +1,6 @@
 #Requires -Version 5.1
-<#
-  One-shot install of ShiBass Claude MCP on this Windows PC.
-
-  Bootstrap (paste in PowerShell if this file is not on disk yet):
-
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    $d = Join-Path $env:TEMP "shibass-mcp"
-    New-Item -ItemType Directory -Force -Path $d | Out-Null
-    Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/shibass792/claude-code-local/cursor/real-studio-apis-0b72/INSTALL-CLAUDE-MCP.ps1" -OutFile "$d\INSTALL-CLAUDE-MCP.ps1"
-    powershell -NoProfile -ExecutionPolicy Bypass -File "$d\INSTALL-CLAUDE-MCP.ps1"
-#>
+# ASCII-only. Windows PowerShell 5.1 reads this as ANSI; a UTF-8 em-dash
+# becomes a stray quote and breaks the parser ("string is missing the terminator").
 param(
   [string]$Branch = "cursor/real-studio-apis-0b72",
   [string]$RepoSlug = "shibass792/claude-code-local",
@@ -46,7 +37,7 @@ function Install-File {
 }
 
 Write-Host "===================================================================="
-Write-Host "  ShiBass — install Claude MCP on this PC"
+Write-Host "  ShiBass - install Claude MCP on this PC"
 Write-Host "===================================================================="
 Write-Host "User: $env:USERNAME"
 Write-Host "Claude home will be: $env:USERPROFILE\.claude"

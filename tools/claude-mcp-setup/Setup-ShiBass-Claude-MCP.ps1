@@ -102,7 +102,7 @@ function Read-JsonObject {
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $backup = "$Path.bak-$stamp"
     Copy-Item -LiteralPath $Path -Destination $backup -Force
-    Write-Warn "Invalid JSON at $Path — backed up to $backup"
+    Write-Warn "Invalid JSON at $Path - backed up to $backup"
     return [pscustomobject]@{}
   }
 }
@@ -183,7 +183,7 @@ Write-Ok "Wrote permission into $written"
 Write-Host "Claude home: $claudeHome"
 
 if ($SkipMcpAdd) {
-  Write-Ok "SkipMcpAdd set — settings.json is ready. Run: claude mcp add"
+  Write-Ok "SkipMcpAdd set - settings.json is ready. Run: claude mcp add"
   return
 }
 
@@ -201,7 +201,7 @@ if ($roots.Count -gt 0) {
     if ($LASTEXITCODE -eq 0) {
       Write-Ok "MCP server shibass-files registered"
     } else {
-      Write-Warn "claude mcp add exited $LASTEXITCODE — permission is in settings.json; add the server from Claude Code."
+      Write-Warn "claude mcp add exited $LASTEXITCODE - permission is in settings.json; add the server from Claude Code."
     }
   } catch {
     Write-Warn "claude mcp add failed: $($_.Exception.Message)"
