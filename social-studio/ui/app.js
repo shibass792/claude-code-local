@@ -44,11 +44,25 @@ function selectedPlatforms() {
 
 function syncApproveButton() {
   const btn = $('btn-approve');
+  const markBtn = $('btn-mark-watched');
   const canPublish = Boolean(currentCampaign && currentCampaign.watchedOnce);
   btn.disabled = !canPublish;
+  if (markBtn) {
+    markBtn.disabled = !currentCampaign || canPublish;
+  }
   $('watch-hint').textContent = canPublish
     ? 'הצפייה אושרה — אפשר לפרסם.'
-    : 'נגן את הסרטון לפחות פעם אחת כדי לפתוח פרסום.';
+    : 'נגן את הסרטון לפחות פעם אחת (או סמן צפייה) כדי לפתוח פרסום.';
+}
+
+async function markCurrentWatched() {
+  if (!currentCampaign || currentCampaign.watchedOnce || !window.api) return;
+  const res = await window.api.markWatched(currentCampaign.id);
+  if (res.success) {
+    currentCampaign = res.campaign;
+    syncApproveButton();
+    setMessage($('action-message'), 'אושרה צפייה בתצוגה המקדימה.', 'ok');
+  }
 }
 
 function fillCampaignForm(campaign) {
@@ -220,27 +234,16 @@ function wireEvents() {
 
   $('btn-approve').addEventListener('click', approveCurrent);
   $('btn-reject').addEventListener('click', rejectCurrent);
+  $('btn-mark-watched').addEventListener('click', markCurrentWatched);
 
   $('main-player').addEventListener('play', async () => {
-    if (!currentCampaign || currentCampaign.watchedOnce || !window.api) return;
-    const res = await window.api.markWatched(currentCampaign.id);
-    if (res.success) {
-      currentCampaign = res.campaign;
-      syncApproveButton();
-    }
+    await markCurrentWatched();
   });
 
-  // Also unlock when there is no video file (placeholder preview)
+  // Unlock placeholder drafts (no media file) on player click
   $('main-player').addEventListener('click', async () => {
-    if (!currentCampaign || currentCampaign.watchedOnce || !window.api) return;
-    if (!currentCampaign.videoPath) {
-      const res = await window.api.markWatched(currentCampaign.id);
-      if (res.success) {
-        currentCampaign = res.campaign;
-        syncApproveButton();
-        setMessage($('action-message'), 'אושרה צפייה בטיוטה ללא קובץ וידאו.', 'ok');
-      }
-    }
+    if (!currentCampaign || currentCampaign.videoPath) return;
+    await markCurrentWatched();
   });
 
   $('btn-pick').addEventListener('click', async () => {

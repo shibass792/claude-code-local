@@ -190,7 +190,8 @@ html, body {
   color: var(--muted);
 }
 .preview-meta strong { color: var(--ink); }
-.hint { margin: 10px 0 0; font-size: 0.85rem; color: var(--amber); }
+.hint { margin: 10px 0 8px; font-size: 0.85rem; color: var(--amber); }
+#btn-mark-watched { width: 100%; margin-top: 4px; }
 
 .editor-panel { display: grid; gap: 14px; min-height: 560px; }
 .field { display: grid; gap: 6px; }
