@@ -1,9 +1,18 @@
 (function attachStudioApi() {
-  if (window.api) {
-    return;
-  }
+  const isHttp = /^https?:$/.test(window.location.protocol);
 
-  const base = '';
+  function looksFake(api) {
+    if (!api || typeof api !== 'object') {
+      return true;
+    }
+    if (api.__studioFake === true) {
+      return true;
+    }
+    if (typeof api.getLog !== 'function' || typeof api.getEngines !== 'function') {
+      return true;
+    }
+    return false;
+  }
 
   async function json(method, pathname, body) {
     const options = {
@@ -13,11 +22,31 @@
     if (body !== undefined) {
       options.body = JSON.stringify(body);
     }
-    const res = await fetch(`${base}${pathname}`, options);
-    return res.json();
+    try {
+      const res = await fetch(`${pathname}`, options);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return {
+          success: false,
+          mock: false,
+          error: data.error || `Studio API ${res.status} on ${pathname}`,
+          entries: [],
+          text: '',
+        };
+      }
+      return data;
+    } catch (error) {
+      return {
+        success: false,
+        mock: false,
+        error: `Studio API לא רץ על 4052 — ${error.message}`,
+        entries: [],
+        text: '',
+      };
+    }
   }
 
-  window.api = {
+  const httpApi = {
     getTrends: () => json('GET', '/api/radar'),
     scanRadar: () => json('POST', '/api/radar/scan', {}),
     getTemplate: async (templateId) => {
@@ -39,6 +68,10 @@
     },
     getEngines: () => json('GET', '/api/engines'),
     getLog: () => json('GET', '/api/log'),
+    getDbHealth: () => json('GET', '/api/db/health'),
+    installSql: () => json('POST', '/api/db/install', {}),
+    scanFake: () => json('GET', '/api/scan'),
+    getMcpStatus: () => json('GET', '/api/mcp/status'),
     renderReel: (payload) => json('POST', '/api/render', payload),
     generateHooks: (payload) => json('POST', '/api/hooks', payload),
     instagramSession: () => json('POST', '/api/instagram/session', {}),
@@ -50,6 +83,8 @@
     generatePack: () => json('POST', '/api/pack/generate', {}),
     scanBackgrounds: (payload) => json('POST', '/api/backgrounds/scan', payload ?? {}),
     getBackgrounds: () => json('GET', '/api/backgrounds'),
+    getCatalog: () => json('GET', '/api/catalog'),
+    scanCatalog: (payload) => json('POST', '/api/catalog/scan', payload ?? {}),
     uploadBackground: async (file) => {
       const res = await fetch('/api/backgrounds/upload', {
         method: 'POST',
@@ -71,4 +106,8 @@
       return res.json();
     },
   };
+
+  if (isHttp || looksFake(window.api) || !window.api) {
+    window.api = httpApi;
+  }
 })();

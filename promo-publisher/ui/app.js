@@ -193,8 +193,24 @@ async function loadConnections() {
   }
 
   const health = await window.api.getConnectionHealth();
+  const scan = window.api.scanFake ? await window.api.scanFake() : { findings: [], servers: [] };
   const grid = document.getElementById('connections-grid');
   grid.innerHTML = '';
+
+  if (scan?.mcp) {
+    const mcpCard = document.createElement('div');
+    mcpCard.className = 'connection-card';
+    const ready = scan.mcp.isDirectory && !scan.mcp.isFile;
+    mcpCard.innerHTML = `
+      <h3>Claude MCP</h3>
+      <div class="connection-status">
+        <div class="status-indicator ${ready ? 'online' : ''}" style="${ready ? '' : 'background:#ef4444'}"></div>
+        <span>${ready ? 'תיקיית ~/.claude תקינה' : (scan.mcp.error || 'MCP לא מותקן')}</span>
+      </div>
+      <p class="muted">${escapeHtml(scan.mcp.path || '')}</p>
+    `;
+    grid.appendChild(mcpCard);
+  }
 
   Object.entries(health).forEach(([_key, item]) => {
     if (!item || typeof item !== 'object' || !item.label) {
@@ -470,6 +486,15 @@ function renderLogText(payload) {
   if (!box) {
     return;
   }
+  const fakeBanner = /סימולטור בלבד|אין כאן קריאה אמיתית|InstaPy Pyt/;
+  if (payload?.error && !payload.entries?.length) {
+    box.textContent = payload.error;
+    return;
+  }
+  if (fakeBanner.test(String(payload?.text ?? ''))) {
+    box.textContent = 'זוהה לוג מזויף — Studio API האמיתי על 4052 לא מחובר. הרץ npm run api.';
+    return;
+  }
   if (!payload?.entries?.length) {
     box.textContent = 'אין לוג עדיין — לחץ "בדוק מנועים" או רנדר טראק.';
     return;
@@ -479,10 +504,47 @@ function renderLogText(payload) {
 }
 
 async function refreshCreationLog() {
-  if (!window.api?.getLog) {
+  const box = document.getElementById('creation-log');
+  try {
+    if (!window.api?.getLog) {
+      if (box) {
+        box.textContent = 'Studio API לא מחובר — הרץ npm run api על פורט 4052';
+      }
+      return;
+    }
+    renderLogText(await window.api.getLog());
+  } catch (error) {
+    if (box) {
+      box.textContent = `Studio API לא רץ על 4052 — ${error.message}`;
+    }
+  }
+}
+
+function renderEngineChips(status) {
+  const host = document.getElementById('engine-chips');
+  if (!host) {
     return;
   }
-  renderLogText(await window.api.getLog());
+  const engines = status?.engines ?? {};
+  host.innerHTML = Object.values(engines).map((engine) => {
+    const ok = Boolean(engine?.available);
+    return `<span class="engine-chip ${ok ? 'ok' : 'off'}">${escapeHtml(engine?.id || engine?.label || '?')} ${ok ? 'ON' : 'OFF'}</span>`;
+  }).join('');
+}
+
+async function refreshDbStatus() {
+  const label = document.getElementById('db-status');
+  if (!label || !window.api?.getDbHealth) {
+    return;
+  }
+  const health = await window.api.getDbHealth();
+  if (!health?.ok) {
+    label.textContent = health?.error || 'SQLite לא מותקן';
+    return;
+  }
+  const catalog = health.counts?.catalog_items ?? 0;
+  const logs = health.counts?.creation_log ?? 0;
+  label.textContent = `SQL חי · ${catalog} פריטים בקטלוג · ${logs} שורות לוג · ${health.path}`;
 }
 
 async function refreshSystemStatus() {
@@ -492,18 +554,43 @@ async function refreshSystemStatus() {
   const status = await window.api.getEngines();
   const label = document.querySelector('#system-status span');
   const dot = document.querySelector('#system-status .status-indicator');
-  if (!label || !dot) {
-    return;
+  if (label && dot) {
+    label.textContent = status.ok ? 'FFmpeg + Studio API + SQLite' : 'מנועים חסרים — ראה לוג';
+    dot.classList.toggle('online', Boolean(status.ok));
   }
-  label.textContent = status.ok ? 'FFmpeg + Studio API פעילים' : 'מנועים חסרים — ראה לוג';
-  dot.classList.toggle('online', Boolean(status.ok));
+  renderEngineChips(status);
+  await refreshDbStatus();
 }
 
 let playlist = [];
 let playlistIndex = -1;
+let catalogState = { items: [], folders: [], counts: {} };
+let libraryFilter = 'all';
+let libraryFolder = null;
+let libraryQuery = '';
 
 function currentTrack() {
   return playlist[playlistIndex] ?? null;
+}
+
+function visibleCatalogItems() {
+  const query = libraryQuery.trim().toLowerCase();
+  return (catalogState.items ?? []).filter((item) => {
+    if (item.excluded) {
+      return false;
+    }
+    if (libraryFilter !== 'all' && item.role !== libraryFilter) {
+      return false;
+    }
+    if (libraryFolder && item.parent !== libraryFolder) {
+      return false;
+    }
+    if (!query) {
+      return true;
+    }
+    const hay = `${item.name} ${item.folder ?? ''} ${item.channelLabel ?? ''}`.toLowerCase();
+    return hay.includes(query);
+  });
 }
 
 function streamUrl(track) {
@@ -516,38 +603,151 @@ function streamUrl(track) {
   return `/api/music/stream/${track.id}`;
 }
 
+function renderCatalogKpis() {
+  const box = document.getElementById('catalog-kpis');
+  if (!box) {
+    return;
+  }
+  const counts = catalogState.counts ?? {};
+  const cards = [
+    ['קטעים', counts.tracks ?? 0],
+    ['עטיפות', counts.covers ?? 0],
+    ['ערוצים', counts.stems ?? 0],
+    ['אפקטים', counts.effects ?? 0],
+    ['תיקיות', counts.folders ?? 0],
+    ['FM מוסתר', counts.excludedFm ?? 0],
+  ];
+  box.innerHTML = cards
+    .map(([label, value]) => `<div class="kpi-card"><strong>${value}</strong><span>${label}</span></div>`)
+    .join('');
+}
+
+function renderFolderTree() {
+  const tree = document.getElementById('folder-tree');
+  if (!tree) {
+    return;
+  }
+  const folders = catalogState.folders ?? [];
+  tree.innerHTML = '';
+  const all = document.createElement('button');
+  all.type = 'button';
+  all.className = libraryFolder ? 'folder-item' : 'folder-item active';
+  all.textContent = 'כל התיקיות';
+  all.addEventListener('click', () => {
+    libraryFolder = null;
+    renderLibrary();
+  });
+  tree.appendChild(all);
+  folders.forEach((folder) => {
+    const total = Object.values(folder.counts ?? {}).reduce((sum, value) => sum + Number(value || 0), 0);
+    if (!total) {
+      return;
+    }
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = libraryFolder === folder.path ? 'folder-item active' : 'folder-item';
+    button.textContent = `${folder.name} (${total})`;
+    button.addEventListener('click', () => {
+      libraryFolder = folder.path;
+      renderLibrary();
+    });
+    tree.appendChild(button);
+  });
+}
+
+function renderLibraryCovers(items) {
+  const grid = document.getElementById('library-cover-grid');
+  if (!grid) {
+    return;
+  }
+  const covers = items.filter((item) => item.role === 'covers');
+  grid.innerHTML = '';
+  grid.classList.toggle('hidden', covers.length === 0);
+  covers.forEach((image) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = image.id === selectedBackgroundId ? 'bg-tile selected' : 'bg-tile';
+    tile.innerHTML = `<img alt="" src="${escapeHtml(backgroundUrl(image))}"><span>${escapeHtml(image.name)}</span>`;
+    tile.addEventListener('click', () => {
+      selectedBackgroundId = image.id;
+      showToast('עטיפה נבחרה כרקע — עדיין לא פורסם כלום');
+      renderLibrary();
+    });
+    grid.appendChild(tile);
+  });
+}
+
 function renderTrackList() {
   const list = document.getElementById('track-list');
   const status = document.getElementById('player-index-status');
   if (!list) {
     return;
   }
+  const visible = visibleCatalogItems();
+  const audioItems = visible.filter((item) => item.media === 'audio' || item.kind === 'audio' || item.kind === 'midi');
+  playlist = audioItems;
+  if (playlistIndex >= playlist.length) {
+    playlistIndex = playlist.length ? 0 : -1;
+  }
   list.innerHTML = '';
-  if (!playlist.length) {
-    if (status) {
-      status.textContent = 'אין אינדקס מוזיקה — הרץ סריקה';
-    }
+  const counts = catalogState.counts ?? {};
+  if (status) {
+    status.textContent = catalogState.items?.length
+      ? `${counts.tracks ?? 0} קטעים · ${counts.covers ?? 0} עטיפות · ${counts.stems ?? 0} ערוצים · ${counts.effects ?? 0} אפקטים · ${counts.excludedFm ?? 0} FM מוסתר`
+      : 'אין קטלוג — לחץ סרוק הכל. FM מוסתר. כלום לא עולה לרשת עד שתראה תוצאה ותאשר.';
+  }
+  if (!visible.length) {
+    const empty = document.createElement('li');
+    empty.textContent = 'אין פריטים בסינון הזה';
+    list.appendChild(empty);
     return;
   }
-  if (status) {
-    status.textContent = `${playlist.length} קבצים באינדקס`;
-  }
-  playlist.forEach((track, index) => {
-    const item = document.createElement('li');
-    item.className = index === playlistIndex ? 'active' : '';
-    item.textContent = `${track.kind === 'midi' ? '🎹' : '🎵'} ${track.name}`;
-    item.addEventListener('click', () => playAt(index));
-    list.appendChild(item);
+  visible.forEach((item) => {
+    if (item.role === 'covers') {
+      return;
+    }
+    const index = playlist.findIndex((track) => track.id === item.id);
+    const row = document.createElement('li');
+    row.className = index === playlistIndex ? 'active' : '';
+    const icon = item.kind === 'midi' ? '🎹' : item.role === 'effects' ? '✨' : item.role === 'stems' ? '🎚️' : '🎵';
+    row.innerHTML = `<span>${icon} ${escapeHtml(item.name)}</span><small>${escapeHtml(item.roleLabel || '')} · ${escapeHtml(item.folder || '')}</small>`;
+    row.addEventListener('click', () => {
+      if (index >= 0) {
+        playAt(index);
+      }
+      const title = document.getElementById('reel-title');
+      if (title && !title.value) {
+        title.value = item.name;
+      }
+    });
+    list.appendChild(row);
   });
 }
 
+function renderLibrary() {
+  renderCatalogKpis();
+  renderFolderTree();
+  renderLibraryCovers(visibleCatalogItems());
+  renderTrackList();
+  fillReelTrackSelect();
+}
+
 async function loadMusicIndex() {
+  if (window.api?.getCatalog) {
+    catalogState = await window.api.getCatalog();
+    renderLibrary();
+    return;
+  }
   if (!window.api?.getMusicIndex) {
     return;
   }
   const index = await window.api.getMusicIndex();
-  playlist = index.tracks ?? [];
-  renderTrackList();
+  catalogState = {
+    items: (index.tracks ?? []).map((track) => ({ ...track, media: track.kind, role: 'tracks', roleLabel: 'קטעים' })),
+    folders: [],
+    counts: { tracks: index.tracks?.length ?? 0 },
+  };
+  renderLibrary();
 }
 
 function playAt(index) {
@@ -560,14 +760,14 @@ function playAt(index) {
     showToast('MIDI מאונדקס — נגן אודיו דורש WAV/MP3. בחר טראק אודיו או רנדר.');
     playlistIndex = index;
     document.getElementById('now-playing').textContent = track.name;
-    renderTrackList();
+    renderLibrary();
     return;
   }
   playlistIndex = index;
   audio.src = streamUrl(track);
   audio.play().catch((error) => showToast(error.message));
   document.getElementById('now-playing').textContent = track.name;
-  renderTrackList();
+  renderLibrary();
 }
 
 function setupPlayerControls() {
@@ -576,12 +776,33 @@ function setupPlayerControls() {
     return;
   }
   document.getElementById('btn-scan-music')?.addEventListener('click', async () => {
-    showToast('סורק ספריית מוזיקה...');
-    await window.api.scanMusic({});
-    await loadMusicIndex();
-    fillReelTrackSelect();
+    showToast('סורק קטעים, עטיפות, ערוצים ואפקטים...');
+    if (window.api.scanCatalog) {
+      catalogState = await window.api.scanCatalog({});
+      renderLibrary();
+    } else {
+      await window.api.scanMusic({});
+      await loadMusicIndex();
+    }
+    await loadBackgroundIndex();
     await refreshCreationLog();
-    showToast('הסריקה הושלמה');
+    showToast('הסריקה מוכנה לצפייה — עדיין לא פורסם כלום');
+  });
+  document.getElementById('btn-library-reel')?.addEventListener('click', () => prepareApprovedReel());
+  document.getElementById('library-search')?.addEventListener('input', (event) => {
+    libraryQuery = event.target.value ?? '';
+    renderLibrary();
+  });
+  document.getElementById('library-filters')?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-filter]');
+    if (!button) {
+      return;
+    }
+    libraryFilter = button.getAttribute('data-filter') || 'all';
+    document.querySelectorAll('#library-filters .chip').forEach((chip) => {
+      chip.classList.toggle('active', chip === button);
+    });
+    renderLibrary();
   });
   document.getElementById('btn-play')?.addEventListener('click', () => {
     if (playlistIndex < 0 && playlist.length) {

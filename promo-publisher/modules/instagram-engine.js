@@ -3,7 +3,7 @@ const path = require('path');
 const axios = require('axios');
 const metaPublisher = require('./publishers/meta');
 const { appendLog, snapshotState } = require('./creation-log');
-const { probeInstaPy, runCommand } = require('./engines');
+const { probeInstaPy, runCommand, resolvePythonBinary } = require('./engines');
 
 function buildPermalink(platform, id) {
   if (!id) {
@@ -60,10 +60,14 @@ async function graphHealth() {
   }
 }
 
-function runPythonEngine(args) {
+async function runPythonEngine(args) {
+  const python = await resolvePythonBinary();
+  if (!python) {
+    return { ok: false, error: 'No python / py / python3 on PATH', stdout: '', stderr: '' };
+  }
+  const script = path.join(__dirname, '..', '..', 'tools', 'instapy_engine.py');
   return new Promise((resolve) => {
-    const script = path.join(__dirname, '..', '..', 'tools', 'instapy_engine.py');
-    const child = spawn('python3', [script, ...args], {
+    const child = spawn(python.command, [...python.extraArgs, script, ...args], {
       env: process.env,
       windowsHide: true,
     });
@@ -163,7 +167,11 @@ async function publishReel({ videoUrl, caption }) {
 }
 
 async function pythonVersion() {
-  const result = await runCommand('python3', ['--version']);
+  const python = await resolvePythonBinary();
+  if (!python) {
+    return 'python missing';
+  }
+  const result = await runCommand(python.command, [...python.extraArgs, '--version']);
   return result.ok ? result.stdout : result.stderr;
 }
 

@@ -88,6 +88,29 @@ npm run api
 | `POST /api/music/scan` | סורק WAV/MP3/MIDI וכותב `output/music_index.json` |
 | `GET /api/music/stream/:id` | סטרימינג אמיתי לנגן |
 | `GET /api/log` | לוג יצירה מקריאות אמיתיות, לא תבנית |
+| `GET /api/catalog` | קטלוג קטעים / עטיפות / ערוצים / FX (בלי FM) |
+| `GET /api/db/health` | SQLite חי — `output/studio.db` |
+| `POST /api/db/install` | יוצר את מסד ה-SQL ומייבא JSON ישן |
+| `GET /api/scan` | סורק זיופי API/MCP וכותב ממצאים ל-SQL |
+| `GET /api/mcp/status` | מצב אמיתי של `~/.claude` — בלי הצלחת דמה |
+
+## SQLite מקומי
+
+הסטודיו שומר לוג, קטלוג, תור אישור והיסטוריה ב-`output/studio.db` (Node 22 `node:sqlite`). אין שרת SQL נפרד.
+
+Windows (שורת PowerShell אחת, בלי fence):
+
+```
+powershell -ExecutionPolicy Bypass -File H:\shibass-ai\INSTALL-STUDIO-SQL.ps1
+```
+
+או מתוך התיקייה:
+
+```
+cd promo-publisher
+npm run sql:install
+npm run api
+```
 
 Windows: `START-STUDIO-API.cmd` משורש הריפו.
 

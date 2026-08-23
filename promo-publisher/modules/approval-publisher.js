@@ -13,6 +13,7 @@ const {
   resolveFromRoot,
 } = require('./store');
 const { buildPermalink } = require('./instagram-engine');
+const sql = require('./sql-db');
 
 function buildCaption(campaign) {
   const parts = [campaign.captionHe, campaign.captionEn, campaign.hashtags]
@@ -27,12 +28,14 @@ function getPendingQueue() {
 
 function savePendingQueue(queue) {
   writeJson(PENDING_DB, queue);
+  sql.replaceCampaigns(queue);
 }
 
 function appendPublishResult(entry) {
   const history = readJson(PUBLISH_RESULTS, []);
   history.unshift(entry);
   writeJson(PUBLISH_RESULTS, history.slice(0, 200));
+  sql.insertPublish(entry);
 }
 
 function rejectCampaign(campaignId) {
@@ -172,6 +175,7 @@ function getPublishHistory() {
 }
 
 function getConnectionHealth() {
+  const sqlHealth = sql.health();
   return {
     meta: {
       configured: metaPublisher.isConfigured(),
@@ -185,6 +189,12 @@ function getConnectionHealth() {
     tunnel: {
       cloudflared: Boolean(process.env.CLOUDFLARE_TUNNEL_TOKEN),
       label: 'Cloudflare Tunnel / HTTPS proxy',
+    },
+    sqlite: {
+      configured: Boolean(sqlHealth.ok && sqlHealth.exists),
+      available: Boolean(sqlHealth.ok),
+      label: 'Studio SQLite (catalog / log / approval)',
+      path: sqlHealth.path,
     },
   };
 }

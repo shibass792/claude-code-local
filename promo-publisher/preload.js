@@ -27,4 +27,10 @@ contextBridge.exposeInMainWorld('api', {
   generatePack: () => ipcRenderer.invoke('pack:generate'),
   scanBackgrounds: (payload) => ipcRenderer.invoke('backgrounds:scan', payload ?? {}),
   getBackgrounds: () => ipcRenderer.invoke('backgrounds:index'),
+  getCatalog: () => ipcRenderer.invoke('catalog:get'),
+  scanCatalog: (payload) => ipcRenderer.invoke('catalog:scan', payload ?? {}),
+  getDbHealth: () => ipcRenderer.invoke('db:health'),
+  installSql: () => ipcRenderer.invoke('db:install'),
+  scanFake: () => ipcRenderer.invoke('scan:fake'),
+  getMcpStatus: () => ipcRenderer.invoke('mcp:status'),
 });

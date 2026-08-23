@@ -17,7 +17,7 @@
       <nav class="nav-menu" id="nav-menu">
         <button class="nav-btn active" data-tab="approval-tab">👁️ ממתינים לאישור</button>
         <button class="nav-btn" data-tab="create-tab">🎬 יצירה ורינדור</button>
-        <button class="nav-btn" data-tab="player-tab">⚡ נגן אוניברסלי</button>
+        <button class="nav-btn" data-tab="player-tab">⚡ ספרייה ונגן</button>
         <button class="nav-btn" data-tab="career-tab">🎯 מסלול קריירה</button>
         <button class="nav-btn" data-tab="radar-tab">📡 רדאר השראה ומתחרים</button>
         <button class="nav-btn" data-tab="history-tab">📊 היסטוריית פרסומים</button>
@@ -74,7 +74,7 @@
             <div class="platforms-selector">
               <label><input type="checkbox" id="chk-ig" checked> Instagram Reels</label>
               <label><input type="checkbox" id="chk-tt" checked> TikTok</label>
-              <label><input type="checkbox" id="chk-fb" checked> Facebook Video</label>
+              <label><input type="checkbox" id="chk-fb"> Facebook Video (כבוי — בלי FM/Meta ads)</label>
             </div>
 
             <div class="action-buttons">
@@ -197,8 +197,10 @@
         <header class="tab-header">
           <h1>לוג יצירה, רקעים ורינדור רילס</h1>
           <p>FFmpeg 9:16 אמיתי מהטראק + רקע שהורדת. שום דבר לא עולה לרשת בלי צפייה + אשר ופרסם.</p>
+          <p class="muted" id="db-status">SQL: בודק...</p>
         </header>
 
+        <div class="engine-chips" id="engine-chips"></div>
         <div class="engine-actions">
           <button class="btn btn-secondary" id="btn-probe-engines" type="button">בדוק מנועים</button>
           <button class="btn btn-secondary" id="btn-ig-session" type="button">Instagram Session</button>
@@ -251,11 +253,15 @@
       <section id="player-tab" class="tab-content">
         <header class="tab-header row-header">
           <div>
-            <h1>⚡ ShiBass Universal Player</h1>
-            <p id="player-index-status">אין אינדקס מוזיקה — הרץ סריקה</p>
+            <h1>⚡ ספריית ShiBass — קטעים, עטיפות, ערוצים, אפקטים</h1>
+            <p id="player-index-status">אין קטלוג — לחץ סרוק הכל. FM מוסתר. כלום לא עולה לרשת עד שתראה תוצאה ותאשר.</p>
           </div>
-          <button class="btn btn-secondary" id="btn-scan-music" type="button">סרוק ספרייה</button>
+          <div class="engine-actions">
+            <button class="btn btn-secondary" id="btn-scan-music" type="button">סרוק הכל</button>
+            <button class="btn btn-primary" id="btn-library-reel" type="button">הכן ריל לאישור</button>
+          </div>
         </header>
+        <div class="catalog-kpis" id="catalog-kpis"></div>
         <p class="now-playing" id="now-playing">לא נבחר טראק</p>
         <div class="player-transport" dir="ltr">
           <button class="btn btn-secondary" id="btn-prev" type="button">⏮️</button>
@@ -268,7 +274,24 @@
           <span id="player-clock">00:00</span>
         </div>
         <audio id="universal-audio" preload="metadata"></audio>
-        <ul class="track-list" id="track-list"></ul>
+        <div class="library-toolbar">
+          <input id="library-search" type="search" placeholder="חיפוש שם / תיקייה">
+          <div class="library-filters" id="library-filters">
+            <button class="chip active" type="button" data-filter="all">הכל</button>
+            <button class="chip" type="button" data-filter="tracks">קטעים</button>
+            <button class="chip" type="button" data-filter="covers">עטיפות</button>
+            <button class="chip" type="button" data-filter="stems">ערוצים</button>
+            <button class="chip" type="button" data-filter="effects">אפקטים</button>
+            <button class="chip" type="button" data-filter="midi">MIDI</button>
+          </div>
+        </div>
+        <div class="library-layout">
+          <aside class="folder-tree" id="folder-tree"></aside>
+          <div class="library-main">
+            <div class="bg-grid hidden" id="library-cover-grid"></div>
+            <ul class="track-list" id="track-list"></ul>
+          </div>
+        </div>
       </section>
 
       <section id="history-tab" class="tab-content">

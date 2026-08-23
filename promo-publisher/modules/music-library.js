@@ -7,13 +7,22 @@ const { resolveMediaRoots, runCommand } = require('./engines');
 
 const AUDIO_EXT = new Set(['.wav', '.mp3', '.flac', '.ogg', '.m4a', '.aiff', '.aif', '.aac']);
 const MIDI_EXT = new Set(['.mid', '.midi']);
-const MAX_FILES = 8000;
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.cache',
+  '__pycache__',
+  'dist',
+  'build',
+  '.electron-user-data',
+]);
+const MAX_FILES = 12000;
 
 function fileId(filePath) {
   return crypto.createHash('sha1').update(filePath).digest('hex').slice(0, 16);
 }
 
-function walkDir(root, acc) {
+function walkDir(root, acc, scanRoot = root) {
   let entries;
   try {
     entries = fs.readdirSync(root, { withFileTypes: true });
@@ -27,10 +36,10 @@ function walkDir(root, acc) {
     }
     const full = path.join(root, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name.startsWith('.') || entry.name === 'node_modules') {
+      if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name.toLowerCase())) {
         continue;
       }
-      walkDir(full, acc);
+      walkDir(full, acc, scanRoot);
       continue;
     }
     if (!entry.isFile()) {
@@ -52,6 +61,9 @@ function walkDir(root, acc) {
       path: full,
       ext,
       kind: MIDI_EXT.has(ext) ? 'midi' : 'audio',
+      folder: path.basename(path.dirname(full)),
+      parent: path.dirname(full),
+      root: scanRoot,
       bytes: stat.size,
       mtime: stat.mtime.toISOString(),
     });

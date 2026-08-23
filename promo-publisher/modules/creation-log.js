@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { CREATION_LOG, ensureDir, readJson, writeJson } = require('./store');
+const sql = require('./sql-db');
 
 const MAX_ENTRIES = 400;
 
@@ -19,10 +20,15 @@ function appendLog(entry) {
 
   ensureDir(require('path').dirname(CREATION_LOG));
   fs.appendFileSync(CREATION_LOG, `${JSON.stringify(record)}\n`, 'utf-8');
+  sql.insertLog(record);
   return record;
 }
 
 function readLog(limit = 120) {
+  const fromSql = sql.readLogRows(limit);
+  if (fromSql.length) {
+    return fromSql;
+  }
   if (!fs.existsSync(CREATION_LOG)) {
     return [];
   }
@@ -42,6 +48,7 @@ function readLog(limit = 120) {
 function clearLog() {
   ensureDir(require('path').dirname(CREATION_LOG));
   fs.writeFileSync(CREATION_LOG, '', 'utf-8');
+  sql.clearLogRows();
   return { cleared: true };
 }
 
@@ -60,6 +67,7 @@ function snapshotState(extra = {}) {
   const current = readJson(file, {});
   const next = { ...current, ...extra, updatedAt: new Date().toISOString() };
   writeJson(file, next);
+  sql.setEngineState('snapshot', next);
   return next;
 }
 

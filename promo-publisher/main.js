@@ -13,6 +13,7 @@ const { generateViralHooks } = require('./modules/hooks');
 const instagram = require('./modules/instagram-engine');
 const music = require('./modules/music-library');
 const backgrounds = require('./modules/backgrounds');
+const catalog = require('./modules/catalog');
 const career = require('./modules/career-ladder');
 const psyPack = require('./modules/psy-pack');
 
@@ -195,6 +196,31 @@ ipcMain.handle('backgrounds:scan', async (_event, payload) =>
 
 ipcMain.handle('backgrounds:index', async () => backgrounds.getIndex());
 
+ipcMain.handle('catalog:get', async () => catalog.getCatalog());
+
+ipcMain.handle('catalog:scan', async (_event, payload) => catalog.scanCatalog(payload ?? {}));
+
 ipcMain.handle('pack:status', async () => psyPack.getPackStatus());
 
 ipcMain.handle('pack:generate', async () => psyPack.generatePack());
+
+ipcMain.handle('db:health', async () => require('./modules/sql-db').health());
+
+ipcMain.handle('db:install', async () => {
+  const sql = require('./modules/sql-db');
+  const { scanFakeApis } = require('./modules/scan-fake');
+  const scan = scanFakeApis();
+  return { ...sql.installStudioSql({ importExisting: true }), scan };
+});
+
+ipcMain.handle('scan:fake', async () => require('./modules/scan-fake').scanFakeApis());
+
+ipcMain.handle('mcp:status', async () => {
+  const scan = require('./modules/scan-fake').scanFakeApis();
+  return {
+    mock: false,
+    mcp: scan.mcp,
+    servers: scan.servers,
+    findings: scan.findings.filter((item) => String(item.kind).startsWith('mcp_')),
+  };
+});

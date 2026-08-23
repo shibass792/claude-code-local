@@ -45,6 +45,8 @@ module.exports = {
   PUBLISH_RESULTS: path.join(OUTPUT_DIR, 'publish_results.json'),
   MUSIC_INDEX: path.join(OUTPUT_DIR, 'music_index.json'),
   BG_INDEX: path.join(OUTPUT_DIR, 'backgrounds_index.json'),
+  CATALOG_INDEX: path.join(OUTPUT_DIR, 'catalog.json'),
+  SQLITE_DB: process.env.STUDIO_SQLITE_PATH || path.join(OUTPUT_DIR, 'studio.db'),
   BACKGROUNDS_DIR: path.join(ROOT, 'backgrounds'),
   CREATION_LOG: path.join(OUTPUT_DIR, 'creation_log.jsonl'),
   WATCHLIST: path.join(ROOT, 'config', 'watchlist.json'),

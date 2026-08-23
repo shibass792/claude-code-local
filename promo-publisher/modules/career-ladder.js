@@ -367,11 +367,11 @@ function organicTools(engines, inventory) {
       action: 'scan-music',
       title: 'ספריית המחשב → קטלוג אורגני',
       ready: musicReady,
-      tool: 'Music scan / Universal Player',
-      how: 'סריקה מקומית של WAV/MP3/MIDI. זה המלאי שממנו בוחרים טראק חתימה, סאמפל-פאק, וריל בלי לקנות מדיה.',
+      tool: 'Catalog / library panel',
+      how: 'סריקה מקומית: קטעים, עטיפות, ערוצים, תיקיות, אפקטים. FM מוסתר. בוחרים חומר, רואים תוצאה, ורק אז מאשרים פרסום.',
       next: musicReady
-        ? `${inventory.tracks} קבצים באינדקס — בחר טראק ורוץ לרינדור 9:16`
-        : 'אין אינדקס — לחץ סרוק ספרייה',
+        ? `${inventory.tracks} קבצים באינדקס — סנן עטיפה/ערוץ והכן ריל לאישור`
+        : 'אין אינדקס — לחץ סרוק הכל',
     },
     {
       id: 'reel',

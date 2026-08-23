@@ -7,6 +7,7 @@ const { appendLog, snapshotState } = require('./creation-log');
 const metaPublisher = require('./publishers/meta');
 const tiktokPublisher = require('./publishers/tiktok');
 const { MUSIC_INDEX, BG_INDEX, readJson } = require('./store');
+const sql = require('./sql-db');
 
 const execFileAsync = promisify(execFile);
 
@@ -133,8 +134,39 @@ async function probeYtDlp() {
   };
 }
 
+async function resolvePythonBinary() {
+  const candidates = [
+    process.env.PYTHON,
+    process.env.PY,
+    process.platform === 'win32' ? 'py' : null,
+    'python',
+    'python3',
+  ].filter(Boolean);
+
+  for (const name of candidates) {
+    const extraArgs = name === 'py' ? ['-3'] : [];
+    const result = await runCommand(name, [...extraArgs, '-c', 'import sys; print(sys.executable)']);
+    if (result.ok) {
+      return {
+        command: name,
+        extraArgs,
+        executable: firstLine(result.stdout) || name,
+      };
+    }
+  }
+  return null;
+}
+
 async function probeInstaPy() {
-  const result = await runCommand('python3', ['-c', 'import instapy,sys; print(getattr(instapy,"__version__","installed"))']);
+  const python = await resolvePythonBinary();
+  let result = { ok: false, error: 'No python / py / python3 on PATH' };
+  if (python) {
+    result = await runCommand(python.command, [
+      ...python.extraArgs,
+      '-c',
+      'import instapy,sys; print(getattr(instapy,"__version__","installed"))',
+    ]);
+  }
   const graphReady = metaPublisher.isConfigured();
   return {
     id: 'instapy',
@@ -142,9 +174,10 @@ async function probeInstaPy() {
     available: graphReady || result.ok,
     instapyInstalled: result.ok,
     instapyVersion: result.ok ? firstLine(result.stdout) : null,
+    python: python?.executable ?? null,
     graphApiConfigured: graphReady,
     enabled: process.env.INSTAPY_ENABLED === '1',
-    error: graphReady || result.ok ? null : 'InstaPy not installed and META tokens missing',
+    error: graphReady || result.ok ? null : (result.error || 'InstaPy not installed and META tokens missing'),
   };
 }
 
@@ -209,6 +242,7 @@ async function getEngineStatus({ log = false } = {}) {
 
   const music = probeMusicIndex();
   const backgrounds = probeBackgrounds();
+  const sqlite = sql.health();
   const engines = {
     ffmpeg,
     ffprobe,
@@ -230,6 +264,14 @@ async function getEngineStatus({ log = false } = {}) {
       label: 'TikTok Content Posting API',
       available: tiktokPublisher.isConfigured(),
       error: tiktokPublisher.isConfigured() ? null : 'TIKTOK_ACCESS_TOKEN / TIKTOK_CLIENT_KEY missing',
+    },
+    sqlite: {
+      id: 'sqlite',
+      label: 'Studio SQLite',
+      available: Boolean(sqlite.ok && sqlite.exists),
+      path: sqlite.path,
+      counts: sqlite.counts,
+      error: sqlite.ok ? null : 'SQLite database is not installed',
     },
   };
 
@@ -260,8 +302,7 @@ async function getEngineStatus({ log = false } = {}) {
 }
 
 function resolvePython() {
-  const candidates = [process.env.PYTHON, 'python3', 'python'];
-  return candidates.find(Boolean);
+  return process.env.PYTHON || (process.platform === 'win32' ? 'py' : 'python3');
 }
 
 function resolveMediaRoots() {
@@ -273,8 +314,13 @@ function resolveMediaRoots() {
   const defaults = [
     path.join(__dirname, '..', 'media'),
     'C:\\Users\\shibass\\Documents\\ShiBass Synth Samples',
+    'C:\\Users\\shibass\\Music',
+    'C:\\Users\\shibass\\Documents',
     'H:\\shibass-ai\\00_INBOX',
+    'H:\\shibass-ai\\01_SAMPLES',
+    'H:\\shibass-ai\\02_PROJECTS',
     'H:\\shibass-ai\\10_OUTPUTS',
+    'H:\\ShiBass_Cubase_Projects',
   ];
   return [...new Set([...extra, ...defaults])].filter((dir) => fs.existsSync(dir));
 }
@@ -287,6 +333,7 @@ module.exports = {
   probeInstaPy,
   getEngineStatus,
   resolvePython,
+  resolvePythonBinary,
   resolveMediaRoots,
   probeBackgrounds,
 };

@@ -14,11 +14,14 @@ const { generateViralHooks } = require('./modules/hooks');
 const instagram = require('./modules/instagram-engine');
 const music = require('./modules/music-library');
 const backgrounds = require('./modules/backgrounds');
+const catalog = require('./modules/catalog');
 const { readLog, clearLog, formatLogText, readState } = require('./modules/creation-log');
 const { MEDIA_DIR, OUTPUT_DIR, ROOT, ensureDir, resolveFromRoot } = require('./modules/store');
 const { runCommand } = require('./modules/engines');
 const career = require('./modules/career-ladder');
 const psyPack = require('./modules/psy-pack');
+const sql = require('./modules/sql-db');
+const { scanFakeApis } = require('./modules/scan-fake');
 
 async function careerDashboard() {
   const engines = await getEngineStatus();
@@ -163,6 +166,35 @@ async function handleApi(req, res, url) {
       mock: false,
       service: 'ShiBass Studio API',
       port: PORT,
+      sqlite: sql.health(),
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/db/health') {
+    sendJson(res, 200, sql.health());
+    return;
+  }
+
+  if (req.method === 'POST' && route === '/api/db/install') {
+    const scan = scanFakeApis();
+    const installed = sql.installStudioSql({ importExisting: true });
+    sendJson(res, 200, { ...installed, scan });
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/scan') {
+    sendJson(res, 200, scanFakeApis());
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/mcp/status') {
+    const scan = scanFakeApis();
+    sendJson(res, 200, {
+      mock: false,
+      mcp: scan.mcp,
+      servers: scan.servers,
+      findings: scan.findings.filter((item) => String(item.kind).startsWith('mcp_')),
     });
     return;
   }
@@ -227,6 +259,17 @@ async function handleApi(req, res, url) {
   if (req.method === 'POST' && route === '/api/music/scan') {
     const body = await readJsonBody(req).catch(() => ({}));
     sendJson(res, 200, await music.scanLibrary(body));
+    return;
+  }
+
+  if (req.method === 'GET' && route === '/api/catalog') {
+    sendJson(res, 200, catalog.getCatalog());
+    return;
+  }
+
+  if (req.method === 'POST' && route === '/api/catalog/scan') {
+    const body = await readJsonBody(req).catch(() => ({}));
+    sendJson(res, 200, await catalog.scanCatalog(body));
     return;
   }
 
@@ -399,11 +442,14 @@ async function onRequest(req, res) {
 async function start(port = PORT) {
   ensureDir(MEDIA_DIR);
   ensureDir(OUTPUT_DIR);
+  sql.installStudioSql({ importExisting: true });
+  scanFakeApis();
   await ensureFixtureAudio();
   const index = music.getIndex();
   if (!index.tracks.length) {
     await music.scanLibrary();
   }
+  catalog.buildCatalog();
 
   const server = http.createServer(onRequest);
   await new Promise((resolve) => {

@@ -123,10 +123,13 @@ function resolveBackgroundRoots() {
     path.join(__dirname, '..', 'media', 'backgrounds'),
     'C:\\Users\\shibass\\Downloads',
     'C:\\Users\\shibass\\Pictures',
+    'C:\\Users\\shibass\\Music',
     'C:\\Users\\shibass\\Documents\\ShiBass Synth Samples',
     'H:\\shibass-ai\\00_INBOX',
+    'H:\\shibass-ai\\01_SAMPLES',
     'H:\\shibass-ai\\10_OUTPUTS',
     'H:\\shibass-ai\\backgrounds',
+    'H:\\ShiBass_Cubase_Projects',
   ];
   const existing = [...new Set([...extra, ...dedicated])].filter(isExistingDir);
   const discovered = [];
