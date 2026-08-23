@@ -8,14 +8,17 @@ param(
 $ErrorActionPreference = "Stop"
 $folders = @("promo-publisher", "scripts", "docs", "tools")
 
-$FreshZipUrl = "https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/shibass-social-studio-c044.zip"
+$FreshZipUrl = "https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/real-apis-instapy-player-87eb.zip"
 $RequiredInZip = @(
   "scripts\wire-demucs-for-midi-forge.ps1",
   "scripts\start-demucs-pipeline.ps1",
   "scripts\watch-midi-export-demucs.ps1",
   "tools\demucs_wav_hook.py",
   "tools\script_fix_paths.ps1",
-  "promo-publisher\main.js"
+  "promo-publisher\main.js",
+  "promo-publisher\api-server.js",
+  "promo-publisher\modules\render-engine.js",
+  "promo-publisher\modules\media-library.js"
 )
 
 function Test-ShibassZipSource {
@@ -48,7 +51,8 @@ if (-not $ZipPath) {
 
 if (-not $ZipPath -or -not (Test-Path $ZipPath)) {
   Write-Host "ZIP not found. Put the file in Downloads or pass -ZipPath" -ForegroundColor Red
-  Write-Host 'Example: -ZipPath "$env:USERPROFILE\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip"'
+  Write-Host 'Example: -ZipPath "$env:USERPROFILE\Downloads\claude-code-local-cursor-real-apis-instapy-player-87eb.zip"'
+  Write-Host ("Fresh ZIP: " + $FreshZipUrl)
   exit 1
 }
 
@@ -139,8 +143,11 @@ foreach ($f in @(
     "INSTALL-SHIBASS-UPDATES.ps1",
     "INSTALL-SHIBASS-UPDATES.cmd",
     "INSTALL-FROM-DOWNLOADS.ps1",
+    "INSTALL-ALL-SHIBASS.cmd",
+    "START-ALL-SHIBASS.cmd",
     "START-SOCIAL-STUDIO.cmd",
-    "START-MIDI-FORGE-DEMUCS.cmd"
+    "START-MIDI-FORGE-DEMUCS.cmd",
+    "FIX-DEMUCS-TORCHCODEC.ps1"
   )) {
   $sf = Join-Path $repoRoot.FullName $f
   if (Test-Path $sf) {
@@ -148,12 +155,20 @@ foreach ($f in @(
   }
 }
 
+$startApi = Join-Path $repoRoot.FullName "promo-publisher\START-API.cmd"
+if (Test-Path $startApi) {
+  Copy-Item $startApi (Join-Path $TargetRoot "START-API.cmd") -Force
+}
+
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 
 $verify = @(
   (Join-Path $TargetRoot "scripts\wire-demucs-for-midi-forge.ps1"),
   (Join-Path $TargetRoot "scripts\start-demucs-pipeline.ps1"),
-  (Join-Path $TargetRoot "tools\demucs_wav_hook.py")
+  (Join-Path $TargetRoot "tools\demucs_wav_hook.py"),
+  (Join-Path $TargetRoot "promo-publisher\api-server.js"),
+  (Join-Path $TargetRoot "promo-publisher\modules\render-engine.js"),
+  (Join-Path $TargetRoot "START-ALL-SHIBASS.cmd")
 )
 $verifyFailed = $false
 Write-Host ""
@@ -182,8 +197,10 @@ if (-not $SkipNpmInstall) {
 }
 
 Write-Host ""
-Write-Host "Done!" -ForegroundColor Green
-Write-Host ("Social: cd " + $TargetRoot + "\promo-publisher; npm start")
-Write-Host ("Demucs: powershell -ExecutionPolicy Bypass -File " + $TargetRoot + "\scripts\start-demucs-pipeline.ps1")
-Write-Host ("Guide:  " + $TargetRoot + "\docs\DEMUCS_QUICKSTART_HE.md")
+Write-Host "Done! Full stack + live API fixes installed." -ForegroundColor Green
+Write-Host ("Start all: " + $TargetRoot + "\START-ALL-SHIBASS.cmd")
+Write-Host ("Social:    " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
+Write-Host ("API UI:    " + $TargetRoot + "\promo-publisher\START-API.cmd  -> http://127.0.0.1:4051/")
+Write-Host ("Demucs:    powershell -ExecutionPolicy Bypass -File " + $TargetRoot + "\scripts\start-demucs-pipeline.ps1")
+Write-Host ("Guide:     " + $TargetRoot + "\docs\WINDOWS_INSTALL_ALL_HE.md")
 Write-Host ""

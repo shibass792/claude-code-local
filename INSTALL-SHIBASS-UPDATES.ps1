@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 param(
   [string]$TargetRoot = "H:\shibass-ai",
-  [string]$Branch = "cursor/shibass-social-studio-c044",
+  [string]$Branch = "cursor/real-apis-instapy-player-87eb",
   [string]$RepoUrl = "https://github.com/shibass792/claude-code-local.git",
   [switch]$SkipNpmInstall
 )
@@ -103,12 +103,28 @@ function Copy-RepoToTarget {
 
   Ensure-Dir (Join-Path $TargetRoot "10_OUTPUTS\social")
 
-  $files = @("INSTALL-SHIBASS-UPDATES.ps1", "INSTALL-SHIBASS-UPDATES.cmd", "START-SOCIAL-STUDIO.cmd")
+  $files = @(
+    "INSTALL-SHIBASS-UPDATES.ps1",
+    "INSTALL-SHIBASS-UPDATES.cmd",
+    "INSTALL-FROM-DOWNLOADS.ps1",
+    "INSTALL-ALL-SHIBASS.cmd",
+    "START-ALL-SHIBASS.cmd",
+    "START-SOCIAL-STUDIO.cmd",
+    "START-MIDI-FORGE-DEMUCS.cmd",
+    "COPY-ALL-FROM-ZIP.ps1",
+    "COPY-ALL-FROM-ZIP.cmd",
+    "FIX-DEMUCS-TORCHCODEC.ps1"
+  )
   foreach ($f in $files) {
     $srcFile = Join-Path $SourceRoot $f
     if (Test-Path $srcFile) {
       Copy-Item $srcFile (Join-Path $TargetRoot $f) -Force
     }
+  }
+
+  $startApi = Join-Path $SourceRoot "promo-publisher\START-API.cmd"
+  if (Test-Path $startApi) {
+    Copy-Item $startApi (Join-Path $TargetRoot "START-API.cmd") -Force
   }
 }
 
@@ -138,8 +154,11 @@ if (-not $SkipNpmInstall) {
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
-Write-Host "Done!" -ForegroundColor Green
-Write-Host ("Doctor: " + $TargetRoot + "\scripts\shibass-doctor.ps1")
-Write-Host ("Social: " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
-Write-Host ("Demucs: " + $TargetRoot + "\scripts\wire-demucs-for-midi-forge.ps1")
+Write-Host "Done! Full stack + live API fixes installed." -ForegroundColor Green
+Write-Host ("Start all: " + $TargetRoot + "\START-ALL-SHIBASS.cmd")
+Write-Host ("Doctor:    " + $TargetRoot + "\scripts\shibass-doctor.ps1")
+Write-Host ("Social:    " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
+Write-Host ("API UI:    " + $TargetRoot + "\promo-publisher\START-API.cmd  -> http://127.0.0.1:4051/")
+Write-Host ("Demucs:    " + $TargetRoot + "\scripts\start-demucs-pipeline.ps1")
+Write-Host ("Guide:     " + $TargetRoot + "\docs\WINDOWS_INSTALL_ALL_HE.md")
 Write-Host ""

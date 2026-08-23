@@ -12,6 +12,7 @@ param(
   [string]$PanelDir = "H:\shibass-ai-panel",
   [switch]$IncludeIndexMemory,
   [switch]$IncludeDemucsWatcher,
+  [switch]$IncludeStudioApi,
   [switch]$SkipMainIde,
   [switch]$SkipPanel,
   [switch]$SkipMemory
@@ -36,6 +37,7 @@ Write-Host ""
 Write-Host "ShiBass Stack Launcher" -ForegroundColor Cyan
 Write-Host "Root: $Root"
 Write-Host "NOTE: 4050 Promo Publisher and 8765 Master Server are usually already running — not started here."
+Write-Host "      Studio live API (4051): pass -IncludeStudioApi or use START-ALL-SHIBASS.cmd"
 Write-Host ""
 
 if (-not (Test-Listening 11434)) {
@@ -90,8 +92,20 @@ if ($IncludeDemucsWatcher) {
   }
 }
 
+if ($IncludeStudioApi) {
+  $apiServer = Join-Path $Root "promo-publisher\api-server.js"
+  if (Test-Listening 4051) {
+    Write-Host "Studio API (4051) already running" -ForegroundColor DarkGray
+  } elseif (Test-Path $apiServer) {
+    Start-Detached "Studio API :4051" "node" @("api-server.js") (Join-Path $Root "promo-publisher")
+  } else {
+    Write-Host "SKIP Studio API — missing $apiServer (run INSTALL-ALL-SHIBASS.cmd)" -ForegroundColor Yellow
+  }
+}
+
 Write-Host ""
 Write-Host "Doctor: scripts\shibass-doctor.ps1" -ForegroundColor DarkCyan
+Write-Host "Studio: START-ALL-SHIBASS.cmd  or  http://127.0.0.1:4051/" -ForegroundColor DarkCyan
 Write-Host "Demucs: docs\DEMUCS_QUICKSTART_HE.md" -ForegroundColor DarkCyan
-Write-Host "Topology: docs\SHIBASS_LIVE_TOPOLOGY.md" -ForegroundColor DarkCyan
+Write-Host "Install: docs\WINDOWS_INSTALL_ALL_HE.md" -ForegroundColor DarkCyan
 Write-Host ""

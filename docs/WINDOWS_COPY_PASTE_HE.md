@@ -21,11 +21,13 @@ Test-Path "H:\shibass-ai\tools\demucs_wav_hook.py"                # True
 
 שמור בשם:
 
-`%USERPROFILE%\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip`
+`%USERPROFILE%\Downloads\claude-code-local-cursor-real-apis-instapy-player-87eb.zip`
 
-קישור:
+קישור (ענף עם כל התיקונים + API חי):
 
-`https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/shibass-social-studio-c044.zip`
+`https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/real-apis-instapy-player-87eb.zip`
+
+**מומלץ יותר:** ראה `docs\WINDOWS_INSTALL_ALL_HE.md` — פקודה אחת בלי ZIP ידני.
 
 ### 2) הרץ את המתקין (בודק את ה-ZIP לפני העתקה)
 
@@ -56,7 +58,7 @@ powershell -ExecutionPolicy Bypass -File H:\shibass-ai\scripts\start-demucs-pipe
 ## בדיקת ZIP לפני העתקה (ידני)
 
 ```powershell
-$ZipPath = "$env:USERPROFILE\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip"
+$ZipPath = "$env:USERPROFILE\Downloads\claude-code-local-cursor-real-apis-instapy-player-87eb.zip"
 $staging = "$env:TEMP\shibass-zip-check"
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 Expand-Archive -Path $ZipPath -DestinationPath $staging -Force
@@ -74,7 +76,7 @@ Remove-Item $staging -Recurse -Force
 ## העתקה ידנית (רק אם COPY-ALL-FROM-ZIP.ps1 לא קיים)
 
 ```powershell
-$ZipPath = "$env:USERPROFILE\Downloads\claude-code-local-cursor-shibass-social-studio-c044.zip"
+$ZipPath = "$env:USERPROFILE\Downloads\claude-code-local-cursor-real-apis-instapy-player-87eb.zip"
 $TargetRoot = "H:\shibass-ai"
 $staging = "$env:TEMP\shibass-full-copy"
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
