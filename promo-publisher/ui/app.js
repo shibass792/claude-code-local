@@ -634,5 +634,8 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshEngineLogFromHealth().catch(() => {
     appendLog('[SYSTEM] API server is not reachable yet — start with npm run api');
   });
-  refreshPlayerIndex().catch(() => undefined);
+  scanAndLoadLibrary().catch((error) => {
+    appendLog(`[PLAYER] scan failed: ${error.message}`);
+    refreshPlayerIndex().catch(() => undefined);
+  });
 });

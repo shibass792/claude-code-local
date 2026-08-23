@@ -27,13 +27,20 @@ function parseHookLines(text) {
     .slice(0, 3);
 }
 
-function localHooks({ title, trackName, bpm }) {
+function localHooks({ title, trackName, bpm, language = 'he' }) {
   const name = trackName || title || 'ShiBass';
   const tempo = bpm ?? extractBpm(name) ?? 142;
+  if (language === 'en') {
+    return [
+      `${name} — ${tempo} BPM drop you feel in the chest`,
+      `The kick/bass stack on ${name} is the move`,
+      `New cut: ${name}. Wait for bar 32.`,
+    ];
+  }
   return [
-    `${name} — ${tempo} BPM drop you feel in the chest`,
-    `The kick/bass stack on ${name} is the move`,
-    `New cut: ${name}. Wait for bar 32.`,
+    `${name} — הדרופ של ${tempo} BPM שמרגישים בחזה`,
+    `3 טעויות במיקס בס על ${name}`,
+    `שמעתם את הדרופ? ${name} בחוץ עכשיו!`,
   ];
 }
 
@@ -110,7 +117,7 @@ async function generateHooks({
       model,
       host,
       bpm: resolvedBpm,
-      hooks: localHooks({ title, trackName, bpm: resolvedBpm }),
+      hooks: localHooks({ title, trackName, bpm: resolvedBpm, language }),
       warning: error instanceof Error ? error.message : 'Ollama unavailable',
       createdAt: new Date().toISOString(),
     };

@@ -9,6 +9,8 @@ const videoEngine = require('../modules/video-engine');
 const reelhook = require('../modules/reelhook');
 const musicLibrary = require('../modules/music-library');
 const instagramEngine = require('../modules/instagram-engine');
+const metaPublisher = require('../modules/publishers/meta');
+const tiktokPublisher = require('../modules/publishers/tiktok');
 const approval = require('../modules/approval-publisher');
 const { route } = require('../modules/api-router');
 const { startServer } = require('../api-server');
@@ -29,10 +31,11 @@ test('extractBpm reads tempo from a filename', () => {
 });
 
 test('local hooks are generated from track metadata', () => {
-  const hooks = reelhook.localHooks({ trackName: 'Dextamine', bpm: 143 });
+  const hooks = reelhook.localHooks({ trackName: 'Dextamine', bpm: 143, language: 'he' });
   assert.equal(hooks.length, 3);
   assert.match(hooks[0], /Dextamine/);
   assert.match(hooks[0], /143/);
+  assert.match(hooks[0], /דרופ/);
 });
 
 test('Instagram probe does not fake a 200 without a token', async () => {
@@ -42,6 +45,26 @@ test('Instagram probe does not fake a 200 without a token', async () => {
   assert.equal(health.live, false);
   assert.equal(health.status, null);
   assert.match(health.error, /META_ACCESS_TOKEN/);
+});
+
+test('publishers fail honestly without credentials instead of mocking success', async () => {
+  delete process.env.META_ACCESS_TOKEN;
+  delete process.env.META_PAGE_ID;
+  delete process.env.META_IG_USER_ID;
+  delete process.env.TIKTOK_ACCESS_TOKEN;
+  delete process.env.TIKTOK_CLIENT_KEY;
+  const ig = await metaPublisher.publishInstagramReel({ videoUrl: 'https://example.com/a.mp4', caption: 'x' });
+  const tt = await tiktokPublisher.publishTikTokVideo({ videoUrl: 'https://example.com/a.mp4', caption: 'x' });
+  assert.equal(ig.success, false);
+  assert.equal(ig.mock, false);
+  assert.equal(tt.success, false);
+  assert.equal(tt.mock, false);
+});
+
+test('empty approval queue is empty, not a seeded sample campaign', () => {
+  fs.rmSync(PENDING_DB, { force: true });
+  const queue = approval.getPendingQueue();
+  assert.deepEqual(queue, []);
 });
 
 test('FFmpeg renders a real 9:16 mp4 from audio', async () => {

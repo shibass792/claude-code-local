@@ -19,7 +19,7 @@ async function publishTikTokVideo({ videoUrl, caption }) {
     return {
       platform: 'tiktok',
       success: false,
-      mock: true,
+      mock: false,
       error: 'TikTok credentials missing — set TIKTOK_ACCESS_TOKEN and TIKTOK_CLIENT_KEY',
     };
   }

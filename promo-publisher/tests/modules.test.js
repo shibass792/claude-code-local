@@ -43,6 +43,19 @@ test('publishCampaign requires watched flag', async () => {
   assert.match(result.error, /צפות/);
 });
 
+test('getPendingQueue does not seed a fake sample campaign', () => {
+  fs.rmSync(PENDING_DB, { force: true });
+  writeJson(PENDING_DB, [
+    {
+      id: 'camp_001',
+      title: 'Shiva Mangala (ShiBass Edit)',
+      videoPath: 'output/campaigns/camp_001/reel_1080x1920.mp4',
+    },
+  ]);
+  const queue = approval.getPendingQueue();
+  assert.deepEqual(queue, []);
+});
+
 test('rejectCampaign removes item from queue', () => {
   writeJson(PENDING_DB, [
     { id: 'a', title: 'A' },

@@ -50,8 +50,35 @@ async function probeMedia(filePath) {
   };
 }
 
-function buildShowwavesFilter(width, height, fps) {
-  return `[0:a]showwaves=s=${width}x${height}:mode=cline:rate=${fps}:colors=0x6366F1|0x22D3EE,format=yuv420p[v]`;
+function escapeDrawtext(text) {
+  return String(text)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\u2019")
+    .replace(/:/g, '\\:')
+    .replace(/%/g, '\\%')
+    .slice(0, 90);
+}
+
+function resolveDrawtextFont() {
+  const candidates = [
+    process.env.SHIBASS_FONT_PATH,
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+    'C:\\Windows\\Fonts\\arial.ttf',
+    'C:\\Windows\\Fonts\\segoeui.ttf',
+  ].filter(Boolean);
+  return candidates.find((filePath) => fs.existsSync(filePath)) ?? null;
+}
+
+function buildShowwavesFilter(width, height, fps, hook = '') {
+  const waves = `[0:a]showwaves=s=${width}x${height}:mode=cline:rate=${fps}:colors=0x6366F1|0x22D3EE,format=yuv420p[v]`;
+  const caption = String(hook || '').trim();
+  const font = resolveDrawtextFont();
+  if (!caption || !font) {
+    return waves;
+  }
+  const safe = escapeDrawtext(caption);
+  return `${waves};[v]drawtext=fontfile='${font.replace(/\\/g, '/')}':text='${safe}':x=(w-text_w)/2:y=h*0.12:fontsize=52:fontcolor=white:borderw=3:bordercolor=black@0.7[vout]`;
 }
 
 function buildOutputName(prefix) {
@@ -77,7 +104,8 @@ async function renderVerticalReel({
 
   const outputPath = path.join(outputDir, buildOutputName(filePrefix));
   const ffmpeg = resolveBinary('ffmpeg');
-  const filter = buildShowwavesFilter(width, height, fps);
+  const filter = buildShowwavesFilter(width, height, fps, hook);
+  const videoMap = filter.includes('[vout]') ? '[vout]' : '[v]';
   const args = [
     '-y',
     '-i',
@@ -85,7 +113,7 @@ async function renderVerticalReel({
     '-filter_complex',
     filter,
     '-map',
-    '[v]',
+    videoMap,
     '-map',
     '0:a',
     '-c:v',

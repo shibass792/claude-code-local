@@ -20,32 +20,20 @@ function buildCaption(campaign) {
   return parts.join('\n\n');
 }
 
+function isLegacySampleCampaign(item) {
+  return (
+    item?.id === 'camp_001' &&
+    item?.videoPath === 'output/campaigns/camp_001/reel_1080x1920.mp4'
+  );
+}
+
 function getPendingQueue() {
-  const queue = readJson(PENDING_DB, null);
-  if (queue) {
-    return queue;
+  const queue = readJson(PENDING_DB, []);
+  const realQueue = Array.isArray(queue) ? queue.filter((item) => !isLegacySampleCampaign(item)) : [];
+  if (realQueue.length !== (Array.isArray(queue) ? queue.length : 0)) {
+    writeJson(PENDING_DB, realQueue);
   }
-
-  const sampleQueue = [
-    {
-      id: 'camp_001',
-      title: 'Shiva Mangala (ShiBass Edit)',
-      videoPath: 'output/campaigns/camp_001/reel_1080x1920.mp4',
-      duration: '00:15',
-      format: 'Reels / TikTok (9:16)',
-      templateId: null,
-      watched: false,
-      captionHe:
-        'כשסוף סוף פיצחת את הלואו-אנד המושלם באולפן 🔊✨ חכו לדרופ...',
-      captionEn:
-        'When the kick & bass finally sit right in the mix 🔥 Wait for the drop! #ShiBass #Psytrance',
-      hashtags: '#Psytrance #ElectronicMusic #ProducerLife #Cubase #AudixRecords',
-      platforms: ['instagram', 'tiktok', 'facebook'],
-    },
-  ];
-
-  writeJson(PENDING_DB, sampleQueue);
-  return sampleQueue;
+  return realQueue;
 }
 
 function savePendingQueue(queue) {
