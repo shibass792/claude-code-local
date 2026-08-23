@@ -22,6 +22,11 @@ const hookGenerator = require('./modules/hook-generator');
 const approvalEngine = require('./modules/approval-publisher');
 const radar = require('./modules/radar');
 const { createCampaignFromRender } = require('./modules/campaign-factory');
+const { generatePsyPack } = require('./modules/psy-pack');
+const { buildProducerPack } = require('./modules/producer-pack');
+const { buildEpk } = require('./modules/epk');
+const { getLineStatus } = require('./modules/line-status');
+const transcriber = require('./modules/transcriber');
 const { ROOT, ensureDir, OUTPUT_DIR } = require('./modules/store');
 
 const HOST = process.env.SHIBASS_API_HOST || '127.0.0.1';
@@ -212,6 +217,40 @@ async function handleApi(req, res, url) {
     const body = await readBody(req);
     const result = await createCampaignFromRender(body);
     sendJson(res, result.success ? 200 : 400, result);
+    return;
+  }
+
+  if (pathname === '/api/line/status' && req.method === 'GET') {
+    sendJson(res, 200, await getLineStatus());
+    return;
+  }
+
+  if (pathname === '/api/psy/generate' && req.method === 'POST') {
+    const body = await readBody(req);
+    sendJson(res, 200, generatePsyPack(body));
+    return;
+  }
+
+  if (pathname === '/api/pack/build' && req.method === 'POST') {
+    const body = await readBody(req);
+    sendJson(res, 200, buildProducerPack(body));
+    return;
+  }
+
+  if (pathname === '/api/epk/build' && req.method === 'POST') {
+    const body = await readBody(req);
+    sendJson(res, 200, buildEpk(body));
+    return;
+  }
+
+  if (pathname === '/api/guides' && req.method === 'GET') {
+    sendJson(res, 200, transcriber.listGuides());
+    return;
+  }
+
+  if (pathname === '/api/guides' && req.method === 'POST') {
+    const body = await readBody(req);
+    sendJson(res, 200, transcriber.createGuide(body));
     return;
   }
 

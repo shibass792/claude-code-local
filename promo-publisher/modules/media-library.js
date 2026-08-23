@@ -8,6 +8,7 @@ const INDEX_FILE = path.join(OUTPUT_DIR, 'media_index.json');
 const AUDIO_EXT = new Set(['.mp3', '.wav', '.flac', '.aiff', '.aif', '.ogg', '.m4a', '.aac']);
 const MIDI_EXT = new Set(['.mid', '.midi']);
 const VIDEO_EXT = new Set(['.mp4', '.mov', '.webm', '.mkv']);
+const DAW_EXT = new Set(['.cpr', '.npr', '.als', '.alp', '.flp', '.rpp', '.ptx', '.logicx', '.band']);
 
 function defaultRoots() {
   const envRoots = (process.env.SHIBASS_MEDIA_ROOTS || '')
@@ -19,13 +20,17 @@ function defaultRoots() {
     ...envRoots,
     path.join(ROOT, 'fixtures', 'media'),
     path.join(ROOT, 'output', 'media'),
+    path.join(ROOT, 'output', 'psy_pack_v3'),
     path.join(ROOT, 'output', 'campaigns'),
+    path.join(ROOT, 'output', 'products'),
     process.env.USERPROFILE
       ? path.join(process.env.USERPROFILE, 'Documents', 'ShiBass Synth Samples')
       : null,
     process.env.HOME ? path.join(process.env.HOME, 'Music') : null,
     'H:\\ShiBass_Media',
     'H:\\shibass-ai\\10_OUTPUTS',
+    'H:\\ShiBass_Cubase_Projects',
+    'H:\\ShiBass_Cubase_Projects\\Audix_Templates',
   ].filter(Boolean);
 
   return [...new Set(candidates.filter((p) => fs.existsSync(p)))];
@@ -36,7 +41,25 @@ function classify(filePath) {
   if (AUDIO_EXT.has(ext)) return 'audio';
   if (MIDI_EXT.has(ext)) return 'midi';
   if (VIDEO_EXT.has(ext)) return 'video';
+  if (DAW_EXT.has(ext)) return 'daw';
   return null;
+}
+
+function parseBpmKey(fileName) {
+  const name = String(fileName);
+  const bpmMatch = name.match(/(\d{2,3})\s*bpm/i);
+  const phr = name.match(/([A-G](?:#|b)?)[_-\s]*phrygian/i);
+  const keyOnly = name.match(/(?:^|[_-\s.])([A-G](?:#|b)?)(?:[_-\s](min|maj|minor|major))?(?=[_-\s.]|$)/i);
+  let key = null;
+  if (phr) {
+    key = `${phr[1].toUpperCase()} phrygian`;
+  } else if (keyOnly) {
+    key = keyOnly[2] ? `${keyOnly[1].toUpperCase()} ${keyOnly[2]}` : keyOnly[1].toUpperCase();
+  }
+  return {
+    bpm: bpmMatch ? Number(bpmMatch[1]) : null,
+    key,
+  };
 }
 
 function walkDir(dir, results, { maxFiles, depth, maxDepth }) {
@@ -84,6 +107,7 @@ function walkDir(dir, results, { maxFiles, depth, maxDepth }) {
       continue;
     }
 
+    const meta = parseBpmKey(entry.name);
     results.push({
       id: Buffer.from(full).toString('base64url'),
       path: full,
@@ -93,6 +117,8 @@ function walkDir(dir, results, { maxFiles, depth, maxDepth }) {
       size,
       mtime,
       root: dir,
+      bpm: meta.bpm,
+      key: meta.key,
     });
   }
 }
@@ -102,7 +128,7 @@ function loadIndex() {
     scannedAt: null,
     roots: [],
     items: [],
-    counts: { audio: 0, midi: 0, video: 0, total: 0 },
+    counts: { audio: 0, midi: 0, video: 0, daw: 0, total: 0 },
   });
 }
 
@@ -113,7 +139,7 @@ function saveIndex(payload) {
 }
 
 function countByKind(items) {
-  const counts = { audio: 0, midi: 0, video: 0, total: items.length };
+  const counts = { audio: 0, midi: 0, video: 0, daw: 0, total: items.length };
   for (const item of items) {
     if (counts[item.kind] != null) {
       counts[item.kind] += 1;
@@ -207,6 +233,7 @@ module.exports = {
   INDEX_FILE,
   defaultRoots,
   classify,
+  parseBpmKey,
   loadIndex,
   scanMediaLibrary,
   getLibrary,

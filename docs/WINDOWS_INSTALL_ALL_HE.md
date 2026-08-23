@@ -25,6 +25,16 @@ https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/real-a
 
 ## הפעלה
 
+מחר בבוקר (פס ייצור + Pack):
+
+```text
+H:\shibass-ai\START-DAILY-LINE.cmd
+```
+
+יעד 14 יום: `docs\SHIBASS_14DAY_EXECUTION_HE.md`
+
+Social + API:
+
 ```text
 H:\shibass-ai\START-ALL-SHIBASS.cmd
 ```

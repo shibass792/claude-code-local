@@ -13,21 +13,26 @@
   <div class="bg" aria-hidden="true"></div>
   <header class="top">
     <div>
-      <p class="kicker">LIVE APIs · NO SIMULATOR</p>
+      <p class="kicker">DAILY LINE · 14-DAY GOAL: PRODUCER PACK v1</p>
       <h1>SHIBASS STUDIO</h1>
     </div>
     <div id="engine-pills" class="pills"></div>
   </header>
+  <p id="line-banner" class="line-banner">בודק קו ייצור…</p>
 
   <main class="grid">
     <section class="panel">
-      <h2>לוג יצירה · רינדור · Meta Graph</h2>
-      <p class="sub">כל שורה מגיעה מ־API חי (FFmpeg / Ollama / Meta). אין תבניות סטטיות בלחיצה.</p>
+      <h2>פס ייצור יומי</h2>
+      <p class="sub">מחר בבוקר: psy_pack → Cubase/Serum · Transcriber :4340 · אריזת Pack · EPK לפרומוטרים.</p>
       <div class="actions">
+        <button type="button" id="btn-psy" class="btn primary">psy_pack_v3 — 10 MIDI</button>
+        <button type="button" id="btn-pack" class="btn primary">ארוז Producer Pack</button>
+        <button type="button" id="btn-guide" class="btn">שמור guide_he</button>
+        <button type="button" id="btn-epk" class="btn">EPK + אימייל</button>
         <button type="button" id="btn-status" class="btn">בדיקת מנועים</button>
         <button type="button" id="btn-hooks" class="btn">הפק הוקים</button>
-        <button type="button" id="btn-render" class="btn primary">רנדר 9:16</button>
-        <button type="button" id="btn-campaign" class="btn primary">צור לתור אישור</button>
+        <button type="button" id="btn-render" class="btn">רנדר 9:16</button>
+        <button type="button" id="btn-campaign" class="btn">צור לתור אישור</button>
       </div>
       <label class="field">
         <span>Hook / כותרת על הסרטון</span>
@@ -37,14 +42,29 @@
         <span>Track</span>
         <input id="track-input" type="text" value="ShiBass - Dextamine" />
       </label>
+      <label class="field">
+        <span>הערות למדריך (Backbone / מיקס) — נשמר ל-guide_he.md</span>
+        <input id="guide-notes" type="text" placeholder="למשל: Backbone — noise layer + envelope punch על הקיק" />
+      </label>
       <pre id="live-log" class="log" aria-live="polite">[SYSTEM] ממתין לפעולה…</pre>
     </section>
 
     <section class="panel player-panel">
-      <h2>⚡ ShiBass Universal Player</h2>
+      <h2>Library Source</h2>
       <p id="index-status" class="sub">⚠️ אין אינדקס מוזיקה — הרץ סריקה</p>
+      <p id="lib-source" class="sub">📂 All Media — Studio API :4051 (לא :4000)</p>
+      <div class="kind-tabs" id="kind-tabs">
+        <button type="button" class="btn primary" data-kind="all">📂 All Media</button>
+        <button type="button" class="btn" data-kind="audio">🎧 Audio</button>
+        <button type="button" class="btn" data-kind="midi">🎶 MIDI Data</button>
+        <button type="button" class="btn" data-kind="daw">🎛️ DAW Projects</button>
+      </div>
+      <label class="field">
+        <span>Filter by filename or folder…</span>
+        <input id="lib-filter" type="text" />
+      </label>
       <div class="actions">
-        <button type="button" id="btn-scan" class="btn primary">סרוק מדיה</button>
+        <button type="button" id="btn-scan" class="btn primary">Reload / סרוק</button>
         <button type="button" id="btn-prev" class="btn">⏮️</button>
         <button type="button" id="btn-play" class="btn primary">▶ נגן</button>
         <button type="button" id="btn-stop" class="btn">■ עצור</button>
@@ -59,7 +79,21 @@
         <span id="time-label">00:00</span>
       </div>
       <div id="now-playing" class="now">—</div>
-      <ul id="track-list" class="track-list"></ul>
+      <div class="table-wrap">
+        <table class="lib-table">
+          <thead>
+            <tr>
+              <th>Filename</th>
+              <th>Kind</th>
+              <th>BPM</th>
+              <th>Key</th>
+              <th>Size</th>
+            </tr>
+          </thead>
+          <tbody id="track-body"></tbody>
+        </table>
+      </div>
+      <ul id="track-list" class="track-list hidden"></ul>
       <audio id="audio" preload="metadata"></audio>
     </section>
   </main>

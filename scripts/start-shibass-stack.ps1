@@ -13,6 +13,7 @@ param(
   [switch]$IncludeIndexMemory,
   [switch]$IncludeDemucsWatcher,
   [switch]$IncludeStudioApi,
+  [switch]$IncludeDailyLine,
   [switch]$SkipMainIde,
   [switch]$SkipPanel,
   [switch]$SkipMemory
@@ -92,19 +93,35 @@ if ($IncludeDemucsWatcher) {
   }
 }
 
-if ($IncludeStudioApi) {
-  $apiServer = Join-Path $Root "promo-publisher\api-server.js"
+if ($IncludeDailyLine -or $IncludeStudioApi) {
+  $pp = Join-Path $Root "promo-publisher"
+  $apiServer = Join-Path $pp "api-server.js"
   if (Test-Listening 4051) {
     Write-Host "Studio API (4051) already running" -ForegroundColor DarkGray
   } elseif (Test-Path $apiServer) {
-    Start-Detached "Studio API :4051" "node" @("api-server.js") (Join-Path $Root "promo-publisher")
+    Start-Detached "Studio API :4051" "node" @("api-server.js") $pp
   } else {
     Write-Host "SKIP Studio API — missing $apiServer (run INSTALL-ALL-SHIBASS.cmd)" -ForegroundColor Yellow
   }
 }
 
+if ($IncludeDailyLine) {
+  $pp = Join-Path $Root "promo-publisher"
+  $transcriber = Join-Path $pp "transcriber-server.js"
+  if (Test-Listening 4340) {
+    Write-Host "Transcriber (4340) already running" -ForegroundColor DarkGray
+  } elseif (Test-Path $transcriber) {
+    Start-Detached "Transcriber :4340" "node" @("transcriber-server.js") $pp
+  }
+  $compat = Join-Path $pp "line-compat-4000.js"
+  if (Test-Path $compat) {
+    Start-Detached "Library compat :4000" "node" @("line-compat-4000.js") $pp
+  }
+}
+
 Write-Host ""
 Write-Host "Doctor: scripts\shibass-doctor.ps1" -ForegroundColor DarkCyan
+Write-Host "Daily:  START-DAILY-LINE.cmd  (4051 + 4340 + psy_pack)" -ForegroundColor DarkCyan
 Write-Host "Studio: START-ALL-SHIBASS.cmd  or  http://127.0.0.1:4051/" -ForegroundColor DarkCyan
 Write-Host "Demucs: docs\DEMUCS_QUICKSTART_HE.md" -ForegroundColor DarkCyan
 Write-Host "Install: docs\WINDOWS_INSTALL_ALL_HE.md" -ForegroundColor DarkCyan

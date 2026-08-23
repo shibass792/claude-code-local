@@ -109,6 +109,7 @@ function Copy-RepoToTarget {
     "INSTALL-FROM-DOWNLOADS.ps1",
     "INSTALL-ALL-SHIBASS.cmd",
     "START-ALL-SHIBASS.cmd",
+    "START-DAILY-LINE.cmd",
     "START-SOCIAL-STUDIO.cmd",
     "START-MIDI-FORGE-DEMUCS.cmd",
     "COPY-ALL-FROM-ZIP.ps1",
@@ -155,6 +156,7 @@ Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "Done! Full stack + live API fixes installed." -ForegroundColor Green
+Write-Host ("Daily:     " + $TargetRoot + "\START-DAILY-LINE.cmd")
 Write-Host ("Start all: " + $TargetRoot + "\START-ALL-SHIBASS.cmd")
 Write-Host ("Doctor:    " + $TargetRoot + "\scripts\shibass-doctor.ps1")
 Write-Host ("Social:    " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")

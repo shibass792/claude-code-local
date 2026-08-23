@@ -142,6 +142,26 @@ h1 {
 }
 .track-list li.active { background: rgba(0, 212, 255, 0.08); }
 .track-list .kind { color: var(--muted); font-size: 0.8rem; }
+.track-list.hidden { display: none; }
+.line-banner {
+  margin: 0 32px 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.line-banner.warn { color: var(--warn); border-color: rgba(240, 180, 41, 0.35); }
+.line-banner.ok { color: var(--ok); }
+.kind-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.table-wrap { max-height: 360px; overflow: auto; border-top: 1px solid var(--line); }
+.lib-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.lib-table th, .lib-table td {
+  text-align: start;
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.lib-table tbody tr { cursor: pointer; }
+.lib-table tbody tr.active { background: rgba(0, 212, 255, 0.08); }
 @media (max-width: 960px) {
   .grid { grid-template-columns: 1fr; padding: 12px; }
   .top { padding: 20px 12px 8px; flex-direction: column; align-items: flex-start; }

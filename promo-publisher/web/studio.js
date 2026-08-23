@@ -7,6 +7,8 @@ const state = {
   index: -1,
   sequential: true,
   selectedAudioPath: null,
+  kind: 'all',
+  query: '',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -59,46 +61,68 @@ function formatTime(sec) {
   return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
 }
 
+function formatSize(n) {
+  if (!n) return '—';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function renderLibrary() {
-  const list = $('track-list');
-  list.innerHTML = '';
+  const body = $('track-body');
+  body.innerHTML = '';
   if (!state.library.length) {
-    list.innerHTML = '<li><span>אין קבצים — סרוק מדיה</span></li>';
+    body.innerHTML = '<tr><td colspan="5">אין קבצים — Reload / סרוק</td></tr>';
     return;
   }
   state.library.forEach((item, i) => {
-    const li = document.createElement('li');
-    if (i === state.index) li.classList.add('active');
-    li.innerHTML = `<span>${item.name}</span><span class="kind">${item.kind}</span>`;
-    li.addEventListener('click', () => playIndex(i));
-    list.appendChild(li);
+    const tr = document.createElement('tr');
+    if (i === state.index) tr.classList.add('active');
+    tr.innerHTML = `<td>${item.name}</td><td>${item.kind}</td><td>${item.bpm || '—'}</td><td>${item.key || '—'}</td><td>${formatSize(item.size)}</td>`;
+    tr.addEventListener('click', () => playIndex(i));
+    body.appendChild(tr);
   });
 }
 
 async function scanLibrary() {
   $('index-status').textContent = 'סורק…';
   const result = await api('/api/media/scan', { method: 'POST', body: '{}' });
-  state.library = result.items || [];
-  $('index-status').textContent =
-    `אינדקס חי · ${result.counts?.total || 0} קבצים · ${result.scannedAt}`;
   appendLog(
     `[SCAN] roots=${(result.roots || []).join(' | ') || 'none'}\n` +
-      `[SCAN] audio=${result.counts?.audio || 0} midi=${result.counts?.midi || 0} video=${result.counts?.video || 0}`,
+      `[SCAN] audio=${result.counts?.audio || 0} midi=${result.counts?.midi || 0} video=${result.counts?.video || 0} daw=${result.counts?.daw || 0}`,
   );
-  const firstAudio = state.library.find((x) => x.kind === 'audio');
-  state.selectedAudioPath = firstAudio?.path || null;
-  renderLibrary();
+  await loadLibrary();
 }
 
 async function loadLibrary() {
-  const data = await api('/api/media/library?limit=400');
+  const params = new URLSearchParams({
+    limit: '400',
+    kind: state.kind,
+    q: state.query,
+  });
+  const data = await api(`/api/media/library?${params.toString()}`);
   state.library = data.items || [];
   $('index-status').textContent = data.hasIndex
     ? `אינדקס · ${data.counts?.total || 0} קבצים · ${data.scannedAt}`
     : '⚠️ אין אינדקס מוזיקה — הרץ סריקה';
+  $('lib-source').textContent = `📂 ${state.kind} · Studio API :4051 · roots=${(data.roots || []).length}`;
   const firstAudio = state.library.find((x) => x.kind === 'audio');
   state.selectedAudioPath = firstAudio?.path || state.selectedAudioPath;
   renderLibrary();
+}
+
+async function refreshLine() {
+  const line = await api('/api/line/status');
+  const ide = line.services?.mainIde || {};
+  const tr = line.services?.transcriber || {};
+  const banner = $('line-banner');
+  if (!ide.ok) {
+    banner.className = 'line-banner warn';
+    banner.textContent = ide.hint || 'API 4000 not reachable: Failed to fetch — הספרייה כאן רצה על :4051';
+  } else {
+    banner.className = 'line-banner ok';
+    banner.textContent = `IDE :4000 OK · Transcriber :4340 ${tr.ok ? 'OK' : 'OFF'} · יעד 14 יום: ${line.goal14}`;
+  }
 }
 
 function playIndex(i) {
@@ -239,11 +263,65 @@ window.addEventListener('DOMContentLoaded', async () => {
   $('btn-render').addEventListener('click', () => renderReel().catch((e) => appendLog(String(e))));
   $('btn-campaign').addEventListener('click', () => createCampaign().catch((e) => appendLog(String(e))));
   $('btn-scan').addEventListener('click', () => scanLibrary().catch((e) => appendLog(String(e))));
+  $('btn-psy').addEventListener('click', async () => {
+    const data = await api('/api/psy/generate', {
+      method: 'POST',
+      body: JSON.stringify({ count: 10, root: 'E', bpm: 142 }),
+    });
+    appendLog(`[PSY_PACK] ${data.count} MIDI · ${data.scale} · ${data.dirs?.local}\n${data.route}`);
+    await scanLibrary();
+  });
+  $('btn-pack').addEventListener('click', async () => {
+    const data = await api('/api/pack/build', {
+      method: 'POST',
+      body: JSON.stringify({ count: 50, root: 'E', bpm: 142 }),
+    });
+    appendLog(`[PACK] ${data.midiCount} MIDI → ${data.zipPath}\n${data.listingHint}`);
+  });
+  $('btn-guide').addEventListener('click', async () => {
+    const data = await api('/api/guides', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: $('track-input').value || 'studio note',
+        notes: $('guide-notes').value,
+        source: 'studio-ui',
+      }),
+    });
+    appendLog(`[GUIDE] ${data.guide?.path}\n${data.preview || ''}`);
+  });
+  $('btn-epk').addEventListener('click', async () => {
+    const data = await api('/api/epk/build', {
+      method: 'POST',
+      body: JSON.stringify({
+        artist: 'ShiBass',
+        latestSet: 'Shiva Mangala remix / edits',
+        label: 'Audix Records',
+      }),
+    });
+    appendLog(`[EPK] ${data.emailPath}\n\n${data.promoterEmail}`);
+  });
+  $('lib-filter').addEventListener('input', (e) => {
+    state.query = e.target.value.trim();
+    loadLibrary().catch((err) => appendLog(String(err)));
+  });
+  document.querySelectorAll('#kind-tabs [data-kind]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.kind = btn.getAttribute('data-kind');
+      document.querySelectorAll('#kind-tabs [data-kind]').forEach((b) => {
+        b.classList.toggle('primary', b === btn);
+      });
+      loadLibrary().catch((err) => appendLog(String(err)));
+    });
+  });
 
   try {
     await refreshStatus();
+    await refreshLine();
     await loadLibrary();
   } catch (err) {
     appendLog(`[BOOT] ${err.message}`);
+    const banner = $('line-banner');
+    banner.className = 'line-banner warn';
+    banner.textContent = 'API offline — הרץ START-DAILY-LINE.cmd או promo-publisher\\START-API.cmd (:4051)';
   }
 });
