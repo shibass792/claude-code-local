@@ -13,6 +13,7 @@ $RequiredInZip = @(
   "scripts\start-demucs-pipeline.ps1",
   "scripts\watch-midi-export-demucs.ps1",
   "config\demucs-requirements.txt",
+  "FIX-DEMUCS-TORCHCODEC.ps1",
   "tools\demucs_wav_hook.py",
   "tools\script_fix_paths.ps1",
   "promo-publisher\main.js"

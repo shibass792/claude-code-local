@@ -48,6 +48,31 @@ def resolve_device(py: Path, requested: str) -> str:
     return choice
 
 
+def audio_save_ok(py: Path) -> tuple[bool, str]:
+    code = """
+import tempfile, os
+import torch
+import torchaudio
+wav = torch.zeros(2, 1600)
+path = os.path.join(tempfile.gettempdir(), "shibass_demucs_preflight.wav")
+torchaudio.save(path, wav, 16000)
+os.remove(path)
+"""
+    try:
+        proc = subprocess.run(
+            [str(py), "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        return False, str(exc)
+    if proc.returncode == 0:
+        return True, ""
+    detail = (proc.stderr or proc.stdout or "").strip()
+    return False, detail
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print("usage: demucs_wav_hook.py <audio-file>", file=sys.stderr)
@@ -77,6 +102,18 @@ def main() -> int:
     device = resolve_device(py, requested_device)
     if device != requested_device.lower().strip():
         print(f"[demucs] device={device}", file=sys.stderr)
+
+    save_ok, save_err = audio_save_ok(py)
+    if not save_ok:
+        print("[demucs] torchaudio cannot save WAV (TorchCodec / version mismatch)", file=sys.stderr)
+        if save_err:
+            print(save_err, file=sys.stderr)
+        print(
+            "[demucs] Fix: powershell -ExecutionPolicy Bypass -File "
+            + str(root / "FIX-DEMUCS-TORCHCODEC.ps1"),
+            file=sys.stderr,
+        )
+        return 1
 
     out_dir.mkdir(parents=True, exist_ok=True)
     job_dir = out_dir / audio.stem
