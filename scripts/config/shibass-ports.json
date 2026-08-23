@@ -1,0 +1,21 @@
+{
+  "services": {
+    "ollama": { "port": 11434, "url": "http://127.0.0.1:11434", "health": "/api/tags" },
+    "ai_panel": { "port": 8787, "url": "http://127.0.0.1:8787", "health": "/api/status" },
+    "memory_api": { "port": 8792, "url": "http://127.0.0.1:8792", "health": "/" },
+    "stem_groove": { "port": 4050, "url": "http://127.0.0.1:4050", "health": "/" },
+    "media_tunnel": { "port": 17890, "url": "http://127.0.0.1:17890", "note": "temporary, on publish only" },
+    "midi_server": { "port": 8765, "url": "http://127.0.0.1:8765", "health": "/health" }
+  },
+  "paths": {
+    "root": "H:\\shibass-ai",
+    "midi_export": "H:\\shibass-ai\\10_OUTPUTS\\MIDI_EXPORT",
+    "brain": "H:\\shibass-ai\\SHIBASS_BRAIN",
+    "shared_memory": "H:\\shibass-ai\\SHIBASS_SHARED_MEMORY",
+    "panel": "H:\\shibass-ai-panel",
+    "promo_publisher": "H:\\shibass-ai\\promo-publisher",
+    "stem_groove": "H:\\shibass-ai\\stem-groove",
+    "social_inbox": "H:\\shibass-ai\\10_OUTPUTS\\social",
+    "midi_server_script": "H:\\shibass-ai\\tools\\synths_midi_server.py"
+  }
+}
