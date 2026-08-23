@@ -5,3 +5,4 @@ config/tokens.enc
 config/.env
 *.log
 dist/
+H:/

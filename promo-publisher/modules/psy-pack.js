@@ -13,16 +13,25 @@ const PHRYGIAN_INTERVALS = [0, 1, 3, 5, 7, 8, 10];
 const ROOTS = { E: 64, F: 65, G: 67, A: 69, D: 62 };
 const DEFAULT_BPM = 142;
 
+function windowsStudioPaths() {
+  if (process.platform !== 'win32') {
+    return { midiExport: null, cubaseInbox: null };
+  }
+  return {
+    midiExport: process.env.SHIBASS_ROOT
+      ? path.join(process.env.SHIBASS_ROOT, '10_OUTPUTS', 'MIDI_EXPORT', 'psy_pack_v3')
+      : 'H:\\shibass-ai\\10_OUTPUTS\\MIDI_EXPORT\\psy_pack_v3',
+    cubaseInbox: process.env.SHIBASS_CUBASE_INBOX
+      || 'H:\\ShiBass_Cubase_Projects\\Audix_Templates\\psy_pack_inbox',
+  };
+}
+
 function packDirs() {
-  const homeOut = process.env.SHIBASS_ROOT
-    ? path.join(process.env.SHIBASS_ROOT, '10_OUTPUTS', 'MIDI_EXPORT', 'psy_pack_v3')
-    : path.join('H:', 'shibass-ai', '10_OUTPUTS', 'MIDI_EXPORT', 'psy_pack_v3');
-  const cubaseInbox = process.env.SHIBASS_CUBASE_INBOX
-    || path.join('H:', 'ShiBass_Cubase_Projects', 'Audix_Templates', 'psy_pack_inbox');
+  const win = windowsStudioPaths();
   return {
     local: path.join(OUTPUT_DIR, 'psy_pack_v3'),
-    midiExport: homeOut,
-    cubaseInbox,
+    midiExport: win.midiExport,
+    cubaseInbox: win.cubaseInbox,
   };
 }
 
