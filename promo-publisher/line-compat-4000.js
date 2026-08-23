@@ -8,8 +8,11 @@
 const http = require('http');
 const net = require('net');
 const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
 const mediaLibrary = require('./modules/media-library');
 const { getLineStatus } = require('./modules/line-status');
+const { scanQuality } = require('./modules/quality-scan');
 
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.SHIBASS_IDE_PORT || 4000);
@@ -63,6 +66,45 @@ function attachLibraryRoutes(req, res) {
   }
   if (url.pathname === '/api/line/status') {
     getLineStatus().then((status) => send(res, 200, status));
+    return;
+  }
+  if (
+    url.pathname === '/api/quality'
+    || url.pathname === '/api/code-quality'
+    || url.pathname === '/api/analyze'
+  ) {
+    send(res, 200, scanQuality());
+    return;
+  }
+  if (url.pathname === '/api/media/stream' && req.method === 'GET') {
+    const byId = url.searchParams.get('id');
+    const byPath = url.searchParams.get('path');
+    let absolute = null;
+    if (byId) {
+      absolute = mediaLibrary.resolveMediaById(byId)?.path || null;
+    } else if (byPath) {
+      absolute = mediaLibrary.resolveSafePath(byPath);
+    }
+    if (!absolute) {
+      send(res, 404, { error: 'media not found or path not allowed' });
+      return;
+    }
+    const ext = path.extname(absolute).toLowerCase();
+    const types = {
+      '.wav': 'audio/wav',
+      '.mp3': 'audio/mpeg',
+      '.flac': 'audio/flac',
+      '.ogg': 'audio/ogg',
+      '.m4a': 'audio/mp4',
+      '.mp4': 'video/mp4',
+    };
+    const st = fs.statSync(absolute);
+    res.writeHead(200, {
+      'Content-Type': types[ext] || 'application/octet-stream',
+      'Content-Length': st.size,
+      'Access-Control-Allow-Origin': '*',
+    });
+    fs.createReadStream(absolute).pipe(res);
     return;
   }
   send(res, 404, { error: 'not_found', hint: 'Use Studio API on :4051' });

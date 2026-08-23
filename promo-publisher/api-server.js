@@ -31,6 +31,7 @@ const { getSprint, toggleCell } = require('./modules/sprint');
 const { getLadder } = require('./modules/ladder');
 const { getWave1, evaluateCsv, evaluateCsvFile } = require('./modules/ads-cpc');
 const { probeOps, formatOpsLog } = require('./modules/ops-probe');
+const { scanQuality } = require('./modules/quality-scan');
 const { ROOT, ensureDir, OUTPUT_DIR } = require('./modules/store');
 
 const HOST = process.env.SHIBASS_API_HOST || '127.0.0.1';
@@ -296,6 +297,15 @@ async function handleApi(req, res, url) {
       return;
     }
     sendJson(res, 400, { success: false, error: 'csv or filePath required' });
+    return;
+  }
+
+  if (
+    (pathname === '/api/quality' || pathname === '/api/code-quality' || pathname === '/api/analyze')
+    && (req.method === 'GET' || req.method === 'POST')
+  ) {
+    const body = req.method === 'POST' ? await readBody(req) : {};
+    sendJson(res, 200, scanQuality(body));
     return;
   }
 

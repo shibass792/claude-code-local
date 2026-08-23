@@ -307,7 +307,58 @@ function appendCreateLog(text) {
   el.textContent = `[${stamp}]\n${text}\n\n${el.textContent}`.slice(0, 12000);
 }
 
-const playerState = { items: [], index: -1 };
+const playerState = { items: [], index: -1, sequential: true };
+
+function toFileUrl(absPath) {
+  if (!absPath) return null;
+  const p = String(absPath).replace(/\\/g, '/');
+  if (/^[A-Za-z]:\//.test(p)) return `file:///${p}`;
+  if (p.startsWith('/')) return `file://${p}`;
+  return `file:///${p}`;
+}
+
+function studioStream(item) {
+  if (item?.id) {
+    return `http://127.0.0.1:4051/api/media/stream?id=${encodeURIComponent(item.id)}`;
+  }
+  if (item?.path) {
+    return `http://127.0.0.1:4051/api/media/stream?path=${encodeURIComponent(item.path)}`;
+  }
+  return null;
+}
+
+async function playLibraryItem(item, index) {
+  if (!item) return;
+  playerState.index = index;
+  const now = document.getElementById('player-now');
+  const audio = document.getElementById('library-audio');
+  if (now) now.textContent = `${item.name} · ${item.kind}`;
+  const create = document.getElementById('create-audio');
+  if (create) create.value = item.path || '';
+  if (item.kind !== 'audio') {
+    showToast('MIDI/DAW באינדקס — נגן אודיו דורש WAV/MP3');
+    return;
+  }
+  const stream = studioStream(item);
+  const fileUrl = toFileUrl(item.path);
+  const vol = document.getElementById('player-volume');
+  if (vol) audio.volume = Number(vol.value) / 100;
+  audio.src = stream || fileUrl;
+  try {
+    await audio.play();
+  } catch (err) {
+    if (fileUrl && !String(audio.src || '').startsWith('file:')) {
+      audio.src = fileUrl;
+      try {
+        await audio.play();
+      } catch (err2) {
+        showToast(`נגן: ${err2.message}`);
+      }
+      return;
+    }
+    showToast(`נגן: ${err.message}`);
+  }
+}
 
 async function refreshPlayerLibrary() {
   if (!window.api?.getLibrary) return;
@@ -316,7 +367,7 @@ async function refreshPlayerLibrary() {
   const status = document.getElementById('player-index-status');
   if (status) {
     status.textContent = data.hasIndex
-      ? `אינדקס · ${data.counts?.total || 0} קבצים · ${data.scannedAt}`
+      ? `אינדקס חי · ${data.counts?.total || 0} קבצים · ${data.scannedAt}`
       : '⚠️ אין אינדקס מוזיקה — הרץ סריקה';
   }
   const list = document.getElementById('player-list');
@@ -325,16 +376,8 @@ async function refreshPlayerLibrary() {
   playerState.items.forEach((item, i) => {
     const li = document.createElement('li');
     li.textContent = `${item.name} · ${item.kind}`;
-    li.addEventListener('click', () => {
-      playerState.index = i;
-      document.getElementById('create-audio').value = item.path;
-      document.getElementById('player-now').textContent = item.name;
-      if (item.kind === 'audio') {
-        const audio = document.getElementById('library-audio');
-        audio.src = `file://${item.path.replace(/\\/g, '/')}`;
-        audio.play().catch(() => {});
-      }
-    });
+    if (i === playerState.index) li.classList.add('active');
+    li.addEventListener('click', () => playLibraryItem(item, i));
     list.appendChild(li);
   });
 }
@@ -401,23 +444,84 @@ function setupLiveApis() {
     showToast('סריקת מדיה הושלמה');
   });
 
-  document.getElementById('btn-media-play')?.addEventListener('click', () => {
-    const audio = document.getElementById('library-audio');
-    if (!audio.src && playerState.items.length) {
-      const audioItem = playerState.items.find((x) => x.kind === 'audio');
-      if (audioItem) {
-        document.getElementById('create-audio').value = audioItem.path;
-        audio.src = `file://${audioItem.path.replace(/\\/g, '/')}`;
-      }
+  document.getElementById('btn-media-play')?.addEventListener('click', async () => {
+    const current = playerState.items[playerState.index];
+    if (current) {
+      await playLibraryItem(current, playerState.index);
+      return;
     }
-    audio.play().catch(() => showToast('אין אודיו לנגן'));
+    const audioItem = playerState.items.find((x) => x.kind === 'audio');
+    if (!audioItem) {
+      showToast('אין אודיו באינדקס — סרוק מדיה');
+      return;
+    }
+    await playLibraryItem(audioItem, playerState.items.indexOf(audioItem));
   });
 
   document.getElementById('btn-media-stop')?.addEventListener('click', () => {
     const audio = document.getElementById('library-audio');
     audio.pause();
-    audio.currentTime = 0;
+    audio.removeAttribute('src');
+    audio.load();
+    const now = document.getElementById('player-now');
+    if (now) now.textContent = 'עצור';
+    const t = document.getElementById('player-time');
+    if (t) t.textContent = '00:00 / 00:00';
   });
+
+  document.getElementById('btn-media-fwd')?.addEventListener('click', () => {
+    const audio = document.getElementById('library-audio');
+    if (Number.isFinite(audio.duration)) {
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+    }
+  });
+
+  document.getElementById('btn-media-prev')?.addEventListener('click', () => playRelative(-1));
+  document.getElementById('btn-media-next')?.addEventListener('click', () => playRelative(1));
+
+  document.getElementById('btn-media-seq')?.addEventListener('click', (e) => {
+    playerState.sequential = !playerState.sequential;
+    e.currentTarget.dataset.on = playerState.sequential ? '1' : '0';
+    e.currentTarget.textContent = playerState.sequential ? '🔁 ברצף: פעיל' : '🔁 ברצף: כבוי';
+  });
+
+  document.getElementById('player-volume')?.addEventListener('input', (e) => {
+    const audio = document.getElementById('library-audio');
+    audio.volume = Number(e.target.value) / 100;
+    const lab = document.getElementById('player-vol-label');
+    if (lab) lab.textContent = `${e.target.value}%`;
+  });
+
+  const libraryAudio = document.getElementById('library-audio');
+  libraryAudio?.addEventListener('timeupdate', () => {
+    const t = document.getElementById('player-time');
+    if (!t) return;
+    t.textContent = `${fmtTime(libraryAudio.currentTime)} / ${fmtTime(libraryAudio.duration)}`;
+  });
+  libraryAudio?.addEventListener('ended', () => {
+    if (playerState.sequential) playRelative(1);
+  });
+}
+
+function fmtTime(sec) {
+  if (!Number.isFinite(sec)) return '00:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+async function playRelative(delta) {
+  const list = playerState.items.filter((x) => x.kind === 'audio');
+  if (!list.length) {
+    showToast('אין אודיו באינדקס');
+    return;
+  }
+  const current = playerState.items[playerState.index];
+  let i = list.findIndex((x) => x.id === current?.id);
+  if (i < 0) i = 0;
+  else i = (i + delta + list.length) % list.length;
+  const item = list[i];
+  await playLibraryItem(item, playerState.items.findIndex((x) => x.id === item.id));
 }
 
 async function loadSprint() {
@@ -537,6 +641,18 @@ function setupSprintDesk() {
     showToast(r.success ? `EPK → ${r.emailPath}` : r.error);
   });
   document.getElementById('btn-ops-probe')?.addEventListener('click', () => loadOps());
+  document.getElementById('btn-quality-scan')?.addEventListener('click', async () => {
+    const pre = document.getElementById('quality-log') || document.getElementById('ops-log');
+    if (pre) pre.textContent = 'סורק קבצים אמיתיים במחשב (node --check / py_compile)…';
+    try {
+      const r = window.api?.scanQuality
+        ? await window.api.scanQuality()
+        : await fetch('http://127.0.0.1:4051/api/quality').then((x) => x.json());
+      if (pre) pre.textContent = r.log || JSON.stringify(r, null, 2);
+    } catch (e) {
+      if (pre) pre.textContent = `שגיאה: ${e.message}`;
+    }
+  });
   document.getElementById('btn-ads-csv')?.addEventListener('click', async () => {
     const report = await window.api.pickAdsCsv();
     if (report.canceled) return;

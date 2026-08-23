@@ -27,6 +27,12 @@ function defaultRoots() {
       ? path.join(process.env.USERPROFILE, 'Documents', 'ShiBass Synth Samples')
       : null,
     process.env.HOME ? path.join(process.env.HOME, 'Music') : null,
+    process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'Desktop') : null,
+    process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'Downloads') : null,
+    process.env.HOME ? path.join(process.env.HOME, 'Desktop') : null,
+    path.join(ROOT, '..'),
+    process.env.SHIBASS_ROOT || null,
+    'H:\\shibass-ai',
     'H:\\ShiBass_Media',
     'H:\\shibass-ai\\10_OUTPUTS',
     'H:\\ShiBass_Cubase_Projects',
@@ -204,6 +210,16 @@ function resolveMediaById(id) {
   return item;
 }
 
+function extraAllowedRoots() {
+  return [
+    process.env.SHIBASS_ROOT,
+    path.join(ROOT, '..'),
+    process.env.USERPROFILE,
+    process.env.HOME,
+    'H:\\',
+  ].filter(Boolean);
+}
+
 function resolveSafePath(candidate) {
   if (!candidate || typeof candidate !== 'string') {
     return null;
@@ -213,6 +229,7 @@ function resolveSafePath(candidate) {
   const allowedRoots = [
     ...(index.roots || []),
     ...defaultRoots(),
+    ...extraAllowedRoots(),
     OUTPUT_DIR,
     path.join(ROOT, 'fixtures'),
   ].map((p) => path.resolve(p));
@@ -223,7 +240,7 @@ function resolveSafePath(candidate) {
   if (!ok) {
     return null;
   }
-  if (!fs.existsSync(absolute)) {
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) {
     return null;
   }
   return absolute;

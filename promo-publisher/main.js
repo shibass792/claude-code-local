@@ -19,6 +19,8 @@ const { getLadder } = require('./modules/ladder');
 const { getWave1, evaluateCsvFile } = require('./modules/ads-cpc');
 const { probeOps, formatOpsLog } = require('./modules/ops-probe');
 const transcriber = require('./modules/transcriber');
+const { scanQuality } = require('./modules/quality-scan');
+const { toFileUrl } = require('./modules/file-url');
 
 function configureElectronStorage() {
   const userDataPath = path.join(__dirname, '.electron-user-data');
@@ -125,14 +127,12 @@ ipcMain.handle('approval:get-history', async () => approvalEngine.getPublishHist
 ipcMain.handle('connections:get-health', async () => approvalEngine.getConnectionHealth());
 
 ipcMain.handle('media:resolve-path', async (_event, relativePath) => {
-  const absolute = resolveFromRoot(relativePath);
-  if (!absolute) {
-    return { exists: false, path: null };
+  const safe = mediaLibrary.resolveSafePath(relativePath);
+  const absolute = safe || resolveFromRoot(relativePath);
+  if (!absolute || !fs.existsSync(absolute)) {
+    return { exists: false, path: absolute || null, fileUrl: null };
   }
-  if (!fs.existsSync(absolute)) {
-    return { exists: false, path: absolute };
-  }
-  return { exists: true, path: `file://${absolute.replace(/\\/g, '/')}` };
+  return { exists: true, path: absolute, fileUrl: toFileUrl(absolute) };
 });
 
 ipcMain.handle('approval:approve-and-publish', async (_event, campaignData) => {
@@ -191,6 +191,7 @@ ipcMain.handle('ads:pick-csv', async () => {
   return evaluateCsvFile(result.filePaths[0]);
 });
 ipcMain.handle('guides:ingest', async (_event, payload) => transcriber.ingestFile(payload || {}));
+ipcMain.handle('quality:scan', async (_event, options) => scanQuality(options || {}));
 ipcMain.handle('shell:open-path', async (_event, target) => {
   const dest = target || OUTPUT_DIR;
   await shell.openPath(dest);

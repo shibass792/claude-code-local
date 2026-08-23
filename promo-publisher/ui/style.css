@@ -411,6 +411,18 @@ input[type='text'] {
   margin-bottom: 12px;
 }
 
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 4px;
+  font-size: 0.92rem;
+}
+
+.volume-row input[type="range"] {
+  width: 160px;
+}
+
 .player-list {
   list-style: none;
   margin: 12px 0 0;

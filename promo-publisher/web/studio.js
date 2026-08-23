@@ -140,9 +140,21 @@ function playIndex(i) {
 
   state.selectedAudioPath = item.path;
   const audio = $('audio');
-  audio.src = `/api/media/stream?id=${encodeURIComponent(item.id)}`;
   audio.volume = Number($('volume').value) / 100;
-  audio.play().catch((err) => appendLog(`[PLAYER] play error: ${err.message}`));
+  const byId = `/api/media/stream?id=${encodeURIComponent(item.id)}`;
+  const byPath = item.path
+    ? `/api/media/stream?path=${encodeURIComponent(item.path)}`
+    : null;
+  audio.src = byId;
+  const retryFromPath = () => {
+    if (!byPath || audio.dataset.retried === item.id) return;
+    audio.dataset.retried = item.id;
+    appendLog('[PLAYER] stream by id failed — retrying with disk path');
+    audio.src = byPath;
+    audio.play().catch((err) => appendLog(`[PLAYER] play error: ${err.message}`));
+  };
+  audio.onerror = retryFromPath;
+  audio.play().catch(retryFromPath);
 }
 
 function playCurrent() {
@@ -248,7 +260,8 @@ function wirePlayer() {
     $('vol-label').textContent = `${v}%`;
   });
   audio.addEventListener('timeupdate', () => {
-    $('time-label').textContent = formatTime(audio.currentTime);
+    const dur = Number.isFinite(audio.duration) ? formatTime(audio.duration) : '--:--';
+    $('time-label').textContent = `${formatTime(audio.currentTime)} / ${dur}`;
   });
   audio.addEventListener('ended', () => {
     if (!state.sequential) return;
@@ -258,6 +271,12 @@ function wirePlayer() {
 
 window.addEventListener('DOMContentLoaded', async () => {
   wirePlayer();
+  $('btn-quality').addEventListener('click', () => {
+    appendLog('[QUALITY] סורק קבצים אמיתיים במחשב (node --check / py_compile)…');
+    api('/api/quality')
+      .then((data) => appendLog(data.log || JSON.stringify(data, null, 2)))
+      .catch((e) => appendLog(String(e)));
+  });
   $('btn-status').addEventListener('click', () => refreshStatus().catch((e) => appendLog(String(e))));
   $('btn-hooks').addEventListener('click', () => generateHooks().catch((e) => appendLog(String(e))));
   $('btn-render').addEventListener('click', () => renderReel().catch((e) => appendLog(String(e))));

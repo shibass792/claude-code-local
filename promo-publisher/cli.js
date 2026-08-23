@@ -30,6 +30,7 @@ async function main(argv) {
       '  node cli.js ops             Live HTTP probes',
       '  node cli.js guides          List guide_he.md',
       '  node cli.js ingest <file>   Local notes → guide_he.md',
+      '  node cli.js quality         Live local scan (node --check / py_compile)',
     ].join('\n'));
     return 0;
   }
@@ -96,6 +97,12 @@ async function main(argv) {
     const { listGuides } = require('./modules/transcriber');
     print(listGuides());
     return 0;
+  }
+  if (cmd === 'quality') {
+    const { scanQuality } = require('./modules/quality-scan');
+    const report = scanQuality();
+    print(report.log);
+    return report.errorCount ? 1 : 0;
   }
   if (cmd === 'ingest') {
     const { ingestFile } = require('./modules/transcriber');

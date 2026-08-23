@@ -146,6 +146,8 @@ foreach ($f in @(
     "INSTALL-ALL-SHIBASS.cmd",
     "START-ALL-SHIBASS.cmd",
     "START-DAILY-LINE.cmd",
+    "START-OPS.cmd",
+    "QUALITY-SCAN.cmd",
     "START-SOCIAL-STUDIO.cmd",
     "START-MIDI-FORGE-DEMUCS.cmd",
     "FIX-DEMUCS-TORCHCODEC.ps1"

@@ -135,8 +135,18 @@
         </header>
         <div class="action-buttons">
           <button class="btn btn-primary" id="btn-media-scan" type="button">סרוק מדיה</button>
+          <button class="btn btn-secondary" id="btn-media-prev" type="button">⏮️</button>
           <button class="btn btn-secondary" id="btn-media-play" type="button">▶ נגן</button>
           <button class="btn btn-secondary" id="btn-media-stop" type="button">■ עצור</button>
+          <button class="btn btn-secondary" id="btn-media-fwd" type="button">⏩ +5s</button>
+          <button class="btn btn-secondary" id="btn-media-next" type="button">⏭️</button>
+          <button class="btn btn-secondary" id="btn-media-seq" type="button" data-on="1">🔁 ברצף: פעיל</button>
+        </div>
+        <div class="volume-row">
+          <span>🔊</span>
+          <input id="player-volume" type="range" min="0" max="100" value="75" />
+          <span id="player-vol-label">75%</span>
+          <span id="player-time">00:00</span>
         </div>
         <div id="player-now" class="watch-hint">—</div>
         <ul id="player-list" class="player-list"></ul>
@@ -212,9 +222,13 @@
             <h1>Ops חי — בדיקות HTTP</h1>
             <p>אין סימולטור. אם הפורט כבוי — כתוב OFFLINE.</p>
           </div>
-          <button class="btn btn-primary" id="btn-ops-probe" type="button">בדוק עכשיו</button>
+          <div class="action-buttons">
+            <button class="btn btn-primary" id="btn-ops-probe" type="button">בדוק פורטים</button>
+            <button class="btn btn-secondary" id="btn-quality-scan" type="button">ניתוח קוד חי</button>
+          </div>
         </header>
         <pre id="ops-log" class="live-log">לחץ "בדוק עכשיו" — פרובים אמיתיים ל-127.0.0.1</pre>
+        <pre id="quality-log" class="live-log">לחץ "ניתוח קוד חי" — node --check / py_compile על הקבצים במחשב. אין תבנית PHPStan.</pre>
         <table class="history-table">
           <thead><tr><th>פורט</th><th>שם</th><th>מצב</th><th>פירוט</th></tr></thead>
           <tbody id="ops-body"></tbody>

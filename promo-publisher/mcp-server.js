@@ -16,6 +16,7 @@ const { getLadder } = require('./modules/ladder');
 const { getWave1, evaluateCsv, evaluateCsvFile } = require('./modules/ads-cpc');
 const { probeOps, formatOpsLog } = require('./modules/ops-probe');
 const transcriber = require('./modules/transcriber');
+const { scanQuality } = require('./modules/quality-scan');
 
 const TOOLS = [
   { name: 'psy_generate', description: 'Generate dated Phrygian Family MIDI pack', inputSchema: { type: 'object', properties: { count: { type: 'number' }, bpm: { type: 'number' }, root: { type: 'string' } } } },
@@ -29,6 +30,7 @@ const TOOLS = [
   { name: 'ops_probe', description: 'Live HTTP probes of local ports. Honest offline.', inputSchema: { type: 'object', properties: {} } },
   { name: 'guides_list', description: 'List guide_he.md files', inputSchema: { type: 'object', properties: {} } },
   { name: 'guides_ingest', description: 'Ingest a local notes file into guide_he.md', inputSchema: { type: 'object', properties: { filePath: { type: 'string' }, title: { type: 'string' } }, required: ['filePath'] } },
+  { name: 'quality_scan', description: 'Live local code scan (node --check / py_compile). Never a canned log.', inputSchema: { type: 'object', properties: { root: { type: 'string' } } } },
 ];
 
 async function callTool(name, args = {}) {
@@ -59,6 +61,8 @@ async function callTool(name, args = {}) {
       return transcriber.listGuides();
     case 'guides_ingest':
       return transcriber.ingestFile(args);
+    case 'quality_scan':
+      return scanQuality(args);
     default:
       return { success: false, error: `unknown tool ${name}` };
   }

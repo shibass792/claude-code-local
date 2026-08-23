@@ -112,6 +112,7 @@ function Copy-RepoToTarget {
     "START-DAILY-LINE.cmd",
     "START-SPRINT.cmd",
     "START-OPS.cmd",
+    "QUALITY-SCAN.cmd",
     "SHIBASS-MCP.cmd",
     "START-SOCIAL-STUDIO.cmd",
     "START-MIDI-FORGE-DEMUCS.cmd",

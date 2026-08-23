@@ -31,6 +31,14 @@ https://github.com/shibass792/claude-code-local/archive/refs/heads/cursor/real-a
 H:\shibass-ai\START-DAILY-LINE.cmd
 ```
 
+ניתוח קוד חי (לא הסימולטור עם PHPStan / 826,500):
+
+```text
+H:\shibass-ai\QUALITY-SCAN.cmd
+```
+
+או בדפדפן: http://127.0.0.1:4051/api/quality
+
 יעד 14 יום: `docs\SHIBASS_14DAY_EXECUTION_HE.md`
 
 Social + API:
@@ -82,6 +90,8 @@ Test-Path H:\shibass-ai\tools\demucs_wav_hook.py
 | רכיב | מצב |
 |------|-----|
 | סריקת מדיה / ספרייה | API חי |
+| נגן Universal Player | סטרים מ־`:4051/api/media/stream` + `file:///` ל־WAV מקומי |
+| ניתוח קוד | חי: `QUALITY-SCAN.cmd` / `GET /api/quality` — לא תבנית PHPStan |
 | רנדור Reel (FFmpeg 9:16) | API חי |
 | Viral hooks | Ollama אם זמין, אחרת תבניות מסומנות |
 | Instagram publish | Meta Graph בלבד (עם טוקן); בלי טוקן — dry-run מודע |

@@ -30,4 +30,5 @@ contextBridge.exposeInMainWorld('api', {
   pickAdsCsv: () => ipcRenderer.invoke('ads:pick-csv'),
   ingestGuide: (payload) => ipcRenderer.invoke('guides:ingest', payload),
   openPath: (target) => ipcRenderer.invoke('shell:open-path', target),
+  scanQuality: (options) => ipcRenderer.invoke('quality:scan', options),
 });

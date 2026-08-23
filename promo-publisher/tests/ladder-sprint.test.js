@@ -14,6 +14,8 @@ const { probeOps, extraTargets } = require('../modules/ops-probe');
 const { ingestFile } = require('../modules/transcriber');
 const { buildEpk } = require('../modules/epk');
 const { callTool, TOOLS } = require('../mcp-server');
+const { scanQuality } = require('../modules/quality-scan');
+const { toFileUrl } = require('../modules/file-url');
 
 const CSV = path.join(__dirname, 'fixtures', 'wave1-sample.csv');
 const NOTES = path.join(__dirname, 'fixtures', 'notes.txt');
@@ -127,8 +129,34 @@ describe('ops honesty + ingest + epk + mcp', () => {
 
   it('exposes MCP tools and can call sprint_status', async () => {
     assert.ok(TOOLS.some((t) => t.name === 'wave1_list'));
+    assert.ok(TOOLS.some((t) => t.name === 'quality_scan'));
     const result = await callTool('sprint_status', {});
     assert.equal(result.success, true);
     assert.equal(result.total, 42);
+  });
+});
+
+describe('live quality scan + file urls', () => {
+  it('scans real files and never prints the PHPStan simulator template', () => {
+    const report = scanQuality({
+      root: path.join(__dirname, '..', 'modules'),
+      maxWalk: 200,
+      jsLimit: 20,
+      pyLimit: 5,
+    });
+    assert.equal(report.source, 'live-local-scan');
+    assert.equal(report.simulator, false);
+    assert.ok(report.walkedFiles > 0);
+    assert.match(report.log, /\[SOURCE\] live-local-scan/);
+    assert.equal(/PHPStan Level 9/.test(report.log), false);
+    assert.equal(/826,500/.test(report.log), false);
+    assert.equal(/Workspace Clean/.test(report.log), false);
+    assert.equal(/סימולטור בלבד/.test(report.log), false);
+  });
+
+  it('builds a Windows-safe file:/// URL for WAV playback', () => {
+    assert.equal(toFileUrl('H:\\a\\aaaaa.wav'), 'file:///H:/a/aaaaa.wav');
+    assert.equal(toFileUrl('H:/a/aaaaa.wav'), 'file:///H:/a/aaaaa.wav');
+    assert.equal(toFileUrl('/tmp/aaaaa.wav'), 'file:///tmp/aaaaa.wav');
   });
 });
