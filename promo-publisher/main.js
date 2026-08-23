@@ -24,6 +24,18 @@ function configureElectronStorage() {
 
 configureElectronStorage();
 
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('no-sandbox');
+
+process.on('uncaughtException', (err) => {
+  console.error('[fatal]', err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[unhandled]', err);
+});
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();

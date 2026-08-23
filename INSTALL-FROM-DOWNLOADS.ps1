@@ -75,6 +75,8 @@ if (Test-Path $cfgSrc) {
 Ensure-Dir (Join-Path $TargetRoot "10_OUTPUTS\social")
 
 foreach ($f in @(
+    "COPY-ALL-FROM-ZIP.ps1",
+    "COPY-ALL-FROM-ZIP.cmd",
     "INSTALL-SHIBASS-UPDATES.ps1",
     "INSTALL-SHIBASS-UPDATES.cmd",
     "INSTALL-FROM-DOWNLOADS.ps1",
