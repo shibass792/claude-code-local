@@ -40,6 +40,7 @@ $files = @(
   "proxy.js",
   "patch-server.js",
   "apply.js",
+  "listen.js",
   "os-bridge.test.js",
   "Patch-OsBridge.ps1"
 )
@@ -90,6 +91,17 @@ Install-RootScript "Scan-ShiBassApis.ps1"
 Install-RootScript "Scan.ps1"
 Install-RootScript "INSTALL-OS-BRIDGE.ps1"
 Install-RootScript "START-STUDIO-API.cmd"
+Install-RootScript "START-OS-SERVER.cmd"
+
+$studioDest = Join-Path $TargetRoot "promo-publisher\studio-api.js"
+$studioLocal = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "promo-publisher\studio-api.js"
+if (Test-Path -LiteralPath $studioLocal) {
+  Ensure-Directory (Split-Path -Parent $studioDest)
+  Copy-Item -LiteralPath $studioLocal -Destination $studioDest -Force
+  Write-Ok ("Copied studio-api.js -> " + $studioDest)
+} elseif (-not (Test-Path -LiteralPath $studioDest)) {
+  Install-File "promo-publisher/studio-api.js" $studioDest
+}
 
 $apply = Join-Path $dest "apply.js"
 if (-not (Test-Path -LiteralPath $apply)) {
@@ -114,7 +126,7 @@ if (Test-Path -LiteralPath $serverJs) {
 }
 
 Write-Host ""
-Write-Ok "Done. Restart node server.js (port 4000)."
-Write-Host "Keep Studio API running on 4052: cd H:\shibass-ai\promo-publisher"
-Write-Host "Then: npm run api"
-Write-Host "Scan after restart: powershell -ExecutionPolicy Bypass -File H:\shibass-ai\Scan-ShiBassApis.ps1"
+Write-Ok "Done. Start or restart both listeners:"
+Write-Host "  H:\shibass-ai\START-OS-SERVER.cmd     (port 4000)"
+Write-Host "  H:\shibass-ai\START-STUDIO-API.cmd    (port 4052)"
+Write-Host "Then scan: powershell -ExecutionPolicy Bypass -File H:\shibass-ai\Scan.ps1"

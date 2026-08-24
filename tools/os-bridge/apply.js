@@ -4,6 +4,29 @@ const fs = require('fs');
 const path = require('path');
 const { patchServerFile, findServerJs, HEALTH_PATH } = require('./patch-server');
 
+const STANDALONE_MARKER = 'shibass-os-bridge-standalone';
+
+function standaloneServerSource() {
+  return [
+    "'use strict';",
+    `// ${STANDALONE_MARKER}`,
+    `// explicit health-check path: ${HEALTH_PATH}`,
+    "const { listenOsBridge } = require('./tools/os-bridge/listen');",
+    'const port = Number(process.env.OS_PORT || 4000);',
+    'listenOsBridge(port).catch((error) => {',
+    '  console.error(error);',
+    '  process.exit(1);',
+    '});',
+    '',
+  ].join('\n');
+}
+
+function writeStandaloneServer(root) {
+  const dest = path.join(root, 'server.js');
+  fs.writeFileSync(dest, standaloneServerSource(), 'utf8');
+  return dest;
+}
+
 function extraRoots(primaryRoot) {
   const roots = [primaryRoot];
   if (process.env.SHIBASS_PANEL_ROOT) {
@@ -23,15 +46,23 @@ function applyOsBridge(primaryRoot) {
     root: path.resolve(primaryRoot),
     servers: [],
     restart: [
-      'Restart node server.js on port 4000 (H:\\shibass-ai).',
-      'Keep Studio API running: cd H:\\shibass-ai\\promo-publisher && npm run api (port 4052).',
-      'Then run Scan-ShiBassApis.ps1. Studio /api paths on 4000 should no longer OPTIONS-404.',
+      'Start or restart H:\\shibass-ai\\START-OS-SERVER.cmd (port 4000).',
+      'Start H:\\shibass-ai\\START-STUDIO-API.cmd (port 4052).',
+      'Then run Scan.ps1. Studio /api paths on 4000 should no longer OPTIONS-404.',
     ],
   };
 
   for (const root of extraRoots(primaryRoot)) {
-    const serverPath = findServerJs(root);
+    let serverPath = findServerJs(root);
     if (!serverPath) {
+      serverPath = writeStandaloneServer(root);
+      const source = fs.readFileSync(serverPath, 'utf8');
+      report.servers.push({
+        path: serverPath,
+        changed: true,
+        reason: 'wrote-standalone',
+        containsRoute: source.includes(HEALTH_PATH),
+      });
       continue;
     }
     const patched = patchServerFile(serverPath);
@@ -53,8 +84,11 @@ function applyOsBridge(primaryRoot) {
 
 module.exports = {
   HEALTH_PATH,
+  STANDALONE_MARKER,
   applyOsBridge,
   extraRoots,
+  writeStandaloneServer,
+  standaloneServerSource,
 };
 
 if (require.main === module) {

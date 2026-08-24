@@ -67,6 +67,5 @@ Write-Host $outFile
 Write-Host ""
 Write-Host "If OPTIONS 404 on 4000 for /api/engines /api/render /api/approval:"
 Write-Host "  1) powershell -ExecutionPolicy Bypass -File H:\shibass-ai\INSTALL-OS-BRIDGE.ps1"
-Write-Host "  2) Restart node server.js on 4000"
-Write-Host "  3) powershell -ExecutionPolicy Bypass -File H:\shibass-ai\START-STUDIO-API.cmd"
-Write-Host "     or: cd H:\shibass-ai\promo-publisher ; npm run api"
+Write-Host "  2) H:\shibass-ai\START-OS-SERVER.cmd"
+Write-Host "  3) H:\shibass-ai\START-STUDIO-API.cmd"

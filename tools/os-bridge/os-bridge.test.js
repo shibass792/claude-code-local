@@ -9,6 +9,7 @@ const path = require('path');
 const { classifyPath, isStudioProxyPath, STUDIO_PREFIXES } = require('./routes');
 const { extractApiPaths, collectEndpoints, buildScanReport } = require('./scan');
 const { tryHandleOsBridge } = require('./proxy');
+const { createOsServer } = require('./listen');
 const { patchServerSource, patchServerFile } = require('./patch-server');
 const { applyOsBridge } = require('./apply');
 
@@ -253,6 +254,17 @@ test('patcher inserts the OS bridge after the sb-daw mount', () => {
   assert.match(patched.source, /\/api\/os\/health/);
 });
 
+test('applyOsBridge writes a standalone server.js when none exists', () => {
+  const root = tempDir('os-bridge-empty-');
+  const report = applyOsBridge(root);
+  assert.equal(report.ok, true);
+  assert.equal(report.servers[0].reason, 'wrote-standalone');
+  const serverSource = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
+  assert.match(serverSource, /shibass-os-bridge-standalone/);
+  assert.match(serverSource, /\/api\/os\/health/);
+  assert.match(serverSource, /listenOsBridge/);
+});
+
 test('applyOsBridge patches a fixture server.js', () => {
   const root = tempDir('os-bridge-root-');
   fs.writeFileSync(path.join(root, 'server.js'), [
@@ -273,12 +285,39 @@ test('applyOsBridge patches a fixture server.js', () => {
   assert.equal(again.changed, false);
 });
 
+test('standalone OS listener answers /api/health and OPTIONS for studio prefixes', async () => {
+  const prev = process.env.STUDIO_API_ORIGIN;
+  process.env.STUDIO_API_ORIGIN = 'http://127.0.0.1:9';
+  const server = createOsServer();
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const health = await request(server, 'GET', '/api/health');
+    assert.equal(health.status, 200);
+    assert.equal(health.json.service, 'shibass-os');
+
+    const options = await request(server, 'OPTIONS', '/api/engines');
+    assert.equal(options.status, 204);
+
+    const osHealth = await request(server, 'GET', '/api/os/health');
+    assert.equal(osHealth.status, 200);
+    assert.equal(osHealth.json.ok, true);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    if (prev === undefined) {
+      delete process.env.STUDIO_API_ORIGIN;
+    } else {
+      process.env.STUDIO_API_ORIGIN = prev;
+    }
+  }
+});
+
 test('Windows installer scripts are ASCII so PowerShell 5.1 does not eat quotes', () => {
   const files = [
     path.join(__dirname, 'Patch-OsBridge.ps1'),
     path.join(__dirname, '..', '..', 'INSTALL-OS-BRIDGE.ps1'),
     path.join(__dirname, '..', '..', 'Scan-ShiBassApis.ps1'),
     path.join(__dirname, '..', '..', 'Scan.ps1'),
+    path.join(__dirname, '..', '..', 'START-OS-SERVER.cmd'),
     path.join(__dirname, '..', '..', 'INSTALL-OS-BRIDGE.ps1'),
   ];
   const patcher = fs.readFileSync(files[0], 'utf8');
