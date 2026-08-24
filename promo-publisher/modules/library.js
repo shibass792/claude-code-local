@@ -270,6 +270,33 @@ function getIndexStatus() {
   };
 }
 
+function findTrack(id) {
+  if (id === undefined || id === null || id === '') {
+    return null;
+  }
+  let decoded = String(id);
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    decoded = String(id);
+  }
+  const index = getIndex();
+  const tracks = index?.tracks ?? [];
+  if (!tracks.length) {
+    return null;
+  }
+  const asNumber = Number(decoded);
+  if (Number.isInteger(asNumber) && asNumber >= 0 && tracks[asNumber]) {
+    return tracks[asNumber];
+  }
+  return tracks.find((track) => (
+    track.path === decoded
+    || track.fileName === decoded
+    || track.name === decoded
+    || track.displayName === decoded
+  )) ?? null;
+}
+
 function searchTracks(query, { limit = 50, category } = {}) {
   const index = getIndex();
   if (!index?.tracks?.length) {
@@ -307,5 +334,6 @@ module.exports = {
   scanLibrary,
   getIndex,
   getIndexStatus,
+  findTrack,
   searchTracks,
 };

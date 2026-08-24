@@ -11,6 +11,7 @@
     "render:reel": "node scripts/render-reel.js",
     "doctor": "node scripts/doctor.js",
     "import:social": "node scripts/import-social-inbox.js",
+    "api": "node studio-api.js",
     "test": "node --test tests/*.test.js",
     "lint": "node scripts/lint.js"
   },

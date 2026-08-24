@@ -151,6 +151,23 @@ test('scanLibrary reports honestly when no roots are configured', async () => {
   }
 });
 
+test('findTrack looks up an indexed file by name or index', () => {
+  const track = {
+    path: path.join(TMP, 'drop.wav'),
+    name: 'drop',
+    fileName: 'drop.wav',
+    displayName: 'Drop',
+    category: 'audio',
+  };
+  fs.writeFileSync(library.MUSIC_INDEX, JSON.stringify({
+    totals: { all: 1, audio: 1, midi: 0, project: 0 },
+    tracks: [track],
+  }));
+  assert.equal(library.findTrack('drop.wav').path, track.path);
+  assert.equal(library.findTrack('0').fileName, 'drop.wav');
+  assert.equal(library.findTrack('missing'), null);
+});
+
 test.after(() => {
   fs.rmSync(TMP, { recursive: true, force: true });
 });
