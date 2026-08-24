@@ -279,9 +279,17 @@ test('Windows installer scripts are ASCII so PowerShell 5.1 does not eat quotes'
     path.join(__dirname, '..', '..', 'Scan-ShiBassApis.ps1'),
     path.join(__dirname, '..', '..', 'UPDATE-LOCAL-PC.ps1'),
     path.join(__dirname, '..', '..', 'UPDATE-LOCAL-PC.cmd'),
+    path.join(__dirname, '..', '..', 'INSTALL-KIRO-CREW.ps1'),
+    path.join(__dirname, '..', '..', 'START-KIRO-CREW.ps1'),
+    path.join(__dirname, '..', '..', 'START-KIRO-CREW.cmd'),
   ];
   const patcher = fs.readFileSync(files[0], 'utf8');
   assert.match(patcher, /Scan-ShiBassApis\.ps1/);
+  const startKiro = fs.readFileSync(path.join(__dirname, '..', '..', 'START-KIRO-CREW.ps1'), 'utf8');
+  assert.match(startKiro, /5476/);
+  assert.match(startKiro, /4000/);
+  assert.match(startKiro, /4052/);
+  assert.match(startKiro, /8788/);
   for (const filePath of files) {
     const bytes = fs.readFileSync(filePath);
     for (let i = 0; i < bytes.length; i += 1) {

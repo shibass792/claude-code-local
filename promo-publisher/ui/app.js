@@ -212,20 +212,26 @@ async function loadConnections() {
     grid.appendChild(mcpCard);
   }
 
-  Object.entries(health).forEach(([_key, item]) => {
+  Object.entries(health).forEach(([key, item]) => {
+    if (key === 'engines') {
+      return;
+    }
     if (!item || typeof item !== 'object' || !item.label) {
       return;
     }
-    const configured = item.configured ?? item.cloudflared ?? item.available;
+    const configured = item.configured ?? item.available ?? item.cloudflared;
+    const statusText = item.statusText
+      || (configured ? 'מחובר / מוגדר' : 'דורש הגדרה ב-.env');
     const card = document.createElement('div');
     card.className = 'connection-card';
     card.innerHTML = `
-      <h3>${item.label}</h3>
+      <h3>${escapeHtml(item.label)}</h3>
       <div class="connection-status">
         <div class="status-indicator ${configured ? 'online' : ''}" style="${configured ? '' : 'background:#ef4444'}"></div>
-        <span>${configured ? 'מחובר / מוגדר' : 'דורש הגדרה ב-.env'}</span>
+        <span>${escapeHtml(statusText)}</span>
       </div>
-      ${item.mode ? `<p class="muted">מצב TikTok: ${item.mode}</p>` : ''}
+      ${item.url ? `<p class="muted" dir="ltr">${escapeHtml(item.url)}</p>` : ''}
+      ${item.mode ? `<p class="muted">מצב TikTok: ${escapeHtml(item.mode)}</p>` : ''}
     `;
     grid.appendChild(card);
   });

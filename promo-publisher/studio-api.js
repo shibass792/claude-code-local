@@ -22,6 +22,7 @@ const career = require('./modules/career-ladder');
 const psyPack = require('./modules/psy-pack');
 const sql = require('./modules/sql-db');
 const { scanFakeApis } = require('./modules/scan-fake');
+const kiroCrew = require('./modules/kiro-crew');
 
 async function careerDashboard() {
   const engines = await getEngineStatus();
@@ -387,6 +388,7 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && route === '/api/connections') {
     sendJson(res, 200, {
       ...approval.getConnectionHealth(),
+      kiro: await kiroCrew.kiroConnectionCard(),
       engines: await getEngineStatus(),
     });
     return;

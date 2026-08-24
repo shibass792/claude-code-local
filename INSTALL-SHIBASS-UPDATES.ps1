@@ -114,6 +114,9 @@ function Copy-RepoToTarget {
     "Scan-ShiBassApis.ps1",
     "UPDATE-LOCAL-PC.ps1",
     "UPDATE-LOCAL-PC.cmd",
+    "INSTALL-KIRO-CREW.ps1",
+    "START-KIRO-CREW.ps1",
+    "START-KIRO-CREW.cmd",
     "START-SOCIAL-STUDIO.cmd",
     "START-STUDIO-API.cmd",
     "START-CLAUDE-MCP-SETUP.cmd"

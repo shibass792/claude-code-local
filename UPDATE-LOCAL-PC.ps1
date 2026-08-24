@@ -78,6 +78,9 @@ foreach ($name in $bridgeFiles) {
 Install-File "Scan-ShiBassApis.ps1" (Join-Path $TargetRoot "Scan-ShiBassApis.ps1")
 Install-File "INSTALL-OS-BRIDGE.ps1" (Join-Path $TargetRoot "INSTALL-OS-BRIDGE.ps1")
 Install-File "UPDATE-LOCAL-PC.ps1" (Join-Path $TargetRoot "UPDATE-LOCAL-PC.ps1")
+Install-File "INSTALL-KIRO-CREW.ps1" (Join-Path $TargetRoot "INSTALL-KIRO-CREW.ps1")
+Install-File "START-KIRO-CREW.ps1" (Join-Path $TargetRoot "START-KIRO-CREW.ps1")
+Install-File "START-KIRO-CREW.cmd" (Join-Path $TargetRoot "START-KIRO-CREW.cmd")
 
 $apply = Join-Path $dest "apply.js"
 Write-Step "Patch server.js so 4000 proxies studio APIs to 4052"
@@ -104,3 +107,5 @@ Write-Host "1. Restart: node server.js   (port 4000)"
 Write-Host "2. Keep studio API: cd H:\shibass-ai\promo-publisher"
 Write-Host "3. Then: npm run api"
 Write-Host "4. Scan: powershell -ExecutionPolicy Bypass -File H:\shibass-ai\Scan-ShiBassApis.ps1"
+Write-Host "5. Optional Kiro Crew on 5476 (never 4000/4052/8788):"
+Write-Host "   powershell -ExecutionPolicy Bypass -File H:\shibass-ai\INSTALL-KIRO-CREW.ps1"

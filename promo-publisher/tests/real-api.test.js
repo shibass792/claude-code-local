@@ -123,6 +123,11 @@ test('HTTP studio API serves engines and music index', async () => {
   const engines = await fetch(`http://127.0.0.1:${port}/api/engines`).then((res) => res.json());
   assert.equal(engines.mock, false);
   assert.equal(engines.engines.ffmpeg.available, true);
+  const connections = await fetch(`http://127.0.0.1:${port}/api/connections`).then((res) => res.json());
+  assert.equal(connections.kiro.mock, false);
+  assert.equal(typeof connections.kiro.label, 'string');
+  assert.match(connections.kiro.url, /127\.0\.0\.1/);
+  assert.ok(connections.kiro.statusText);
   const index = await fetch(`http://127.0.0.1:${port}/api/music/index`).then((res) => res.json());
   assert.ok(Array.isArray(index.tracks));
   const escapeAttempt = await fetch(`http://127.0.0.1:${port}/api/file?path=${encodeURIComponent('../../../../etc/passwd')}`);
