@@ -140,7 +140,8 @@ foreach ($f in @(
     "INSTALL-SHIBASS-UPDATES.cmd",
     "INSTALL-FROM-DOWNLOADS.ps1",
     "START-SOCIAL-STUDIO.cmd",
-    "START-MIDI-FORGE-DEMUCS.cmd"
+    "START-MIDI-FORGE-DEMUCS.cmd",
+    "Scan.ps1"
   )) {
   $sf = Join-Path $repoRoot.FullName $f
   if (Test-Path $sf) {

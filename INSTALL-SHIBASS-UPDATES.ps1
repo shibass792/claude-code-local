@@ -103,7 +103,7 @@ function Copy-RepoToTarget {
 
   Ensure-Dir (Join-Path $TargetRoot "10_OUTPUTS\social")
 
-  $files = @("INSTALL-SHIBASS-UPDATES.ps1", "INSTALL-SHIBASS-UPDATES.cmd", "START-SOCIAL-STUDIO.cmd")
+  $files = @("INSTALL-SHIBASS-UPDATES.ps1", "INSTALL-SHIBASS-UPDATES.cmd", "START-SOCIAL-STUDIO.cmd", "Scan.ps1")
   foreach ($f in $files) {
     $srcFile = Join-Path $SourceRoot $f
     if (Test-Path $srcFile) {

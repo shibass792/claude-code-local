@@ -123,7 +123,8 @@ foreach ($f in @(
     "INSTALL-SHIBASS-UPDATES.ps1",
     "INSTALL-SHIBASS-UPDATES.cmd",
     "START-SOCIAL-STUDIO.cmd",
-    "START-MIDI-FORGE-DEMUCS.cmd"
+    "START-MIDI-FORGE-DEMUCS.cmd",
+    "Scan.ps1"
   )) {
   $sf = Join-Path $src $f
   if (Test-Path $sf) {
