@@ -1,96 +1,72 @@
 #Requires -Version 5.1
-<#
-.SYNOPSIS
-  Scan H:\shibass-ai frontend files for /api/* calls and probe the main server.
-
-.DESCRIPTION
-  Collects JS/TS/HTML panel files, extracts fetch/axios endpoints, then OPTIONS
-  each one against the ShiBass main server (default http://127.0.0.1:4000).
-
-  Run this on the Windows machine, with server.js already listening:
-
-      powershell -NoProfile -ExecutionPolicy Bypass -File H:\shibass-ai\Scan.ps1
-
-  Or from this repo after copying the file onto H:\.
-#>
-[CmdletBinding()]
+# One-file scan. Creates itself on H:\ if you downloaded it, and pulls
+# tools/os-bridge when missing so you do not paste loops into the terminal.
 param(
-    [string]$Root = 'H:\shibass-ai',
-    [string]$ServerUrl = 'http://127.0.0.1:4000'
+  [string]$Root = "H:\shibass-ai",
+  [string]$ServerUrl = "http://127.0.0.1:4000",
+  [string]$StudioUrl = "http://127.0.0.1:4052",
+  [string]$Branch = "cursor/fix-electron-epipe-0efa",
+  [string]$RepoSlug = "shibass792/claude-code-local"
 )
 
-$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = "Stop"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 if (-not (Test-Path -LiteralPath $Root)) {
-    Write-Host "הנתיב $Root לא קיים במחשב הזה. הרץ את הסקריפט על Windows עם H:\shibass-ai." -ForegroundColor Red
-    exit 1
+  Write-Host ("Path missing: " + $Root) -ForegroundColor Red
+  exit 1
 }
 
-$SkipPattern = '\\node_modules\\|\\\.git\\|\\dist\\|\\build\\|\\\.electron-user-data\\'
-
-Write-Host "אוסף קבצים מ-$Root ..." -ForegroundColor Cyan
-$Files = Get-ChildItem -LiteralPath $Root -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object {
-        $_.Extension -match '\.(js|jsx|ts|tsx|mjs|cjs|html|vue)$' -and
-        $_.FullName -notmatch $SkipPattern
-    }
-
-Write-Host "נאספו $($Files.Count) קבצים. מחפש קריאות API..." -ForegroundColor Cyan
-
-$Endpoints = @{}
-$Regex = '(?:fetch|axios\.(?:get|post|put|delete))\s*\(\s*[`''"](?:window\.__getApiBase\(\)\s*\+\s*)?(/api/[^`''"?]+)'
-
-foreach ($File in $Files) {
-    $Content = Get-Content -LiteralPath $File.FullName -Raw -ErrorAction SilentlyContinue
-    if (-not $Content) { continue }
-    if ($Content -match $Regex) {
-        $Matches = [regex]::Matches($Content, $Regex)
-        foreach ($Match in $Matches) {
-            $Endpoint = $Match.Groups[1].Value
-            $Endpoints[$Endpoint] = $true
-        }
-    }
+function Get-RawUrl([string]$RelativePath) {
+  return "https://raw.githubusercontent.com/$RepoSlug/$Branch/$RelativePath"
 }
 
-Write-Host "מצאתי $($Endpoints.Count) קריאות API שונות. מתחיל בדיקה מול $ServerUrl..." -ForegroundColor Yellow
-
-$Working = @()
-$Missing = @()
-
-foreach ($Endpoint in $Endpoints.Keys) {
-    $FullUrl = "$ServerUrl$Endpoint"
-    try {
-        $Response = Invoke-WebRequest -Uri $FullUrl -Method Options -UseBasicParsing -TimeoutSec 8
-        if ($Response.StatusCode -ne 404) {
-            $Working += $Endpoint
-        } else {
-            $Missing += $Endpoint
-        }
-    } catch {
-        if ($_.Exception.Response.StatusCode.value__ -eq 404) {
-            $Missing += $Endpoint
-        } elseif ($_.Exception.Response -eq $null) {
-            Write-Host "השרת לא מגיב ב-$ServerUrl. ודא ש-server.js פועל!" -ForegroundColor Red
-            break
-        } else {
-            $Working += $Endpoint
-        }
-    }
+function Ensure-File([string]$RelativePath, [string]$Destination) {
+  $dir = Split-Path -Parent $Destination
+  if (-not (Test-Path -LiteralPath $dir)) {
+    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+  }
+  if ((Test-Path -LiteralPath $Destination) -and ((Get-Item -LiteralPath $Destination).Length -gt 20)) {
+    return
+  }
+  $url = Get-RawUrl $RelativePath
+  Write-Host ("[scan] download " + $RelativePath)
+  Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $Destination
 }
 
-Write-Host "`nנקודות קצה פעילות (Backend קיים בשרת):" -ForegroundColor Green
-if ($Working.Count -eq 0) {
-    Write-Host "  (אין)" -ForegroundColor DarkGreen
-} else {
-    $Working | Sort-Object | ForEach-Object { Write-Host "  - $_" }
+$bridgeDir = Join-Path $Root "tools\os-bridge"
+Ensure-File "tools/os-bridge/routes.js" (Join-Path $bridgeDir "routes.js")
+Ensure-File "tools/os-bridge/scan.js" (Join-Path $bridgeDir "scan.js")
+Ensure-File "tools/os-bridge/proxy.js" (Join-Path $bridgeDir "proxy.js")
+
+$scanJs = Join-Path $bridgeDir "scan.js"
+if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+  throw "node.exe is not on PATH."
 }
 
-Write-Host "`nנקודות קצה חסרות (דורשות פיתוח בשרת):" -ForegroundColor Red
-if ($Missing.Count -eq 0) {
-    Write-Host "  (אין)" -ForegroundColor DarkRed
-} else {
-    $Missing | Sort-Object | ForEach-Object { Write-Host "  - $_" }
+$outDir = Join-Path $Root "output"
+if (-not (Test-Path -LiteralPath $outDir)) {
+  New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+}
+$outFile = Join-Path $outDir "api-scan.json"
+
+Write-Host "[scan] ShiBass API scan"
+Write-Host ("[scan] root   " + $Root)
+Write-Host ("[scan] os     " + $ServerUrl)
+Write-Host ("[scan] studio " + $StudioUrl)
+Write-Host ""
+
+& node $scanJs --root $Root --os $ServerUrl --studio $StudioUrl --out $outFile --probe
+if ($LASTEXITCODE -ne 0) {
+  throw "scan.js exited $LASTEXITCODE"
 }
 
-Write-Host "`nסריקה הושלמה." -ForegroundColor Cyan
-Write-Host "העתק לכאן את הרשימה האדומה (החסרה) כדי שנכתוב לה את קוד השרת." -ForegroundColor Cyan
+Write-Host ""
+Write-Host "[scan] JSON report:"
+Write-Host $outFile
+Write-Host ""
+Write-Host "If OPTIONS 404 on 4000 for /api/engines /api/render /api/approval:"
+Write-Host "  1) powershell -ExecutionPolicy Bypass -File H:\shibass-ai\INSTALL-OS-BRIDGE.ps1"
+Write-Host "  2) Restart node server.js on 4000"
+Write-Host "  3) powershell -ExecutionPolicy Bypass -File H:\shibass-ai\START-STUDIO-API.cmd"
+Write-Host "     or: cd H:\shibass-ai\promo-publisher ; npm run api"
