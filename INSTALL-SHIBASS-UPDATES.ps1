@@ -110,6 +110,10 @@ function Copy-RepoToTarget {
     "INSTALL-CLAUDE-MCP.cmd",
     "INSTALL-SB-DAW-JOBS.ps1",
     "INSTALL-SB-DAW-JOBS.cmd",
+    "INSTALL-OS-BRIDGE.ps1",
+    "Scan-ShiBassApis.ps1",
+    "UPDATE-LOCAL-PC.ps1",
+    "UPDATE-LOCAL-PC.cmd",
     "START-SOCIAL-STUDIO.cmd",
     "START-STUDIO-API.cmd",
     "START-CLAUDE-MCP-SETUP.cmd"
@@ -171,6 +175,18 @@ if (Test-Path -LiteralPath $sbDaw) {
   $ErrorActionPreference = $prevDaw
 }
 
+$osBridge = Join-Path $TargetRoot "tools\os-bridge\Patch-OsBridge.ps1"
+if (Test-Path -LiteralPath $osBridge) {
+  Write-Step "Mounting OS bridge on server.js (4000 -> 4052)..."
+  $prevOs = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $osBridge -TargetRoot $TargetRoot -Branch $Branch
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "OS bridge patch reported an error. Run UPDATE-LOCAL-PC.ps1 after Node is on PATH." -ForegroundColor Yellow
+  }
+  $ErrorActionPreference = $prevOs
+}
+
 Remove-Item $staging -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
@@ -180,5 +196,7 @@ Write-Host ("Social: " + $TargetRoot + "\START-SOCIAL-STUDIO.cmd")
 Write-Host ("Studio API: " + $TargetRoot + "\START-STUDIO-API.cmd")
 Write-Host ("Claude MCP: " + $TargetRoot + "\INSTALL-CLAUDE-MCP.cmd")
 Write-Host ("sb-daw jobs: " + $TargetRoot + "\INSTALL-SB-DAW-JOBS.cmd")
+Write-Host ("OS bridge: " + $TargetRoot + "\UPDATE-LOCAL-PC.ps1")
+Write-Host ("API scan: " + $TargetRoot + "\Scan-ShiBassApis.ps1")
 Write-Host ("Demucs: " + $TargetRoot + "\scripts\wire-demucs-for-midi-forge.ps1")
 Write-Host ""
