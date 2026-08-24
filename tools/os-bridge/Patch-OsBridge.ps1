@@ -73,6 +73,22 @@ if (Test-Path -LiteralPath $repoCopy) {
   }
 }
 
+function Install-RootScript([string]$RelativePath) {
+  $leaf = Split-Path -Leaf $RelativePath
+  $destination = Join-Path $TargetRoot $leaf
+  $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+  $local = Join-Path $repoRoot ($RelativePath.Replace("/", "\"))
+  if (Test-Path -LiteralPath $local) {
+    Copy-Item -LiteralPath $local -Destination $destination -Force
+    Write-Ok ("Copied " + $leaf + " -> " + $destination)
+  } else {
+    Install-File $RelativePath $destination
+  }
+}
+
+Install-RootScript "Scan-ShiBassApis.ps1"
+Install-RootScript "INSTALL-OS-BRIDGE.ps1"
+
 $apply = Join-Path $dest "apply.js"
 if (-not (Test-Path -LiteralPath $apply)) {
   throw "apply.js is missing under $dest"

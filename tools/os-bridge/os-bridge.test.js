@@ -278,6 +278,8 @@ test('Windows installer scripts are ASCII so PowerShell 5.1 does not eat quotes'
     path.join(__dirname, '..', '..', 'INSTALL-OS-BRIDGE.ps1'),
     path.join(__dirname, '..', '..', 'Scan-ShiBassApis.ps1'),
   ];
+  const patcher = fs.readFileSync(files[0], 'utf8');
+  assert.match(patcher, /Scan-ShiBassApis\.ps1/);
   for (const filePath of files) {
     const bytes = fs.readFileSync(filePath);
     for (let i = 0; i < bytes.length; i += 1) {
