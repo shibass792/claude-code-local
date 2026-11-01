@@ -30,7 +30,15 @@ foreach ($dest in $destinations) {
         Write-Host "Already in place -> $dest"
         continue
     }
-    Copy-Item -Path (Join-Path $source "*") -Destination $dest -Recurse -Force
+    # robocopy instead of Copy-Item: Windows PowerShell 5.1's Copy-Item -Recurse with a
+    # wildcard fails on subfolders ("Container cannot be copied onto existing leaf item").
+    robocopy $source $dest /E /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) {
+        Write-Error "robocopy failed (exit $LASTEXITCODE) copying to $dest. Check that this path is a folder, not a file."
+    }
+    if (-not (Test-Path (Join-Path $dest "SKILL.md"))) {
+        Write-Error "SKILL.md missing in $dest after copy."
+    }
     Write-Host "Installed fix-ticket -> $dest"
 }
 
