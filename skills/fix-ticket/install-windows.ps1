@@ -25,6 +25,11 @@ $destinations = @(
 
 foreach ($dest in $destinations) {
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    # Unzipped straight into the destination: nothing to copy (Copy-Item onto itself fails).
+    if ((Resolve-Path $dest).Path.TrimEnd('\') -ieq (Resolve-Path $source).Path.TrimEnd('\')) {
+        Write-Host "Already in place -> $dest"
+        continue
+    }
     Copy-Item -Path (Join-Path $source "*") -Destination $dest -Recurse -Force
     Write-Host "Installed fix-ticket -> $dest"
 }
