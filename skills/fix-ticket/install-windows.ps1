@@ -24,6 +24,14 @@ $destinations = @(
 )
 
 foreach ($dest in $destinations) {
+    # A file (not a folder) already named fix-ticket blocks the copy (robocopy ERROR 267).
+    # Keep it as a backup rather than deleting it.
+    if (Test-Path -LiteralPath $dest -PathType Leaf) {
+        $backup = "$dest.old"
+        if (Test-Path -LiteralPath $backup) { $backup = "$dest.old-$(Get-Date -Format yyyyMMddHHmmss)" }
+        Move-Item -LiteralPath $dest -Destination $backup
+        Write-Host "A file was in the way; moved it to $backup"
+    }
     New-Item -ItemType Directory -Force -Path $dest | Out-Null
     # Unzipped straight into the destination: nothing to copy (Copy-Item onto itself fails).
     if ((Resolve-Path $dest).Path.TrimEnd('\') -ieq (Resolve-Path $source).Path.TrimEnd('\')) {
