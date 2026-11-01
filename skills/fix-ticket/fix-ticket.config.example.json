@@ -1,0 +1,10 @@
+{
+  "jira_site": "your-site.atlassian.net",
+  "base_branch": "main",
+  "repro_command": "",
+  "test_command": "npm test",
+  "review_agents": 3,
+  "vercel_project": "",
+  "deploy_target": "preview",
+  "jira_in_review_transition": "In Review"
+}
